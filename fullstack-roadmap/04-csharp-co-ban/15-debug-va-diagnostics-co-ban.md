@@ -252,15 +252,11 @@ Các lệnh điều khiển:
 | Step Into | đi vào method được gọi nếu có source/symbol phù hợp |
 | Step Out | chạy phần còn lại của method hiện tại và dừng ở caller |
 
-Conditional breakpoint `index == 1` vẫn có overhead vì debugger phải kiểm tra điều kiện khi đi qua điểm đó, nhưng tránh dừng ở mọi iteration. Logpoint có thể ghi message mà không dừng; dùng nó có kiểm soát và không đưa secret vào expression.
-
 ### Locals, Watch và Call Stack
 
 - **Locals/Variables** hiển thị parameter và local đang có trong stack frame được chọn.
 - **Watch** đánh giá expression do bạn nhập trong context frame hiện tại.
 - **Call Stack** cho biết chuỗi method dẫn tới vị trí dừng; chọn frame trên để xem state của caller.
-
-Watch/property evaluation có thể gọi getter hoặc `ToString()`. Nếu các method đó có side effect hoặc tốn I/O, chỉ riêng việc quan sát có thể làm đổi behavior/timing. Production code nên giữ getter đơn giản, và người debug không nên gọi method thay đổi state chỉ để “xem thử”.
 
 ### Stack frame, reference và object khi dừng
 
@@ -287,8 +283,6 @@ items array ──> [ref item #1, ref item #2]        │
 ```
 
 Mỗi `new InvoiceItem(...)` tạo một object riêng trên heap. Array là object khác và giữ reference tới chúng. Biến local `item` chỉ sao chép một reference từ array; debugger sửa `item.Quantity` (nếu setter tồn tại) sẽ sửa object dùng chung, không phải một bản clone.
-
-JIT có thể tối ưu local, inline method hoặc giữ value trong register, đặc biệt ở Release; một số biến có thể hiển thị là optimized away. Debug build thường dễ step và inspect hơn nhưng timing/performance không đại diện Release.
 
 ### Ba công cụ diagnostics trong ví dụ
 
@@ -322,8 +316,6 @@ Tái hiện ổn định -> khoanh input -> đặt breakpoint -> kiểm tra stat
 - function/method breakpoint: dừng khi method cụ thể được gọi;
 - logpoint/tracepoint: ghi thông tin không suspend thread.
 
-Không phải IDE/runtime nào cũng hỗ trợ mọi loại giống nhau. Breakpoint trong ứng dụng đa luồng có thể làm thay đổi timing và che/khơi ra race condition.
-
 ### Diagnostics production-friendly
 
 Một event hữu ích thường có:
@@ -342,7 +334,17 @@ Không log password, access/refresh token, API key, connection string, cookie/se
 - distributed traces nối request qua nhiều service;
 - profiler đo CPU/allocation/call stack theo mẫu.
 
-### Đo hiệu năng đúng phạm vi
+### Đào sâu (có thể quay lại sau)
+
+Conditional breakpoint `index == 1` vẫn có overhead vì debugger phải kiểm tra điều kiện khi đi qua điểm đó, nhưng tránh dừng ở mọi iteration. Logpoint có thể ghi message mà không dừng; dùng nó có kiểm soát và không đưa secret vào expression.
+
+Watch/property evaluation có thể gọi getter hoặc `ToString()`. Nếu các method đó có side effect hoặc tốn I/O, chỉ riêng việc quan sát có thể làm đổi behavior/timing. Production code nên giữ getter đơn giản, và người debug không nên gọi method thay đổi state chỉ để “xem thử”.
+
+JIT có thể tối ưu local, inline method hoặc giữ value trong register, đặc biệt ở Release; một số biến có thể hiển thị là optimized away. Debug build thường dễ step và inspect hơn nhưng timing/performance không đại diện Release.
+
+Không phải IDE/runtime nào cũng hỗ trợ mọi loại giống nhau. Breakpoint trong ứng dụng đa luồng có thể làm thay đổi timing và che/khơi ra race condition.
+
+#### Đo hiệu năng đúng phạm vi
 
 `Stopwatch` tốt để quan sát duration thô, không đủ cho microbenchmark tin cậy. Lần chạy đầu còn JIT, cache và GC làm nhiễu. Muốn kết luận tối ưu, đo Release, warm-up, nhiều iteration, dữ liệu đại diện và dùng công cụ benchmark/profiler phù hợp.
 

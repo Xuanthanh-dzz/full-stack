@@ -250,8 +250,6 @@ Stack frame Main                         Managed heap
 
 Phép gán `alias = original` copy **reference**, không copy array object. Do đó sửa `alias[0]` cũng quan sát được qua `original[0]`. Muốn mảng độc lập, phải tạo object mới, chẳng hạn `decimal[] copy = original[..];`.
 
-“Reference nằm trên stack” chỉ là mô hình thường gặp cho local variable đồng bộ. JIT có thể giữ biến trong register, và reference cũng có thể nằm trong field của một heap object. Điều quan trọng về ngữ nghĩa là hai biến đang giữ cùng định danh object.
-
 ### 4.7 `string` immutable nhưng vẫn là reference type
 
 `string` là class (`System.String`), vì vậy biến `string` giữ reference hoặc `null`. Tuy nhiên, nội dung của một string object không thể bị sửa sau khi object được tạo:
@@ -272,8 +270,6 @@ Stack frame Main                         Managed heap / intern pool
                                   +----->| "SALE"           |
                                          +------------------+
 ```
-
-Tính immutable giúp một string object được chia sẻ an toàn. Với rất nhiều phép nối trong vòng lặp, hãy dùng `StringBuilder` để tránh tạo dãy object trung gian không cần thiết.
 
 ### 4.8 UTF-16: `Length` đang đếm gì?
 
@@ -336,6 +332,12 @@ Mã định danh kỹ thuật thường dùng `Ordinal`/`OrdinalIgnoreCase`; vă
 ### 5.5 Khi nào không nên dùng array?
 
 Array phù hợp khi số phần tử cố định hoặc khi API cần vùng dữ liệu liên tiếp. Nếu cần thêm/xóa phần tử thường xuyên, `List<T>` thường phù hợp hơn; bài [Collection: `List`, `Dictionary`, `HashSet`, `Queue`, `Stack`](./13-collection-list-dictionary-hashset-queue-stack.md) sẽ trình bày sau.
+
+### Đào sâu (có thể quay lại sau)
+
+“Reference nằm trên stack” chỉ là mô hình thường gặp cho local variable đồng bộ. JIT có thể giữ biến trong register, và reference cũng có thể nằm trong field của một heap object. Điều quan trọng về ngữ nghĩa là hai biến đang giữ cùng định danh object.
+
+Tính immutable giúp một string object được chia sẻ an toàn. Với rất nhiều phép nối trong vòng lặp, hãy dùng `StringBuilder` để tránh tạo dãy object trung gian không cần thiết.
 
 ## 6. Lỗi thường gặp
 

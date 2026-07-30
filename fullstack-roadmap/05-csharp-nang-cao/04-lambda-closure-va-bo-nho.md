@@ -220,8 +220,6 @@ target type `Func<Product,bool>` cho compiler biết:
 }
 ```
 
-Lambda không phải một nominal type riêng như class/delegate đã khai báo. C# hiện đại có thể suy ra **natural delegate type** cho nhiều lambda đủ thông tin, nên một số câu `var f = ...` hợp lệ; không phải mọi lambda đều suy ra được. Ghi target delegate rõ như ví dụ vẫn làm contract input/output dễ đọc. Bài này chỉ dùng delegate, chưa dùng expression tree.
-
 ### 4.2 Parameter không phải captured variable
 
 Trong filter:
@@ -281,8 +279,6 @@ Main stack frame / registers                Managed heap
 
 Sau `minimumPrice = 800m`, field/storage trong H2 thành `800`. D1 vẫn trỏ H2 nên lần invoke tiếp theo thấy value mới. Local captured không còn chỉ là storage ngắn hạn trong stack frame theo mô hình thông thường; compiler hoist state cần sống lâu vào closure object hoặc representation tương đương.
 
-Delegate object D1 và closure target H2 là hai vai trò khác nhau. D1 nói “gọi method nào trên target nào”; H2 chứa captured state. Một closure có thể được nhiều delegate cùng tham chiếu nếu nhiều lambda trong cùng scope capture chung state.
-
 ### 4.5 Mỗi lần gọi factory tạo state độc lập
 
 Mỗi invocation `CounterFactory.Create()` có local `count` riêng. Hai lần gọi tạo hai closure state logic:
@@ -317,7 +313,27 @@ Func<Product, bool> inStock = static product => product.Stock > 0;
 
 Keyword `static` khiến compiler báo lỗi nếu lambda đọc local, parameter của method chứa nó hoặc `this`. Đây là cách biểu đạt behavior thuần theo input và ngăn closure ngoài ý muốn.
 
-Non-capturing lambda không cần target closure. Compiler có thể cache delegate instance để giảm allocation, nhưng đó là tối ưu implementation; code không nên dựa vào `ReferenceEquals` giữa các delegate được tạo từ lambda.
+Non-capturing lambda không cần target closure.
+
+### Đào sâu (có thể quay lại sau)
+
+Lambda không phải một nominal type riêng như class/delegate đã khai báo. C# hiện đại có thể suy ra **natural delegate type** cho nhiều lambda đủ thông tin, nên một số câu `var f = ...` hợp lệ; không phải mọi lambda đều suy ra được. Ghi target delegate rõ như ví dụ vẫn làm contract input/output dễ đọc. Bài này chỉ dùng delegate, chưa dùng expression tree.
+
+Delegate object D1 và closure target H2 là hai vai trò khác nhau. D1 nói “gọi method nào trên target nào”; H2 chứa captured state. Một closure có thể được nhiều delegate cùng tham chiếu nếu nhiều lambda trong cùng scope capture chung state.
+
+Compiler có thể cache delegate instance để giảm allocation, nhưng đó là tối ưu implementation; code không nên dựa vào `ReferenceEquals` giữa các delegate được tạo từ lambda.
+
+#### Closure và concurrency
+
+Captured variable mutable là shared state nếu delegate được gọi từ nhiều thread. `count++` không atomic; counter demo chỉ chạy tuần tự. Concurrency cần synchronization hoặc thiết kế không chia sẻ mutable state, sẽ học ở bài thread safety.
+
+#### Lambda không đồng nghĩa LINQ
+
+Lambda chỉ là cú pháp tạo anonymous function để convert sang delegate/expression tree. Ví dụ dùng vòng lặp thường, chưa dùng LINQ. LINQ là API khác nhận delegate/expression và sẽ được học trong module riêng.
+
+#### Allocation phải đo
+
+Capturing lambda thường cần closure state và delegate; non-capturing lambda có thể được cache. JIT/compiler có quyền tối ưu nếu không đổi observable behavior. Khi hot path quan trọng, đo allocation bằng profiler/benchmark thay vì kết luận chỉ từ dấu `=>`.
 
 ## 5. Kiến thức nền
 
@@ -334,18 +350,6 @@ Gán slot sang H2 làm lambda thấy H2 ở lần sau. Nó không tự deep-copy
 ### Capture `this`
 
 Lambda trong instance method dùng instance field/property sẽ capture `this`. Delegate từ đó giữ object hiện tại reachable. Với callback sống lâu, đây có thể giữ cả object graph lớn. Có thể copy đúng dữ liệu cần vào local nhỏ hoặc dùng static lambda nhận state qua parameter/API phù hợp.
-
-### Closure và concurrency
-
-Captured variable mutable là shared state nếu delegate được gọi từ nhiều thread. `count++` không atomic; counter demo chỉ chạy tuần tự. Concurrency cần synchronization hoặc thiết kế không chia sẻ mutable state, sẽ học ở bài thread safety.
-
-### Lambda không đồng nghĩa LINQ
-
-Lambda chỉ là cú pháp tạo anonymous function để convert sang delegate/expression tree. Ví dụ dùng vòng lặp thường, chưa dùng LINQ. LINQ là API khác nhận delegate/expression và sẽ được học trong module riêng.
-
-### Allocation phải đo
-
-Capturing lambda thường cần closure state và delegate; non-capturing lambda có thể được cache. JIT/compiler có quyền tối ưu nếu không đổi observable behavior. Khi hot path quan trọng, đo allocation bằng profiler/benchmark thay vì kết luận chỉ từ dấu `=>`.
 
 ## 6. Lỗi thường gặp
 

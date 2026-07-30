@@ -303,17 +303,23 @@ Event không tự tạo background thread, queue hay retry. Những nhu cầu đ
 
 Publisher thông báo fact đã xảy ra; nó không nên hỏi subscriber để quyết định invariant cốt lõi. Nếu workflow cần câu trả lời bắt buộc hoặc transaction chung, gọi dependency/service có contract return rõ thường phù hợp hơn event.
 
-### Field-like event và custom accessor
-
-Khai báo trong ví dụ là field-like event; compiler tạo backing delegate và `add/remove` accessor. C# cũng cho tự viết custom `add`/`remove` để chuyển tiếp subscription hoặc quản lý storage đặc biệt. Đây là công cụ framework-level; code ứng dụng thường nên bắt đầu bằng field-like event đơn giản.
-
 ### Event instance và static event
 
 Event instance thuộc một publisher object cụ thể. Static event thuộc type/process và dễ giữ subscriber rất lâu; phải có ownership unsubscribe đặc biệt rõ. Không dùng static event như một global message bus tiện tay.
 
-### Thread safety
+### Đào sâu (có thể quay lại sau)
+
+#### Field-like event và custom accessor
+
+Khai báo trong ví dụ là field-like event; compiler tạo backing delegate và `add/remove` accessor. C# cũng cho tự viết custom `add`/`remove` để chuyển tiếp subscription hoặc quản lý storage đặc biệt. Đây là công cụ framework-level; code ứng dụng thường nên bắt đầu bằng field-like event đơn giản.
+
+#### Thread safety
 
 Việc add/remove field-like event được compiler triển khai an toàn ở mức cập nhật delegate, nhưng toàn bộ business state và quan hệ với thời điểm raise không tự thread-safe. Race giữa unsubscribe và invocation vẫn có thể khiến handler đang được gọi từ snapshot invocation hiện tại. Concurrency cần policy riêng và sẽ học sau.
+
+Không đặt I/O chậm vào handler của hot path nếu chưa thiết kế async/backpressure.
+
+Nếu cần cô lập, xác định handler nào best-effort, log đủ context và quyết định retry/dead-letter rõ ràng.
 
 ## 6. Lỗi thường gặp
 
@@ -335,11 +341,11 @@ Mỗi `+=` thêm entry. Handler chạy lặp và một `-=` chỉ bỏ một mat
 
 ### Cho rằng handler tự chạy song song
 
-Invocation mặc định đồng bộ, tuần tự. Không đặt I/O chậm vào handler của hot path nếu chưa thiết kế async/backpressure.
+Invocation mặc định đồng bộ, tuần tự.
 
 ### Nuốt exception của mọi handler
 
-`catch { }` làm mất lỗi và che trạng thái thiếu notification. Nếu cần cô lập, xác định handler nào best-effort, log đủ context và quyết định retry/dead-letter rõ ràng.
+`catch { }` làm mất lỗi và che trạng thái thiếu notification.
 
 ## 7. Bài tập
 

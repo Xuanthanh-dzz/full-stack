@@ -293,11 +293,17 @@ Nhiều BCL type như `CancellationTokenSource`, `SemaphoreSlim`, stream và tim
 
 ### Finalizer và `SafeHandle`
 
-Finalizer chạy không deterministic trên finalizer thread sau khi object được phát hiện unreachable. Nó làm object sống lâu hơn và không có thứ tự an toàn để gọi managed dependency khác. Chỉ type trực tiếp sở hữu unmanaged resource mới cân nhắc finalizer; ưu tiên bọc raw handle bằng `SafeHandle`, rồi owner dispose `SafeHandle`.
+Finalizer chạy không deterministic trên finalizer thread sau khi object được phát hiện unreachable. Chỉ type trực tiếp sở hữu unmanaged resource mới cân nhắc finalizer; ưu tiên bọc raw handle bằng `SafeHandle`, rồi owner dispose `SafeHandle`.
 
-Class chỉ sở hữu `StreamWriter` như sample không cần finalizer: writer/FileStream đã có cơ chế handle an toàn. `GC.SuppressFinalize(this)` chỉ có ý nghĩa trong dispose pattern của type có finalizer; không thêm máy móc vào mọi class.
+Class chỉ sở hữu `StreamWriter` như sample không cần finalizer: writer/FileStream đã có cơ chế handle an toàn.
 
-### Dispose pattern khi có inheritance
+### Đào sâu (có thể quay lại sau)
+
+Nó làm object sống lâu hơn và không có thứ tự an toàn để gọi managed dependency khác.
+
+`GC.SuppressFinalize(this)` chỉ có ý nghĩa trong dispose pattern của type có finalizer; không thêm máy móc vào mọi class.
+
+#### Dispose pattern khi có inheritance
 
 Sealed class có thể dùng pattern đơn giản như sample. Base class có thể được kế thừa cần `protected virtual Dispose(bool disposing)` để derived type cleanup đúng, và cần thiết kế rất cẩn thận. Ưu tiên composition/sealed owner nếu không có requirement inheritance.
 

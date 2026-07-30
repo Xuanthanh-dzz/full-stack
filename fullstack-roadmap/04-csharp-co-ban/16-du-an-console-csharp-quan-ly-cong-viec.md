@@ -616,7 +616,49 @@ tasks.json.tmp ── File.Move(overwrite) ──> tasks.json
 
 `Program.cs` chỉ chịu trách nhiệm chuyển input/output. `TodoService` quyết định thao tác nghiệp vụ. `JsonTodoRepository` biết cách biến dữ liệu thành JSON. `TodoItem` tự bảo vệ trạng thái hợp lệ.
 
-### 4.2 Mỗi lần `new` tạo gì?
+### 4.2 Vì sao dùng DTO riêng cho JSON?
+
+Nếu cho serializer sửa thẳng mọi property của `TodoItem`, code lưu trữ có thể tạo domain object không qua validation. `TodoDocument` có setter công khai vì nhiệm vụ của nó là vận chuyển dữ liệu. Khi load, repository gọi constructor `TodoItem`; invariant được kiểm tra lại tại biên vào.
+
+### 4.3 Ghi file tạm giải quyết được gì?
+
+`Save` serialize toàn bộ state thành string rồi ghi `tasks.json.tmp`. Chỉ khi ghi xong, `File.Move(..., overwrite: true)` mới thay file chính. Nếu serialize hoặc ghi file tạm thất bại, file chính cũ chưa bị đụng tới.
+
+### 4.4 Exit code
+
+- `0`: lệnh chạy thành công hoặc chỉ in hướng dẫn.
+- `1`: input đúng dạng nhưng không tìm thấy công việc.
+- `2`: sai command hoặc argument.
+- `3`: JSON đã hỏng.
+- `4`: lỗi I/O.
+
+Shell và pipeline có thể dựa vào exit code thay vì phải đọc câu tiếng Việt trên màn hình.
+
+## 5. Kiến thức nền
+
+### 5.1 Invariant nằm trong domain object
+
+`TodoItem` không cho code ngoài gán `Status` hoặc `Title` tùy ý. Thay đổi phải đi qua `Rename` và `MarkCompleted`. Constructor kiểm tra ID/title nên object vừa tạo đã hợp lệ.
+
+### 5.2 Interface là hợp đồng, class là implementation
+
+`TodoService` chỉ biết `ITodoRepository`. Hiện tại object thật là `JsonTodoRepository`; về sau có thể thay bằng database repository mà không đổi rule `Add`, `MarkCompleted` và `Remove`.
+
+Đây là lợi ích trực tiếp của interface, không phải lý do để tạo interface cho mọi class. Ranh giới lưu trữ có khả năng thay đổi nên abstraction này có mục đích rõ.
+
+### 5.3 Collection và quyền sửa
+
+Service giữ `List<TodoItem>` vì cần `Add` và `Remove`, nhưng không trả list hay mutable item ra ngoài. `GetAll` tạo các `TodoItemView` chỉ đọc rồi bọc list kết quả; caller không thể gọi `Rename`/`MarkCompleted` trên domain object mà quên `Save`. Đây là snapshot nông an toàn vì các field value được copy và `string` là immutable. Đổi lại, mỗi lần gọi tạo allocation; hệ thống lớn có thể dùng projection/read model tối ưu hơn sau khi đo.
+
+`readonly` ở field `_items` chỉ ngăn gán field sang list khác sau constructor; nó không làm nội dung list bất biến. Quyền mutation đến từ việc service giữ kín reference mutable và chỉ công khai operation có kiểm soát.
+
+### 5.4 UTC và thời gian hiển thị
+
+Project lưu `DateTimeOffset.UtcNow`, vì một mốc thời gian cần offset rõ ràng. UI đang hiển thị UTC. Ứng dụng thực tế có thể chuyển sang timezone của người dùng ở biên hiển thị, nhưng dữ liệu lưu vẫn nên có offset hoặc UTC nhất quán.
+
+### Đào sâu (có thể quay lại sau)
+
+#### Mỗi lần `new` tạo gì?
 
 Sau hai dòng trong `Program.cs`:
 
@@ -655,49 +697,9 @@ Local variable `item` và một phần tử trong `List<TodoItem>` cùng tham ch
 
 Các field `Id` (`int`), `Status` (`enum`) và `CreatedAt` (`DateTimeOffset`, một `struct`) là value data nằm inline trong object E. Field `Title` giữ reference đến một string object; nó không chứa trực tiếp toàn bộ ký tự theo mô hình field reference.
 
-### 4.3 Vì sao dùng DTO riêng cho JSON?
-
-Nếu cho serializer sửa thẳng mọi property của `TodoItem`, code lưu trữ có thể tạo domain object không qua validation. `TodoDocument` có setter công khai vì nhiệm vụ của nó là vận chuyển dữ liệu. Khi load, repository gọi constructor `TodoItem`; invariant được kiểm tra lại tại biên vào.
-
-### 4.4 Ghi file tạm giải quyết được gì?
-
-`Save` serialize toàn bộ state thành string rồi ghi `tasks.json.tmp`. Chỉ khi ghi xong, `File.Move(..., overwrite: true)` mới thay file chính. Nếu serialize hoặc ghi file tạm thất bại, file chính cũ chưa bị đụng tới.
-
 Cách này giảm nguy cơ file chính bị ghi dở, nhưng chưa phải transaction bền vững cho mọi filesystem và mọi kiểu sự cố. Hệ thống nhiều process còn cần lock hoặc database. Bài này chỉ có một process thao tác tại một thời điểm.
 
-### 4.5 Exit code
-
-- `0`: lệnh chạy thành công hoặc chỉ in hướng dẫn.
-- `1`: input đúng dạng nhưng không tìm thấy công việc.
-- `2`: sai command hoặc argument.
-- `3`: JSON đã hỏng.
-- `4`: lỗi I/O.
-
-Shell và pipeline có thể dựa vào exit code thay vì phải đọc câu tiếng Việt trên màn hình.
-
-## 5. Kiến thức nền
-
-### 5.1 Invariant nằm trong domain object
-
-`TodoItem` không cho code ngoài gán `Status` hoặc `Title` tùy ý. Thay đổi phải đi qua `Rename` và `MarkCompleted`. Constructor kiểm tra ID/title nên object vừa tạo đã hợp lệ.
-
-### 5.2 Interface là hợp đồng, class là implementation
-
-`TodoService` chỉ biết `ITodoRepository`. Hiện tại object thật là `JsonTodoRepository`; về sau có thể thay bằng database repository mà không đổi rule `Add`, `MarkCompleted` và `Remove`.
-
-Đây là lợi ích trực tiếp của interface, không phải lý do để tạo interface cho mọi class. Ranh giới lưu trữ có khả năng thay đổi nên abstraction này có mục đích rõ.
-
-### 5.3 Collection và quyền sửa
-
-Service giữ `List<TodoItem>` vì cần `Add` và `Remove`, nhưng không trả list hay mutable item ra ngoài. `GetAll` tạo các `TodoItemView` chỉ đọc rồi bọc list kết quả; caller không thể gọi `Rename`/`MarkCompleted` trên domain object mà quên `Save`. Đây là snapshot nông an toàn vì các field value được copy và `string` là immutable. Đổi lại, mỗi lần gọi tạo allocation; hệ thống lớn có thể dùng projection/read model tối ưu hơn sau khi đo.
-
-`readonly` ở field `_items` chỉ ngăn gán field sang list khác sau constructor; nó không làm nội dung list bất biến. Quyền mutation đến từ việc service giữ kín reference mutable và chỉ công khai operation có kiểm soát.
-
-### 5.4 UTC và thời gian hiển thị
-
-Project lưu `DateTimeOffset.UtcNow`, vì một mốc thời gian cần offset rõ ràng. UI đang hiển thị UTC. Ứng dụng thực tế có thể chuyển sang timezone của người dùng ở biên hiển thị, nhưng dữ liệu lưu vẫn nên có offset hoặc UTC nhất quán.
-
-### 5.5 Độ phức tạp hiện tại
+#### Độ phức tạp hiện tại
 
 `FindById` và `GetNextId` duyệt list nên có thời gian tuyến tính theo số công việc. Với dữ liệu cá nhân nhỏ, lựa chọn này đơn giản và đủ tốt. Khi dữ liệu lớn, database/index hoặc `Dictionary<int, TodoItem>` có thể phù hợp hơn; không tối ưu trước khi có nhu cầu.
 

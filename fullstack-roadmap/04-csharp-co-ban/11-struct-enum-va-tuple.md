@@ -245,19 +245,6 @@ Không chọn `struct` chỉ với mục tiêu “đưa dữ liệu lên stack�
 
 Không nên tạo cây kế thừa bằng struct: struct không kế thừa class/struct khác, dù có thể implement interface. Mọi struct đều kế thừa gián tiếp từ `System.ValueType` và `object` theo hệ thống kiểu.
 
-### `default` có thể bỏ qua constructor của struct
-
-Mọi struct luôn có một giá trị zero-initialized tạo được bằng `default`, và phần tử của `new Money[2]` cũng bắt đầu ở trạng thái đó:
-
-```csharp
-Money empty = default;
-Money[] values = new Money[2];
-```
-
-Hai value trên có `Amount == 0` và field reference đứng sau `Currency` bằng `null`, dù property được khai báo `string` non-nullable và constructor công khai đã validate currency. Constructor của `Money` không chạy cho quá trình zero-initialization này.
-
-Vì vậy constructor không thể một mình bảo đảm mọi bit-pattern của struct là domain value hợp lệ. Khi invalid default gây rủi ro lớn, hãy thiết kế struct chịu được default, kiểm tra `IsValid` tại boundary, hoặc chọn class/factory phù hợp hơn. Không gọi `Add` trên `default(Money)` trong thiết kế hiện tại vì constructor kế tiếp sẽ từ chối currency `null`.
-
 ### `enum` và giá trị số
 
 Mặc định underlying type của `enum` là `int`. Có thể ghi rõ, ví dụ `enum SmallCode : byte`. Runtime vẫn cho phép cast một số không được khai báo sang enum:
@@ -281,7 +268,22 @@ Tuple phù hợp cho kết quả cục bộ, ngắn và rõ nghĩa. Khi dữ li�
 
 `Tuple<T1,T2>` (class cũ) khác `ValueTuple<T1,T2>` (struct mà cú pháp `(T1, T2)` sử dụng). Trong code mới, named value tuple thường là lựa chọn gọn hơn cho kết quả nội bộ.
 
-### Boxing và unboxing
+### Đào sâu (có thể quay lại sau)
+
+#### `default` có thể bỏ qua constructor của struct
+
+Mọi struct luôn có một giá trị zero-initialized tạo được bằng `default`, và phần tử của `new Money[2]` cũng bắt đầu ở trạng thái đó:
+
+```csharp
+Money empty = default;
+Money[] values = new Money[2];
+```
+
+Hai value trên có `Amount == 0` và field reference đứng sau `Currency` bằng `null`, dù property được khai báo `string` non-nullable và constructor công khai đã validate currency. Constructor của `Money` không chạy cho quá trình zero-initialization này.
+
+Vì vậy constructor không thể một mình bảo đảm mọi bit-pattern của struct là domain value hợp lệ. Khi invalid default gây rủi ro lớn, hãy thiết kế struct chịu được default, kiểm tra `IsValid` tại boundary, hoặc chọn class/factory phù hợp hơn. Không gọi `Add` trên `default(Money)` trong thiết kế hiện tại vì constructor kế tiếp sẽ từ chối currency `null`.
+
+#### Boxing và unboxing
 
 Boxing xảy ra khi một value type được chuyển sang `object` hoặc sang interface mà runtime cần hộp chứa:
 

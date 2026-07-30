@@ -191,6 +191,8 @@ time ─────────────>
 
 Concurrency là thiết kế nhiều operation có lifetime chồng lấn và cùng tiến triển. Parallelism là một cách execution dùng nhiều processing unit cùng lúc. Một chương trình concurrent có thể chạy trên một core; một loop CPU có thể được parallelize trên nhiều core.
 
+.NET thread pool tái sử dụng worker cho `Task.Run`, timer callback và nhiều continuation.
+
 `Task.WhenAll` của async I/O phối hợp concurrent operations nhưng không tự tạo thread. `Parallel.For` chia CPU iterations cho scheduler và có thể chạy parallel. `Task.Run` queue delegate CPU/blocking work lên thread pool; nó cũng không bảo đảm một dedicated thread hoặc tốc độ tăng.
 
 ### Lost update là read-modify-write race
@@ -269,9 +271,11 @@ Nhiều hơn không luôn nhanh hơn. CPU cores, memory bandwidth, downstream co
 
 Async I/O cũng cần bounded concurrency; tạo một triệu Task cùng lúc có thể gây memory pressure hoặc overload dependency dù không có một triệu thread.
 
-### Thread pool
+### Đào sâu (có thể quay lại sau)
 
-.NET thread pool tái sử dụng worker cho `Task.Run`, timer callback và nhiều continuation. Blocking lâu trên pool có thể gây starvation; tạo thread thủ công chỉ hợp requirement rất cụ thể. Server code ưu tiên API async thật cho I/O.
+#### Thread pool
+
+Blocking lâu trên pool có thể gây starvation; tạo thread thủ công chỉ hợp requirement rất cụ thể. Server code ưu tiên API async thật cho I/O.
 
 ## 6. Lỗi thường gặp
 

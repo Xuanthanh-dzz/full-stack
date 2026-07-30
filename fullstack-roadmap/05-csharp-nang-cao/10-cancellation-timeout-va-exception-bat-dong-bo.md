@@ -267,7 +267,9 @@ await dependency.CallAsync(timeoutSource.Token);
 
 Trong ứng dụng thật thường link request token và timeout token. Quyết định mapping rõ: caller cancel có thể trả trạng thái khác dependency timeout. Không retry tự động một operation không idempotent.
 
-### `OperationCanceledException` và `TaskCanceledException`
+### Đào sâu (có thể quay lại sau)
+
+#### `OperationCanceledException` và `TaskCanceledException`
 
 `TaskCanceledException` kế thừa `OperationCanceledException`. Consumer thường catch base type và dùng token/filter để phân biệt cancellation mình dự kiến. Không nên phụ thuộc API cụ thể luôn ném subtype nào.
 

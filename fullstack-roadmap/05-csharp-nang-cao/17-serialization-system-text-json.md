@@ -297,8 +297,6 @@ runtime
 AppJsonContext.Default.OrderDto ---> JsonSerializer
 ```
 
-Cách này giảm nhu cầu reflection discovery runtime, cải thiện startup và khả năng trimming/Native AOT. Nó không bảo đảm zero allocation và không tự tối ưu network/I/O. Mọi type cần serialize phải có entry/context phù hợp hoặc resolver được cấu hình có chủ đích.
-
 ### 4.5. Unknown member là một trade-off versioning
 
 `JsonUnmappedMemberHandling.Disallow` bắt typo hoặc payload lệch contract sớm. Đổi lại, consumer cũ sẽ từ chối producer mới thêm field, làm giảm forward compatibility.
@@ -316,6 +314,12 @@ Chọn policy cùng chiến lược version, contract test và rollout, không c
 `DateTimeOffset` giữ timestamp cùng offset và được ghi theo ISO 8601. Với một thời điểm tuyệt đối, nó rõ hơn string tùy format. Vẫn phải thống nhất UTC/offset policy ở domain.
 
 JSON number không mang type CLR. Contract quyết định token được parse vào `decimal`, `int` hay `double`. `decimal` phù hợp tiền nhưng serializer không thay thế rounding/currency policy.
+
+### Đào sâu (có thể quay lại sau)
+
+#### Giới hạn của source generation
+
+Cách này giảm nhu cầu reflection discovery runtime, cải thiện startup và khả năng trimming/Native AOT. Nó không bảo đảm zero allocation và không tự tối ưu network/I/O. Mọi type cần serialize phải có entry/context phù hợp hoặc resolver được cấu hình có chủ đích.
 
 ## 5. Kiến thức nền
 

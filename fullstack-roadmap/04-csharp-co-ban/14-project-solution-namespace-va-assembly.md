@@ -252,21 +252,6 @@ Khi build solution, MSBuild đọc graph, build dependency trước và đưa ou
 
 Namespace không phải access boundary. Đặt một type vào namespace `StoreBilling.Domain.Secret` không làm type `public` trở nên bí mật.
 
-### Object và assembly là hai lớp khác nhau
-
-Hai lệnh `new InvoiceLine(...)` tạo hai object riêng trên managed heap. Array `lines` giữ hai reference. Cả hai object có cùng runtime type, và metadata của type đó đến từ assembly `StoreBilling.Domain` đã load:
-
-```text
-Loaded StoreBilling.Domain assembly metadata/code
-                 │ defines type
-                 v
-Heap: InvoiceLine object #1   InvoiceLine object #2
-             ^                       ^
-             └──── references in lines[] ────┘
-```
-
-Project reference không “chứa object” và không tạo bản sao type cho từng caller; nó cung cấp dependency compile/build, sau đó runtime dùng identity của type trong assembly đã load.
-
 ## 5. Kiến thức nền
 
 ### Nội dung quan trọng của `.csproj`
@@ -279,8 +264,6 @@ Project dùng SDK style:
 - `Nullable` bật phân tích nullable reference type;
 - `ImplicitUsings` tự thêm một tập namespace phổ biến;
 - `ItemGroup` chứa reference hoặc item khác.
-
-SDK mặc định glob các file `**/*.cs` trong project, nên thường không cần liệt kê từng source file. `bin/` là output build, `obj/` là intermediate/restore state; không sửa chúng như source và thường không commit.
 
 ### File-scoped namespace và `using`
 
@@ -303,6 +286,31 @@ using BillingLine = StoreBilling.Domain.Billing.InvoiceLine;
 - `PackageReference`: phụ thuộc package được phân phối qua NuGet feed; `dotnet restore` tải/chọn dependency theo metadata.
 - Assembly/file reference trực tiếp: trỏ tới DLL có sẵn; ít phù hợp hơn project/package vì khó tái tạo version và dependency đi kèm.
 
+### Thiết kế chiều phụ thuộc
+
+Library nghiệp vụ nên ít phụ thuộc vào UI/host. Nếu Domain reference CLI và CLI lại reference Domain, graph tạo cycle và build bị từ chối. Dependency một chiều giúp tái sử dụng Domain cho API, worker và test.
+
+Solution folder chỉ là cách nhóm trong solution, không tự thay đổi namespace, đường dẫn output hay dependency.
+
+### Đào sâu (có thể quay lại sau)
+
+#### Object và assembly là hai lớp khác nhau
+
+Hai lệnh `new InvoiceLine(...)` tạo hai object riêng trên managed heap. Array `lines` giữ hai reference. Cả hai object có cùng runtime type, và metadata của type đó đến từ assembly `StoreBilling.Domain` đã load:
+
+```text
+Loaded StoreBilling.Domain assembly metadata/code
+                 │ defines type
+                 v
+Heap: InvoiceLine object #1   InvoiceLine object #2
+             ^                       ^
+             └──── references in lines[] ────┘
+```
+
+Project reference không “chứa object” và không tạo bản sao type cho từng caller; nó cung cấp dependency compile/build, sau đó runtime dùng identity của type trong assembly đã load.
+
+SDK mặc định glob các file `**/*.cs` trong project, nên thường không cần liệt kê từng source file. `bin/` là output build, `obj/` là intermediate/restore state; không sửa chúng như source và thường không commit.
+
 Ví dụ cú pháp NuGet (không cần thêm vào bài mẫu):
 
 ```xml
@@ -312,12 +320,6 @@ Ví dụ cú pháp NuGet (không cần thêm vào bài mẫu):
 ```
 
 Không ghi version giả như trên vào project thật. Khi dùng package, chọn version có chủ đích, xem license/security, cấu hình feed tin cậy và bảo đảm CI restore tái tạo được. Bài mẫu không dùng external NuGet package nên build được chỉ với .NET 9 SDK/reference packs.
-
-### Thiết kế chiều phụ thuộc
-
-Library nghiệp vụ nên ít phụ thuộc vào UI/host. Nếu Domain reference CLI và CLI lại reference Domain, graph tạo cycle và build bị từ chối. Dependency một chiều giúp tái sử dụng Domain cho API, worker và test.
-
-Solution folder chỉ là cách nhóm trong solution, không tự thay đổi namespace, đường dẫn output hay dependency.
 
 ## 6. Lỗi thường gặp
 

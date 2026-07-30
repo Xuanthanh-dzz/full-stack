@@ -294,8 +294,6 @@ try
 
 Khi exception xuất hiện, các statement còn lại trong `try` bị bỏ qua. Runtime tìm handler phù hợp và tháo các stack frame (`stack unwinding`) cho tới nơi bắt được lỗi. `finally` dùng cho cleanup cần chạy dù thành công hay thất bại. Với tài nguyên implement `IDisposable`, cú pháp `using` thường rõ và an toàn hơn một `try/finally` gọi `Dispose` thủ công.
 
-Không coi `finally` là cam kết trong mọi tình huống vật lý: process bị kill cưỡng bức, mất điện hoặc lỗi runtime nghiêm trọng có thể khiến code cleanup không kịp chạy. Dữ liệu quan trọng vẫn cần thiết kế bền vững ở tầng lưu trữ.
-
 ### `throw`, rethrow và stack trace
 
 Trong `Inventory.Reserve`, `throw new InventoryUnavailableException(...)` tạo một exception object trên managed heap. Object này mang type, message, dữ liệu nghiệp vụ và stack trace khi được throw.
@@ -332,16 +330,6 @@ ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
 Lỗi xuất hiện gần nguồn nhất, `ParamName` rõ ràng và phần thân method không bị lồng nhiều `if`. Guard không thay thế validation nghiệp vụ tổng hợp ở UI/API; nó bảo vệ contract của code.
 
-### Exception filter
-
-`catch (...) when (...)` kiểm tra điều kiện trước khi handler được chọn. Nếu filter trả `false`, quá trình tìm handler tiếp tục mà chưa bước vào block `catch`. Filter nên nhanh, không thay đổi state và không tự ném lỗi.
-
-### Compensation không phải transaction
-
-`PlaceOrder` thay đổi hai nơi: tồn kho trong memory và file đơn hàng. Nếu `Reserve` thành công nhưng `Save` ném `OrderPersistenceException`, code gọi `Release` để trả tồn kho về giá trị trước đó rồi rethrow. Đây là **compensating action**, giúp service không tiếp tục với state “đã trừ hàng nhưng báo lưu thất bại”.
-
-Nó vẫn không tạo atomic transaction thật giữa memory và filesystem: process có thể dừng giữa các bước, file append có thể ghi được một phần trước khi báo lỗi, và compensation cũng có failure mode. Hệ thống production cần persistence/transaction boundary phù hợp, idempotency và recovery; các module database/architecture sẽ xử lý sâu hơn. Điểm của bài này là khi một method đã mutate state rồi thao tác sau thất bại, phải có quyết định rollback/compensate rõ ràng thay vì chỉ catch và tiếp tục.
-
 ## 5. Kiến thức nền
 
 ### Chọn cơ chế báo kết quả
@@ -353,8 +341,6 @@ Nó vẫn không tạo atomic transaction thật giữa memory và filesystem: p
 | Caller vi phạm contract của method | `ArgumentException` phù hợp |
 | Không đủ tồn kho, caller phải xử lý riêng | custom exception hoặc domain result tùy contract |
 | File/database/network thất bại bất thường | exception, có context và nguyên nhân gốc |
-
-Exception có chi phí tạo object, thu stack trace và unwind stack. Quan trọng hơn, exception làm luồng normal flow khó đọc. Không dùng `try/catch` thay cho `if`, `TryParse` hoặc `TryGetValue` ở đường đi dự kiến thường xuyên.
 
 ### Bắt exception ở đâu
 
@@ -378,6 +364,22 @@ Tránh `catch (Exception)` trong logic thông thường. Nếu dùng ở boundar
 Tên nên kết thúc bằng `Exception`. Chỉ tạo type mới khi caller cần phân biệt hoặc cần dữ liệu chuyên biệt. Message dành cho chẩn đoán, không phải contract để code parse. Đưa dữ liệu ổn định vào property như `Requested` và `Available`.
 
 Không đặt password, access token, connection string hoặc dữ liệu cá nhân không cần thiết trong message/property vì exception có thể được log qua nhiều tầng.
+
+### Đào sâu (có thể quay lại sau)
+
+Không coi `finally` là cam kết trong mọi tình huống vật lý: process bị kill cưỡng bức, mất điện hoặc lỗi runtime nghiêm trọng có thể khiến code cleanup không kịp chạy. Dữ liệu quan trọng vẫn cần thiết kế bền vững ở tầng lưu trữ.
+
+#### Exception filter
+
+`catch (...) when (...)` kiểm tra điều kiện trước khi handler được chọn. Nếu filter trả `false`, quá trình tìm handler tiếp tục mà chưa bước vào block `catch`. Filter nên nhanh, không thay đổi state và không tự ném lỗi.
+
+#### Compensation không phải transaction
+
+`PlaceOrder` thay đổi hai nơi: tồn kho trong memory và file đơn hàng. Nếu `Reserve` thành công nhưng `Save` ném `OrderPersistenceException`, code gọi `Release` để trả tồn kho về giá trị trước đó rồi rethrow. Đây là **compensating action**, giúp service không tiếp tục với state “đã trừ hàng nhưng báo lưu thất bại”.
+
+Nó vẫn không tạo atomic transaction thật giữa memory và filesystem: process có thể dừng giữa các bước, file append có thể ghi được một phần trước khi báo lỗi, và compensation cũng có failure mode. Hệ thống production cần persistence/transaction boundary phù hợp, idempotency và recovery; các module database/architecture sẽ xử lý sâu hơn. Điểm của bài này là khi một method đã mutate state rồi thao tác sau thất bại, phải có quyết định rollback/compensate rõ ràng thay vì chỉ catch và tiếp tục.
+
+Exception có chi phí tạo object, thu stack trace và unwind stack. Quan trọng hơn, exception làm luồng normal flow khó đọc. Không dùng `try/catch` thay cho `if`, `TryParse` hoặc `TryGetValue` ở đường đi dự kiến thường xuyên.
 
 ## 6. Lỗi thường gặp
 

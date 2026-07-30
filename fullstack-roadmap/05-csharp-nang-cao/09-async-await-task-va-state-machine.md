@@ -45,7 +45,7 @@ Thay `AsyncCheckoutDemo.csproj` bằng:
 </Project>
 ```
 
-Trong demo, `TaskCompletionSource<decimal>` là phía **producer** điều khiển một `Task<decimal>`: `Task` được đưa cho consumer, còn producer gọi `SetResult` để hoàn thành nó. Option `RunContinuationsAsynchronously` tránh chạy continuation ngay bên trong lệnh `SetResult`, giúp boundary producer/consumer rõ hơn.
+Trong demo, `TaskCompletionSource<decimal>` là phía **producer** điều khiển một `Task<decimal>`: `Task` được đưa cho consumer, còn producer gọi `SetResult` để hoàn thành nó.
 
 Thay toàn bộ `Program.cs`:
 
@@ -193,7 +193,13 @@ Gọi một `async` method bắt đầu thực thi ngay trên thread hiện tạ
 
 Nếu awaitable đã hoàn thành, `await` có thể tiếp tục đồng bộ mà không suspend. Vì vậy không được dựa vào `await` như một ranh giới chắc chắn đổi thread hoặc trì hoãn execution.
 
+Code đúng không dựa vào managed thread ID trước/sau `await` giống nhau.
+
 ### State machine giữ state qua lần tạm dừng
+
+Khi suspend, dữ liệu cần dùng sau `await` phải sống lâu hơn stack frame ban đầu. Compiler/runtime lưu state và đăng ký continuation với awaiter. Khi P1 và P2 hoàn thành, Task A hoàn thành; continuation khôi phục state, tính `subtotal`, `tax`, rồi complete Task C.
+
+### Đào sâu (có thể quay lại sau)
 
 Compiler biến method `async` thành state machine có ý tưởng:
 
@@ -209,19 +215,21 @@ Async state machine của CalculateAsync
 └─────────────────────────────────────────────┘
 ```
 
-Khi suspend, dữ liệu cần dùng sau `await` phải sống lâu hơn stack frame ban đầu. Compiler/runtime lưu state và đăng ký continuation với awaiter. Khi P1 và P2 hoàn thành, Task A hoàn thành; continuation khôi phục state, tính `subtotal`, `tax`, rồi complete Task C.
+Option `RunContinuationsAsynchronously` tránh chạy continuation ngay bên trong lệnh `SetResult`, giúp boundary producer/consumer rõ hơn.
 
 Chi tiết implementation có thể được JIT tối ưu; state machine thường bắt đầu dưới dạng struct do compiler sinh và chỉ cần representation sống lâu khi thực sự suspend. Điều cần dựa vào là semantics: local cần thiết được giữ, method tiếp tục đúng điểm, không phải stack frame cũ bị block.
 
-### Continuation và scheduling
+#### Continuation và scheduling
 
 `await` hỏi awaiter xem operation đã hoàn thành chưa. Nếu chưa, nó đăng ký continuation. Nơi continuation chạy phụ thuộc awaiter và context/scheduler hiện tại.
 
-Console application thường không có custom `SynchronizationContext`, nên continuation async thường được queue về thread pool và có thể chạy trên thread khác. UI framework có thể capture context để quay lại UI thread. Code đúng không dựa vào managed thread ID trước/sau `await` giống nhau.
+Console application thường không có custom `SynchronizationContext`, nên continuation async thường được queue về thread pool và có thể chạy trên thread khác. UI framework có thể capture context để quay lại UI thread.
 
 `RunContinuationsAsynchronously` trong producer ngăn `SetResult` trực tiếp chạy toàn bộ consumer continuation trên call stack của producer. Nó vẫn không hứa một thread riêng cho mỗi continuation.
 
 `ControlledPriceSource` chỉ là test double single-owner để điều khiển completion deterministic. `Dictionary` bên trong không thread-safe; đừng dùng class demo này như production source có nhiều producer thread. Bài concurrency sẽ dạy synchronization và concurrent collection.
+
+- `ValueTask<T>` chỉ nên dùng khi API/performance profile chứng minh có lợi; nó có quy tắc consumption phức tạp hơn.
 
 ## 5. Kiến thức nền
 
@@ -229,7 +237,6 @@ Console application thường không có custom `SynchronizationContext`, nên c
 
 - `Task` cho operation không trả value.
 - `Task<T>` cho operation trả `T`.
-- `ValueTask<T>` chỉ nên dùng khi API/performance profile chứng minh có lợi; nó có quy tắc consumption phức tạp hơn.
 - `async void` chỉ dành cho event handler bắt buộc có chữ ký `void`; caller không thể await hoặc quan sát completion/exception như `Task`.
 
 Tên method bất đồng bộ theo convention kết thúc bằng `Async`.

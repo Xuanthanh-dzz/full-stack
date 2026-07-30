@@ -306,7 +306,9 @@ Mỗi string mới phải chứa cả prefix cũ lẫn phần thêm. `StringBuil
 
 ### 4.3. Warmup và tiered compilation
 
-Lần gọi đầu có thể gồm JIT compilation, static initialization và cache lạnh. `WarmUp` gọi cả hai implementation trước khi đo. .NET còn có tiered compilation/dynamic PGO; 30 lần không bảo đảm mọi tier đã ổn định trên mọi máy. Nhiều sample giúp nhìn biến động, benchmark framework chuyên dụng có quy trình warmup/iteration tốt hơn.
+Lần gọi đầu có thể gồm JIT compilation, static initialization và cache lạnh. `WarmUp` gọi cả hai implementation trước khi đo.
+
+.NET còn có tiered compilation/dynamic PGO; 30 lần không bảo đảm mọi tier đã ổn định trên mọi máy.
 
 Không đưa setup, correctness comparison, `Console.WriteLine` hay forced GC vào timed region. Chúng là chi phí khác với operation cần đo.
 
@@ -403,6 +405,10 @@ Một con số không phải chân lý phổ quát. Báo runtime, hardware, samp
 ### Khi dùng công cụ chuyên dụng
 
 Harness nhỏ giúp hiểu cơ chế. Benchmark production nên dùng framework như BenchmarkDotNet để quản lý process isolation, warmup, iteration và diagnoser; profiler như `dotnet-trace`, `dotnet-counters` hoặc công cụ IDE giúp tìm hotspot thật. Chọn công cụ theo câu hỏi, không benchmark mọi method trước khi profile.
+
+### Đào sâu (có thể quay lại sau)
+
+Nhiều sample giúp nhìn biến động, benchmark framework chuyên dụng có quy trình warmup/iteration tốt hơn.
 
 ## 6. Lỗi thường gặp
 

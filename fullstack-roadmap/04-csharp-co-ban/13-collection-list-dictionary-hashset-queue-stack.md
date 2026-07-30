@@ -275,8 +275,6 @@ Warehouse object (heap)
 
 Sau `processedOrder.MarkProcessed()`, đọc object qua list hoặc dictionary đều thấy `Processed`, vì các reference trỏ cùng object. Biến `duplicateId` lại trỏ tới một object khác dù `Id` giống về chữ; dictionary từ chối thêm key nên object đó không nằm trong các collection của `Warehouse`.
 
-Các collection generic cũng là object trên heap và thường có backing storage riêng. Khi storage đầy, collection cấp phát storage lớn hơn rồi sao chép phần tử/reference. Vì vậy giữ `Capacity` quá lớn làm tốn memory, còn tăng từng phần tử vẫn có chi phí resize theo từng đợt.
-
 ### Hash, equality và bucket
 
 `Dictionary`/`HashSet` dùng hai bước ý tưởng:
@@ -332,7 +330,7 @@ Với `n` phần tử, các con số dưới đây là mô hình thường dùng
 | `Queue.Enqueue`/`TryDequeue` | amortized `O(1)` |
 | `Stack.Push`/`TryPop` | amortized `O(1)` |
 
-“Amortized” nghĩa là đa số thao tác rẻ, thỉnh thoảng resize tốn `O(n)`, nhưng chia trên một chuỗi dài thì chi phí trung bình mỗi thao tác vẫn gần hằng số. Big-O không nói hết latency, allocation hay cache locality; module cấu trúc dữ liệu sẽ đi sâu hơn.
+“Amortized” nghĩa là đa số thao tác rẻ, thỉnh thoảng resize tốn `O(n)`, nhưng chia trên một chuỗi dài thì chi phí trung bình mỗi thao tác vẫn gần hằng số.
 
 ### Thứ tự enumeration
 
@@ -342,7 +340,13 @@ Với `n` phần tử, các con số dưới đây là mô hình thường dùng
 
 `List<int>` có backing array chứa các `int` inline, không cần boxing mỗi phần tử như collection không generic cũ. `List<Order>` có backing array chứa các reference; từng `Order` là object riêng. Đây là lý do cần luôn hỏi: “collection chứa value hay chứa reference đến object nào?”.
 
-### Read-only interface không tự tạo immutability
+### Đào sâu (có thể quay lại sau)
+
+Các collection generic cũng là object trên heap và thường có backing storage riêng. Khi storage đầy, collection cấp phát storage lớn hơn rồi sao chép phần tử/reference. Vì vậy giữ `Capacity` quá lớn làm tốn memory, còn tăng từng phần tử vẫn có chi phí resize theo từng đợt.
+
+Big-O không nói hết latency, allocation hay cache locality; module cấu trúc dữ liệu sẽ đi sâu hơn.
+
+#### Read-only interface không tự tạo immutability
 
 Chỉ khai báo một mutable `List<T>` hoặc array dưới type `IReadOnlyList<T>` không đủ bảo vệ backing collection: runtime object vẫn có thể bị downcast về type thật. Ví dụ dùng `AsReadOnly()`/`Array.AsReadOnly()` để trả wrapper chặn thao tác cấu trúc qua reference được công khai.
 

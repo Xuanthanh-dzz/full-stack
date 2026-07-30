@@ -305,8 +305,6 @@ Span có thể trỏ vào stack memory hoặc interior của managed object. N�
 - không capture trong lambda/local function tạo closure;
 - không được sống qua `await` hoặc `yield`.
 
-C# mới cho phép một số ref-struct local trong async/iterator nếu compiler chứng minh chúng không vượt qua suspension point. Quy tắc an toàn vẫn là: kết thúc mọi thao tác span trước `await`; dùng `Memory<T>` nếu dữ liệu cần vượt qua điểm tạm dừng.
-
 ### 4.5. `Memory<T>` khác `Span<T>` ở đâu?
 
 `ReadOnlyMemory<char>` là normal struct, có thể nằm trong async state machine hoặc field. Với `input.AsMemory()`, nó giữ reference tới string cùng offset/length, nhờ vậy backing string còn reachable qua `await`.
@@ -331,6 +329,10 @@ Parsing không gọi `Split` hay `Substring`; `double.TryParse(ReadOnlySpan<char
 - format/console output có allocation và I/O.
 
 Không được quảng cáo “zero allocation” cho toàn chương trình chỉ vì có span. Đo đúng đoạn cần tối ưu bằng công cụ của bài 18.
+
+### Đào sâu (có thể quay lại sau)
+
+C# mới cho phép một số ref-struct local trong async/iterator nếu compiler chứng minh chúng không vượt qua suspension point. Quy tắc an toàn vẫn là: kết thúc mọi thao tác span trước `await`; dùng `Memory<T>` nếu dữ liệu cần vượt qua điểm tạm dừng.
 
 ## 5. Kiến thức nền
 

@@ -312,7 +312,7 @@ Main locals / registers                         Managed heap
 
 `new EntityStore...` tạo store object H1; constructor tạo dictionary H2. Mỗi `new Product(...)` tạo product object riêng H3/H4. Dictionary giữ reference đến product, không nhúng hay clone product. Local `keyboard` và entry của dictionary cùng trỏ H3.
 
-Với generic value type, dữ liệu có thể nằm inline theo context. Ví dụ `List<int>` giữ các `int` trong array nội bộ và không cần box từng phần tử thành `object`. .NET giữ thông tin về closed generic type ở runtime; JIT thường tạo code chuyên biệt cho value type và có thể chia sẻ code cho nhiều reference type. Đừng dựa vào chi tiết JIT cụ thể nếu chưa đo.
+Với generic value type, dữ liệu có thể nằm inline theo context. Ví dụ `List<int>` giữ các `int` trong array nội bộ và không cần box từng phần tử thành `object`.
 
 ## 5. Kiến thức nền
 
@@ -340,7 +340,13 @@ Ngay cả khi `Dog : Animal`, `List<Dog>` không phải `List<Animal>`. Nếu ch
 
 ### Generics và boxing
 
-`List<int>` biết element là `int`, nên lưu value trực tiếp trong array `int[]`. Collection cũ nhận `object` phải box từng `int`. Generics thường tránh cast và nhiều boxing, nhưng một generic operation chuyển `T` sang interface/`object` vẫn có thể box tùy constraint và cách JIT sinh code. Luôn đo khi hiệu năng quan trọng.
+`List<int>` biết element là `int`, nên lưu value trực tiếp trong array `int[]`. Collection cũ nhận `object` phải box từng `int`.
+
+### Đào sâu (có thể quay lại sau)
+
+.NET giữ thông tin về closed generic type ở runtime; JIT thường tạo code chuyên biệt cho value type và có thể chia sẻ code cho nhiều reference type. Đừng dựa vào chi tiết JIT cụ thể nếu chưa đo.
+
+Generics thường tránh cast và nhiều boxing, nhưng một generic operation chuyển `T` sang interface/`object` vẫn có thể box tùy constraint và cách JIT sinh code. Luôn đo khi hiệu năng quan trọng.
 
 ## 6. Lỗi thường gặp
 

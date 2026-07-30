@@ -275,48 +275,7 @@ ReassignLocally.account ----> H3
 
 Gán lại parameter chỉ thay reference copy trong frame method. Khi method return, parameter biến mất; H3 không còn reachable trong sample và trở thành **eligible for garbage collection**, không có nghĩa bị giải phóng ngay. Muốn method gán lại reference của caller phải dùng `ref Account`, nhưng thường return object mới làm data flow rõ hơn.
 
-### 4.5. Sơ đồ đầy đủ: local, field và array
-
-Snapshot sau khi tạo `basket`, hai array và trừ thêm 5 qua `accounts[0]` (bỏ qua string/runtime internal để tập trung):
-
-```text
-CALL STACK / REGISTERS (logical Main state)
-┌──────────────────────────────────────────────────────────┐
-│ first       = Coordinate { X:10, Y:20 }                 │
-│ second      = Coordinate { X:99, Y:20 }                 │
-│ primary     = ref H1 ───────────────────────────────┐    │
-│ alias       = ref H1 ───────────────────────────────┤    │
-│ independent = ref H2 ───────────────────────────┐   │    │
-│ basket      = ref H4 ────────────────────────┐  │   │    │
-│ points      = ref H5 ─────────────────────┐  │  │   │    │
-│ accounts    = ref H6 ──────────────────┐  │  │  │   │    │
-└────────────────────────────────────────|──|──|──|───|────┘
-                                         |  |  |  |   |
-MANAGED HEAP                             v  v  v  v   v
-H6 Account?[2]  [ ref H1, ref H2 ] ------┘  |  |  |   |
-H5 Coordinate[2]                           |  |  |   |
-   [ {X:42,Y:20}, {X:99,Y:20} ] <----------┘  |  |   |
-H4 Basket                                     |  |   |
-   DropOff inline = { X:30, Y:20 } <----------┘  |   |
-   Buyer = ref H1 --------------------------------|---┤
-H2 Account { Balance:100 } <----------------------┘   |
-H1 Account { Balance:55 } <---------------------------┘
-
-H3 Account { Balance:0 }   [unreachable, GC-eligible]
-```
-
-Điểm cần đọc chính xác:
-
-- `first` và `second` là value local. Hình đặt chúng trong logical frame cho dễ học; JIT có thể giữ một phần/toàn bộ trong register.
-- `DropOff` là value-type field, nên dữ liệu `X/Y` nằm **inline bên trong H4**, không có một heap object Coordinate riêng bắt buộc.
-- `Buyer` là reference-type field, nên trong H4 chỉ có reference slot trỏ H1.
-- H5 là một array object trên heap; hai `Coordinate` element nằm inline trong vùng dữ liệu của H5. Gán `points[0] = first` copy value vào element.
-- H6 là array object; mỗi element là một reference slot. Lúc `new Account?[2]`, hai slot mặc định là `null`; sau đó chúng trỏ H1 và H2. Account không nằm inline trong H6.
-- Local reference, reference field và reference array element đều là nơi **chứa reference**; bản thân reference không phải object đích.
-
-Đây là lý do value type không đồng nghĩa stack: `DropOff` và phần tử H5 đều nằm trong heap object chứa chúng. Reference cũng không đồng nghĩa “biến nằm trên heap”: local `primary` là root logic ở frame/register nhưng giá trị của nó trỏ tới heap object H1.
-
-### 4.6. Boxing tạo box object và copy value
+### 4.5. Boxing tạo box object và copy value
 
 Conversion:
 
@@ -348,7 +307,7 @@ kiểm tra box chứa đúng type `Coordinate`, rồi copy value ra `unboxed`. S
 
 Boxing thường tạo allocation và tăng việc cho GC. Generic API như `List<T>` giúp giữ value type theo type cụ thể và tránh nhiều boxing so với collection nhận `object`; vẫn phải đo allocation thực tế thay vì tối ưu theo suy đoán.
 
-### 4.7. Stack và managed heap quản lý lifetime khác nhau
+### 4.6. Stack và managed heap quản lý lifetime khác nhau
 
 Mô hình nền:
 
@@ -408,7 +367,50 @@ Struct B.Child ----┘
 
 “Value type copy độc lập” chỉ có nghĩa storage field của struct được copy; nó không tự deep-copy object graph được tham chiếu bên trong. Vì vậy ưu tiên struct nhỏ, thường immutable, biểu diễn một value nhất quán.
 
-### Identity, equality và sameness
+### Đào sâu (có thể quay lại sau)
+
+#### Sơ đồ đầy đủ: local, field và array
+
+Snapshot sau khi tạo `basket`, hai array và trừ thêm 5 qua `accounts[0]` (bỏ qua string/runtime internal để tập trung):
+
+```text
+CALL STACK / REGISTERS (logical Main state)
+┌──────────────────────────────────────────────────────────┐
+│ first       = Coordinate { X:10, Y:20 }                 │
+│ second      = Coordinate { X:99, Y:20 }                 │
+│ primary     = ref H1 ───────────────────────────────┐    │
+│ alias       = ref H1 ───────────────────────────────┤    │
+│ independent = ref H2 ───────────────────────────┐   │    │
+│ basket      = ref H4 ────────────────────────┐  │   │    │
+│ points      = ref H5 ─────────────────────┐  │  │   │    │
+│ accounts    = ref H6 ──────────────────┐  │  │  │   │    │
+└────────────────────────────────────────|──|──|──|───|────┘
+                                         |  |  |  |   |
+MANAGED HEAP                             v  v  v  v   v
+H6 Account?[2]  [ ref H1, ref H2 ] ------┘  |  |  |   |
+H5 Coordinate[2]                           |  |  |   |
+   [ {X:42,Y:20}, {X:99,Y:20} ] <----------┘  |  |   |
+H4 Basket                                     |  |   |
+   DropOff inline = { X:30, Y:20 } <----------┘  |   |
+   Buyer = ref H1 --------------------------------|---┤
+H2 Account { Balance:100 } <----------------------┘   |
+H1 Account { Balance:55 } <---------------------------┘
+
+H3 Account { Balance:0 }   [unreachable, GC-eligible]
+```
+
+Điểm cần đọc chính xác:
+
+- `first` và `second` là value local. Hình đặt chúng trong logical frame cho dễ học; JIT có thể giữ một phần/toàn bộ trong register.
+- `DropOff` là value-type field, nên dữ liệu `X/Y` nằm **inline bên trong H4**, không có một heap object Coordinate riêng bắt buộc.
+- `Buyer` là reference-type field, nên trong H4 chỉ có reference slot trỏ H1.
+- H5 là một array object trên heap; hai `Coordinate` element nằm inline trong vùng dữ liệu của H5. Gán `points[0] = first` copy value vào element.
+- H6 là array object; mỗi element là một reference slot. Lúc `new Account?[2]`, hai slot mặc định là `null`; sau đó chúng trỏ H1 và H2. Account không nằm inline trong H6.
+- Local reference, reference field và reference array element đều là nơi **chứa reference**; bản thân reference không phải object đích.
+
+Đây là lý do value type không đồng nghĩa stack: `DropOff` và phần tử H5 đều nằm trong heap object chứa chúng. Reference cũng không đồng nghĩa “biến nằm trên heap”: local `primary` là root logic ở frame/register nhưng giá trị của nó trỏ tới heap object H1.
+
+#### Identity, equality và sameness
 
 - `ReferenceEquals(a, b)` hỏi hai reference có trỏ đúng cùng instance không.
 - `==` có thể là reference equality mặc định cho class hoặc được type overload để so value.
@@ -416,11 +418,11 @@ Struct B.Child ----┘
 
 Hai `new Account(100)` khác identity nhưng có field bằng nhau. Đừng dùng reference identity thay business equality, và đừng đoán semantics của `==` mà không biết type.
 
-### `string` là trường hợp dễ gây nhầm
+#### `string` là trường hợp dễ gây nhầm
 
 `string` là immutable reference type. Phép “sửa” chuỗi thực tế tạo/nhận reference tới chuỗi khác; object chuỗi cũ không bị mutate. Compiler/runtime còn có string interning cho literal, nên hai literal giống nhau có thể cùng instance. Không dùng `ReferenceEquals` để so nội dung string; dùng equality phù hợp và `StringComparison` khi cần.
 
-### GC roots và reachability
+#### GC roots và reachability
 
 GC bắt đầu từ roots như reference đang sống trong stack/register, static fields và runtime handles, rồi đi theo reference field/array element. Object reachable được giữ; object không reachable mới eligible. Gán một local thành `null` không đảm bảo GC chạy ngay và đôi khi JIT đã xác định local không còn sống trước statement đó.
 

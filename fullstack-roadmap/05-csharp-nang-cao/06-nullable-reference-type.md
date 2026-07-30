@@ -354,13 +354,19 @@ Non-nullable property phải được khởi tạo trước khi object sẵn sà
 
 `new string[2]` tạo array có hai reference slot mặc định `null`, dù element annotation là non-nullable. Compiler không thể bảo đảm mọi element đã được lấp đầy ở mọi pattern. Dùng initializer đầy đủ, `string?[]` trong giai đoạn cho phép thiếu, hoặc type/API quản lý trạng thái khởi tạo rõ ràng.
 
-### Nullable qua generic API
-
-Ý nghĩa `T?` phụ thuộc constraint và kind của `T`. Hãy viết constraint (`class`, `struct`, `notnull`, base/interface) phản ánh contract trước khi dùng nullable generic phức tạp. Với API thư viện nâng cao, attributes trong `System.Diagnostics.CodeAnalysis` như `NotNullWhen` có thể mô tả quan hệ flow mà signature đơn giản chưa biểu đạt; chỉ dùng khi hiểu đúng branch contract.
-
 ### Dữ liệu ngoài và domain model
 
 DTO import có thể chứa nhiều nullable property vì dữ liệu đang chưa được validate. Sau validation, map sang domain object có non-nullable invariant mạnh. Đừng làm toàn bộ domain nullable chỉ vì JSON/form đầu vào có thể thiếu.
+
+### Đào sâu (có thể quay lại sau)
+
+#### Nullable qua generic API
+
+Ý nghĩa `T?` phụ thuộc constraint và kind của `T`. Hãy viết constraint (`class`, `struct`, `notnull`, base/interface) phản ánh contract trước khi dùng nullable generic phức tạp. Với API thư viện nâng cao, attributes trong `System.Diagnostics.CodeAnalysis` như `NotNullWhen` có thể mô tả quan hệ flow mà signature đơn giản chưa biểu đạt; chỉ dùng khi hiểu đúng branch contract.
+
+#### Không xét mutation giữa các lần đọc property
+
+Check một mutable property rồi đọc lại sau callback/await có thể không còn cùng value. Lưu snapshot local hoặc đồng bộ/thiết kế immutable theo concurrency contract.
 
 ## 6. Lỗi thường gặp
 
@@ -387,10 +393,6 @@ Public boundary vẫn có caller/dữ liệu không chịu nullable analysis c�
 ### Nhầm `string?` tạo wrapper như `int?`
 
 Nullable reference chỉ annotation trên reference type hiện có. Không vẽ object `Nullable<string>`; hãy vẽ một reference slot chứa pointer logic hoặc null.
-
-### Không xét mutation giữa các lần đọc property
-
-Check một mutable property rồi đọc lại sau callback/await có thể không còn cùng value. Lưu snapshot local hoặc đồng bộ/thiết kế immutable theo concurrency contract.
 
 ## 7. Bài tập
 

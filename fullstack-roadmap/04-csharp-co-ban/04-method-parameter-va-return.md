@@ -277,8 +277,6 @@ Main frame                              | |  |
 
 Sau khi method chạy, `stock = 7`, `keyboardTotal = 750000m` và `keyboardMessage` có text. Frame `TryReserveItem` được pop; local riêng của nó hết lifetime, còn storage của `Main` vẫn tồn tại.
 
-JIT có thể inline method và không tạo physical frame đúng như hình. Hình mô tả semantics quan sát được: mỗi invocation có local/parameter logic riêng và return quay lại call site.
-
 ### 4.6. `return` kết thúc invocation hiện tại
 
 `return false;` vừa chọn giá trị trả về vừa dừng method ngay. Code phía dưới trong method không chạy. `return;` trong method `void` chỉ kết thúc sớm, như nhánh discount sai.
@@ -294,11 +292,11 @@ CalculateAverage(10m, 20m, 30m);
 CalculateAverage(new decimal[] { 10m, 20m, 30m });
 ```
 
-Ở lời gọi thứ nhất, compiler tạo array chứa argument. `params` phải là parameter cuối và chỉ có một `params` trong signature. Đừng dùng nó ở hot path mà bỏ qua chi phí array allocation; đo trước khi tối ưu.
+Ở lời gọi thứ nhất, compiler tạo array chứa argument. `params` phải là parameter cuối và chỉ có một `params` trong signature.
 
-`currency = "VND"` và `includeHeader = false` là optional parameters với compile-time default. Caller bỏ `currency`, nên compiler chèn giá trị mặc định vào call site. Với public library, đổi default ở library mới không tự đổi call site cũ nếu caller chưa recompile.
+`currency = "VND"` và `includeHeader = false` là optional parameters với compile-time default. Caller bỏ `currency`, nên compiler chèn giá trị mặc định vào call site.
 
-Named arguments (`total:`, `customerName:`) ánh xạ theo tên thay vì vị trí, giúp lời gọi có nhiều `bool`/số dễ đọc. Đổi tên public parameter có thể làm vỡ source của caller dùng named arguments.
+Named arguments (`total:`, `customerName:`) ánh xạ theo tên thay vì vị trí, giúp lời gọi có nhiều `bool`/số dễ đọc.
 
 ## 5. Kiến thức nền
 
@@ -323,8 +321,6 @@ Hợp đồng gồm:
 | `out` | không | không trước khi gán | có | output bắt buộc |
 | `in` | có | có | không | readonly reference, hữu ích có chọn lọc với struct lớn |
 
-`in` có thể tránh copy một struct lớn nhưng không mặc nhiên nhanh hơn; JIT và defensive copy ảnh hưởng kết quả. Đo benchmark trước khi dùng vì hiệu năng.
-
 ### Method overloading
 
 C# cho phép nhiều method cùng tên nếu parameter list khác đủ để compiler chọn:
@@ -343,6 +339,20 @@ Local trong method không thể truy cập trực tiếp từ method khác. Mỗ
 ### Khi nào không nên dùng nhiều `out`
 
 Một cặp `bool + out value` phù hợp `TryParse` đơn giản. Nếu operation trả status, error code, nhiều data field và metadata, hãy định nghĩa result object/record rõ tên. Nó dễ mở rộng và tránh argument list dài. Class/record sẽ được học sau.
+
+### Đào sâu (có thể quay lại sau)
+
+JIT có thể inline method và không tạo physical frame đúng như hình. Hình mô tả semantics quan sát được: mỗi invocation có local/parameter logic riêng và return quay lại call site.
+
+#### params, optional và named arguments
+
+Đừng dùng nó ở hot path mà bỏ qua chi phí array allocation; đo trước khi tối ưu.
+
+Với public library, đổi default ở library mới không tự đổi call site cũ nếu caller chưa recompile.
+
+Đổi tên public parameter có thể làm vỡ source của caller dùng named arguments.
+
+`in` có thể tránh copy một struct lớn nhưng không mặc nhiên nhanh hơn; JIT và defensive copy ảnh hưởng kết quả. Đo benchmark trước khi dùng vì hiệu năng.
 
 ## 6. Lỗi thường gặp
 

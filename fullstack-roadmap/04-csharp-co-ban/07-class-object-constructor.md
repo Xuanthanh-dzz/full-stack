@@ -232,8 +232,6 @@ Stack frame Main                       Managed heap
 
 `anAccount.Deposit(...)` thay `_balance` của object A, không thay object B. Các instance field nằm trong từng object và mỗi object giữ trạng thái riêng.
 
-Mô hình “local reference ở stack, object ở heap” giúp học ngữ nghĩa. JIT có thể tối ưu vị trí vật lý (ví dụ giữ local trong register). Điều không đổi là object A và B có identity riêng.
-
 ### 4.3 Gán reference không tạo object
 
 ```csharp
@@ -322,7 +320,7 @@ Object A                      Object B
 +------------------+          +------------------+
 ```
 
-Truy cập static member qua tên type: `BankAccount.CreatedCount`. Static mutable state dùng chung có thể gây race condition trong chương trình đa luồng. Bộ đếm đơn giản ở ví dụ chỉ phục vụ một console app đơn luồng; hệ thống thật nên dùng mã do database/`Guid` cấp hoặc đồng bộ hóa đúng cách.
+Truy cập static member qua tên type: `BankAccount.CreatedCount`.
 
 ## 5. Kiến thức nền
 
@@ -351,13 +349,7 @@ Với nullable reference types bật mặc định trong project .NET mới, d�
 
 Nếu class không khai báo constructor instance nào, compiler cung cấp parameterless constructor mặc định. Khi bạn đã tự khai báo bất kỳ constructor instance nào, compiler không tự thêm `BankAccount()` nữa. Nếu nghiệp vụ không cho phép object thiếu owner, việc không có parameterless constructor là đúng.
 
-### 5.5 Object lifetime và Garbage Collector
-
-C# không yêu cầu `free` object managed bằng tay. Khi không còn reference khả dụng tới object, object trở thành ứng viên để Garbage Collector thu hồi vào một thời điểm sau đó. “Ra khỏi scope” không đồng nghĩa được thu hồi ngay, và còn reference ở nơi khác thì object vẫn sống.
-
-GC quản lý bộ nhớ managed, không tự giải phóng kịp thời mọi tài nguyên ngoài managed memory như file handle hoặc socket. Chủ đề đó được xử lý bằng `IDisposable` ở phần nâng cao.
-
-### 5.6 Class nên giữ invariant
+### 5.5 Class nên giữ invariant
 
 Invariant là điều luôn phải đúng đối với một object hợp lệ. Với `BankAccount`:
 
@@ -366,6 +358,18 @@ Invariant là điều luôn phải đúng đối với một object hợp lệ. 
 - `_balance >= 0`.
 
 Constructor thiết lập invariant; mọi public method phải bảo toàn nó. Validation chỉ ở UI là không đủ vì object có thể được gọi từ API, test hoặc background job.
+
+### Đào sâu (có thể quay lại sau)
+
+Mô hình “local reference ở stack, object ở heap” giúp học ngữ nghĩa. JIT có thể tối ưu vị trí vật lý (ví dụ giữ local trong register). Điều không đổi là object A và B có identity riêng.
+
+Static mutable state dùng chung có thể gây race condition trong chương trình đa luồng. Bộ đếm đơn giản ở ví dụ chỉ phục vụ một console app đơn luồng; hệ thống thật nên dùng mã do database/`Guid` cấp hoặc đồng bộ hóa đúng cách.
+
+#### Object lifetime và Garbage Collector
+
+C# không yêu cầu `free` object managed bằng tay. Khi không còn reference khả dụng tới object, object trở thành ứng viên để Garbage Collector thu hồi vào một thời điểm sau đó. “Ra khỏi scope” không đồng nghĩa được thu hồi ngay, và còn reference ở nơi khác thì object vẫn sống.
+
+GC quản lý bộ nhớ managed, không tự giải phóng kịp thời mọi tài nguyên ngoài managed memory như file handle hoặc socket. Chủ đề đó được xử lý bằng `IDisposable` ở phần nâng cao.
 
 ## 6. Lỗi thường gặp
 

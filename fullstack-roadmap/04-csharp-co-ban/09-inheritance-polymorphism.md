@@ -347,7 +347,41 @@ decimal standardFee = base.CalculateFee(weightKg);
 
 Dùng `sealed` khi invariant không an toàn nếu tiếp tục mở rộng, behavior phải cố định, hoặc type vốn không được thiết kế làm base. Không dùng chỉ để “tối ưu hiệu năng” nếu chưa có đo đạc và lý do thiết kế.
 
-### 4.7 Không có object slicing khi upcast class reference
+## 5. Kiến thức nền
+
+### 5.1 Quan hệ `is-a` và khả năng thay thế
+
+Chỉ kế thừa khi mọi object của derived type có thể được dùng hợp lý ở nơi base type được yêu cầu. `ExpressShipping is a ShippingMethod` hợp lý vì vẫn tính phí/giao hàng theo contract đó.
+
+“Tái sử dụng vài dòng code” không đủ để tạo quan hệ inheritance. Nếu quan hệ thật là “có một” (`has-a`), composition thường đúng hơn; bài tiếp theo sẽ minh họa.
+
+### 5.2 C# chỉ cho class kế thừa một class
+
+Một class có tối đa một direct base class. Nếu không ghi rõ, base cuối cùng là `object`. C# không có multiple class inheritance, nhưng một class có thể implement nhiều interface.
+
+### 5.3 Member nào polymorphic?
+
+Instance method/property/event chỉ runtime-polymorphic khi base member là `virtual`/`abstract` và derived member dùng `override`. Constructor và static member không được override.
+
+### 5.4 Override phải giữ contract
+
+Derived override phải giữ precondition/postcondition hợp lý của base contract. Nếu code dùng `ShippingMethod` kỳ vọng fee không âm, mọi derived type cũng phải bảo đảm fee không âm. Một override buộc caller biết concrete type để tránh lỗi đã phá khả năng thay thế.
+
+Đây là nền tảng của Liskov Substitution Principle, được học sâu trong module thiết kế.
+
+### 5.5 Ép kiểu an toàn
+
+Cast trực tiếp có thể ném `InvalidCastException`:
+
+```csharp
+ExpressShipping express = (ExpressShipping)option;
+```
+
+Khi chưa chắc runtime type, ưu tiên pattern matching `is`. Nếu logic liên tục phải cast để chọn behavior, đó thường là dấu hiệu contract base còn thiếu operation polymorphic hoặc mô hình abstraction chưa phù hợp.
+
+### Đào sâu (có thể quay lại sau)
+
+#### Không có object slicing khi upcast class reference
 
 Trong C++, copy một derived object vào một base object theo value có thể làm mất phần derived (“object slicing”). Với C# class:
 
@@ -368,41 +402,9 @@ if (selected is ExpressShipping details)
 
 Downcast không khôi phục dữ liệu đã mất vì dữ liệu chưa từng mất. Nó chỉ yêu cầu runtime xác nhận object có type tương thích.
 
-## 5. Kiến thức nền
-
-### 5.1 Quan hệ `is-a` và khả năng thay thế
-
-Chỉ kế thừa khi mọi object của derived type có thể được dùng hợp lý ở nơi base type được yêu cầu. `ExpressShipping is a ShippingMethod` hợp lý vì vẫn tính phí/giao hàng theo contract đó.
-
-“Tái sử dụng vài dòng code” không đủ để tạo quan hệ inheritance. Nếu quan hệ thật là “có một” (`has-a`), composition thường đúng hơn; bài tiếp theo sẽ minh họa.
-
-### 5.2 C# chỉ cho class kế thừa một class
-
-Một class có tối đa một direct base class. Nếu không ghi rõ, base cuối cùng là `object`. C# không có multiple class inheritance, nhưng một class có thể implement nhiều interface.
-
-### 5.3 Member nào polymorphic?
-
-Instance method/property/event chỉ runtime-polymorphic khi base member là `virtual`/`abstract` và derived member dùng `override`. Constructor và static member không được override.
-
 Member không virtual được chọn theo compile-time type. Nếu derived class khai báo member cùng tên bằng `new`, đó là **method hiding**, không phải polymorphism. Kết quả thay đổi theo kiểu của biến và thường gây bất ngờ; đổi tên hoặc dùng virtual/override nếu behavior cần dispatch.
 
-### 5.4 Override phải giữ contract
-
-Derived override phải giữ precondition/postcondition hợp lý của base contract. Nếu code dùng `ShippingMethod` kỳ vọng fee không âm, mọi derived type cũng phải bảo đảm fee không âm. Một override buộc caller biết concrete type để tránh lỗi đã phá khả năng thay thế.
-
-Đây là nền tảng của Liskov Substitution Principle, được học sâu trong module thiết kế.
-
-### 5.5 Ép kiểu an toàn
-
-Cast trực tiếp có thể ném `InvalidCastException`:
-
-```csharp
-ExpressShipping express = (ExpressShipping)option;
-```
-
-Khi chưa chắc runtime type, ưu tiên pattern matching `is`. Nếu logic liên tục phải cast để chọn behavior, đó thường là dấu hiệu contract base còn thiếu operation polymorphic hoặc mô hình abstraction chưa phù hợp.
-
-### 5.6 Đừng gọi virtual member từ constructor
+#### Đừng gọi virtual member từ constructor
 
 Base constructor chạy trước khi derived constructor hoàn tất. Nếu base constructor gọi virtual method, runtime có thể dispatch vào override đang đọc derived field chưa được khởi tạo, gây lỗi khó hiểu. Tránh virtual call trong constructor; hoàn tất construction trước rồi mới chạy behavior polymorphic.
 

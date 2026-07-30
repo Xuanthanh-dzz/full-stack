@@ -328,16 +328,6 @@ Stack frame Main                       Managed heap
 
 Gọi `keyboard.Sell(3)` truyền reference của object làm receiver (`this`), rồi method cập nhật backing field `Stock` của chính object đó.
 
-### 4.6 `init` không có nghĩa deep immutable
-
-Nếu một init-only property giữ mutable object:
-
-```csharp
-public int[] Levels { get; init; } = [];
-```
-
-caller không thể gán `Levels = anotherArray` sau initialization, nhưng vẫn có thể làm `item.Levels[0] = 999`. `init` khóa việc đổi reference qua property, không đóng băng object được trỏ tới. Muốn immutable sâu hơn, cần chọn immutable type, defensive copy hoặc chỉ công khai read-only abstraction.
-
 ## 5. Kiến thức nền
 
 ### 5.1 Bảng access modifier
@@ -384,6 +374,18 @@ Các lớp này bổ sung nhau. Không bỏ rule cốt lõi khỏi object chỉ 
 `readonly` áp dụng cho field và cho phép gán khi khai báo hoặc trong constructor của declaring type. Get-only auto-property cũng thường được gán khi khai báo hoặc trong constructor. Cả hai ngăn gán lại storage/reference sau khởi tạo, nhưng không tự làm object con trở nên immutable.
 
 Thông thường field là implementation detail (`private readonly`), còn property là contract muốn công khai.
+
+### Đào sâu (có thể quay lại sau)
+
+#### `init` không có nghĩa deep immutable
+
+Nếu một init-only property giữ mutable object:
+
+```csharp
+public int[] Levels { get; init; } = [];
+```
+
+caller không thể gán `Levels = anotherArray` sau initialization, nhưng vẫn có thể làm `item.Levels[0] = 999`. `init` khóa việc đổi reference qua property, không đóng băng object được trỏ tới. Muốn immutable sâu hơn, cần chọn immutable type, defensive copy hoặc chỉ công khai read-only abstraction.
 
 ## 6. Lỗi thường gặp
 

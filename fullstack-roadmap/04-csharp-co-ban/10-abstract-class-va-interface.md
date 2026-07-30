@@ -369,8 +369,6 @@ Default interface member thường không xuất hiện như một member trực
 
 Ta gọi qua interface reference. `BankTransferGateway` khai báo concrete method cùng signature nên implementation đó được dùng.
 
-Default implementation hữu ích khi tiến hóa interface mà vẫn cung cấp behavior tương thích cho implementer cũ. Tuy nhiên, nó có thể làm contract khó hiểu, gây xung đột khi nhiều interface cung cấp cùng member và không có instance state như field của class. Dùng sparingly; behavior nghiệp vụ quan trọng thường rõ hơn ở class/service hoặc implementation tường minh.
-
 ### 4.5 Composition: object giữ reference tới collaborator
 
 `CheckoutService` không phải (`is-a`) payment gateway hay receipt sender. Nó **có** (`has-a`) các collaborator:
@@ -444,11 +442,15 @@ Không phải mọi class đều cần interface hoặc abstract base. Nếu ch�
 
 Hãy thêm abstraction tại nơi có biến thiên thực hoặc boundary kiến trúc rõ, không dựa vào số lượng class mong muốn trong tương lai.
 
-### 5.4 Interface không phải marker tùy tiện
+### Đào sâu (có thể quay lại sau)
+
+Default implementation hữu ích khi tiến hóa interface mà vẫn cung cấp behavior tương thích cho implementer cũ. Tuy nhiên, nó có thể làm contract khó hiểu, gây xung đột khi nhiều interface cung cấp cùng member và không có instance state như field của class. Dùng sparingly; behavior nghiệp vụ quan trọng thường rõ hơn ở class/service hoặc implementation tường minh.
+
+#### Interface không phải marker tùy tiện
 
 Interface rỗng chỉ để gắn nhãn thường yếu hơn attribute hoặc metadata rõ ràng. Một interface có giá trị khi consumer thật sự gọi contract hoặc dùng nó như một ranh giới type có ý nghĩa.
 
-### 5.5 Explicit interface implementation
+#### Explicit interface implementation
 
 Khi hai interface có member cùng tên nhưng semantics khác, hoặc muốn member chỉ thấy qua interface, class có thể implement tường minh:
 
@@ -459,7 +461,7 @@ void ISecond.Reset() { }
 
 Khi đó phải cast/gán sang interface tương ứng để gọi. Dùng khi cần giải quyết xung đột contract; nếu hai operation khác nghĩa, đổi tên interface member thường dễ hiểu hơn nếu bạn kiểm soát API.
 
-### 5.6 Interface segregation và dependency direction
+#### Interface segregation và dependency direction
 
 `CheckoutService` chỉ cần `IReceiptSender.Send`, nên không phụ thuộc một interface khổng lồ có cả template editor, inbox reader và analytics. Contract nhỏ giảm coupling.
 

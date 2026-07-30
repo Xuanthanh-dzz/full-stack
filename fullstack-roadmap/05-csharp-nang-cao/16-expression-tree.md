@@ -282,7 +282,9 @@ compiler có thể biểu diễn `threshold` như member access trên một clos
 
 `ExpressionVisitor` cung cấp traversal và trả node mới khi biến đổi. Visitor phải xử lý/allowlist node rõ ràng; fallback im lặng có thể làm rule mang semantics ngoài dự kiến.
 
-### Equality của tree
+### Đào sâu (có thể quay lại sau)
+
+#### Equality của tree
 
 Hai tree in giống nhau không mặc nhiên reference-equal hoặc structurally equal. Nếu cần cache theo cấu trúc, phải định nghĩa comparer/canonical form đúng cho node, member, constant và closure; đây là bài toán riêng, không dùng `.ToString()` làm key production.
 

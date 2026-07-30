@@ -336,9 +336,9 @@ Không đưa tên type/method trực tiếp từ input rồi gọi mọi member.
 
 ### Reflection, trimming và Native AOT
 
-Static analysis có thể không thấy member chỉ được gọi bằng tên string. Khi publish trimming hoặc Native AOT, member đó có thể bị loại hoặc dynamic-code API có thể không khả dụng. Các annotation như `DynamicallyAccessedMembers` chỉ đúng khi hợp đồng bảo toàn member được mô tả chính xác; dùng bừa sẽ che thiết kế yếu.
+Static analysis có thể không thấy member chỉ được gọi bằng tên string. Khi publish trimming hoặc Native AOT, member đó có thể bị loại hoặc dynamic-code API có thể không khả dụng.
 
-Registry sinh ở compile time, source generator hoặc mapping tường minh thường thân thiện hơn với trimming/AOT. Quyết định dựa trên deployment target, không chỉ dựa trên số dòng code.
+Registry sinh ở compile time, source generator hoặc mapping tường minh thường thân thiện hơn với trimming/AOT.
 
 ### Khi nào `dynamic` có lý do chính đáng?
 
@@ -352,6 +352,12 @@ JSON, dictionary và input người dùng không tự nhiên trở thành lý do
 ### Cache metadata có kiểm soát
 
 Nếu cùng registry được dùng nhiều lần, khám phá và validation một lần lúc startup rồi cache descriptor immutable. Không cache object vô hạn theo input tùy ý. Đo startup, throughput và memory trước khi thêm cache phức tạp.
+
+### Đào sâu (có thể quay lại sau)
+
+Các annotation như `DynamicallyAccessedMembers` chỉ đúng khi hợp đồng bảo toàn member được mô tả chính xác; dùng bừa sẽ che thiết kế yếu.
+
+Quyết định dựa trên deployment target, không chỉ dựa trên số dòng code.
 
 ## 6. Lỗi thường gặp
 
