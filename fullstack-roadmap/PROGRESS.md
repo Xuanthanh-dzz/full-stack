@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 04 đã hoàn thành`.
-- Checkpoint hiện tại: `04-csharp-co-ban` đạt `16 / 16` bài; code đã build/run bằng .NET SDK 9 và cross-link đã audit. Các module bài học khác vẫn giữ nguyên trạng thái kế hoạch.
-- Bài tiếp theo theo dependency của module vừa hoàn thành: `05-csharp-nang-cao/01-generics-va-constraints.md`; nếu quay lại tuyến số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `19 / 410` file hoàn thành (`4,6%`).
+- Giai đoạn: `Biên soạn nội dung — module 04–05 đã hoàn thành`.
+- Checkpoint hiện tại: `05-csharp-nang-cao` đạt `19 / 19` bài; toàn bộ code đã build/run bằng .NET SDK 9, output và failure path trọng yếu đã kiểm tra, format/cross-link đã audit chéo.
+- Bài tiếp theo theo dependency của module vừa hoàn thành: `06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md`; nếu quay lại tuyến số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `38 / 410` file hoàn thành (`9,3%`).
 
 ## Quy ước checkbox
 
@@ -132,25 +132,25 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 05-csharp-nang-cao
 
-- [ ] `05-csharp-nang-cao/01-generics-va-constraints.md`
-- [ ] `05-csharp-nang-cao/02-delegate-action-func-predicate.md`
-- [ ] `05-csharp-nang-cao/03-event-va-event-handler.md`
-- [ ] `05-csharp-nang-cao/04-lambda-closure-va-bo-nho.md`
-- [ ] `05-csharp-nang-cao/05-extension-method.md`
-- [ ] `05-csharp-nang-cao/06-nullable-reference-type.md`
-- [ ] `05-csharp-nang-cao/07-record-init-required-va-immutability.md`
-- [ ] `05-csharp-nang-cao/08-pattern-matching.md`
-- [ ] `05-csharp-nang-cao/09-async-await-task-va-state-machine.md`
-- [ ] `05-csharp-nang-cao/10-cancellation-timeout-va-exception-bat-dong-bo.md`
-- [ ] `05-csharp-nang-cao/11-parallelism-concurrency-va-thread-safety.md`
-- [ ] `05-csharp-nang-cao/12-idisposable-gc-va-quan-ly-tai-nguyen.md`
-- [ ] `05-csharp-nang-cao/13-reflection-attribute-va-dynamic.md`
-- [ ] `05-csharp-nang-cao/14-span-memory-va-lap-trinh-hieu-nang.md`
-- [ ] `05-csharp-nang-cao/15-covariance-va-contravariance.md`
-- [ ] `05-csharp-nang-cao/16-expression-tree.md`
-- [ ] `05-csharp-nang-cao/17-serialization-system-text-json.md`
-- [ ] `05-csharp-nang-cao/18-do-luong-va-toi-uu-hieu-nang.md`
-- [ ] `05-csharp-nang-cao/19-du-an-xu-ly-du-lieu-bat-dong-bo.md`
+- [x] `05-csharp-nang-cao/01-generics-va-constraints.md`
+- [x] `05-csharp-nang-cao/02-delegate-action-func-predicate.md`
+- [x] `05-csharp-nang-cao/03-event-va-event-handler.md`
+- [x] `05-csharp-nang-cao/04-lambda-closure-va-bo-nho.md`
+- [x] `05-csharp-nang-cao/05-extension-method.md`
+- [x] `05-csharp-nang-cao/06-nullable-reference-type.md`
+- [x] `05-csharp-nang-cao/07-record-init-required-va-immutability.md`
+- [x] `05-csharp-nang-cao/08-pattern-matching.md`
+- [x] `05-csharp-nang-cao/09-async-await-task-va-state-machine.md`
+- [x] `05-csharp-nang-cao/10-cancellation-timeout-va-exception-bat-dong-bo.md`
+- [x] `05-csharp-nang-cao/11-parallelism-concurrency-va-thread-safety.md`
+- [x] `05-csharp-nang-cao/12-idisposable-gc-va-quan-ly-tai-nguyen.md`
+- [x] `05-csharp-nang-cao/13-reflection-attribute-va-dynamic.md`
+- [x] `05-csharp-nang-cao/14-span-memory-va-lap-trinh-hieu-nang.md`
+- [x] `05-csharp-nang-cao/15-covariance-va-contravariance.md`
+- [x] `05-csharp-nang-cao/16-expression-tree.md`
+- [x] `05-csharp-nang-cao/17-serialization-system-text-json.md`
+- [x] `05-csharp-nang-cao/18-do-luong-va-toi-uu-hieu-nang.md`
+- [x] `05-csharp-nang-cao/19-du-an-xu-ly-du-lieu-bat-dong-bo.md`
 
 ## 06-oop-va-thiet-ke
 
@@ -531,5 +531,6 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-07-30`: hoàn thành toàn bộ module `05-csharp-nang-cao` (`19/19` bài); build/run 19 project .NET 9 với warnings-as-errors, đối chiếu output, audit tuyến prerequisite/memory model/cross-link và kiểm tra failure path của dự án batch JSON bất đồng bộ.
 - `2026-07-30`: hoàn thành toàn bộ module `04-csharp-co-ban` (`16/16` bài); build/run code .NET 9, audit format, memory model, cross-link và các failure path của project JSON.
 - `2026-07-30`: tạo scaffold, roadmap 5 cấp và manifest ban đầu để review; chưa viết bài học.

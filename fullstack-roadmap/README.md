@@ -2,13 +2,13 @@
 
 Đây là bộ tài liệu tự học bằng tiếng Việt, lấy C làm nền tảng tư duy và mô hình bộ nhớ, C#/.NET làm công nghệ đi làm chính, C++ ở mức đủ sâu để hiểu OOP, STL, RAII và ownership. Tuyến học đi tiếp qua SQL, LINQ, Entity Framework Core, web, React, kiểm thử, DevOps, kiến trúc phần mềm và thiết kế hệ thống.
 
-> Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ 16 bài của module `04-csharp-co-ban`; các module khác đang chờ biên soạn**.
+> Trạng thái hiện tại: **đã hoàn thành khung chương trình, toàn bộ 16 bài của module `04-csharp-co-ban` và 19 bài của module `05-csharp-nang-cao`; các module khác đang chờ biên soạn**.
 
 ## Bắt đầu ở đâu?
 
 1. Đọc [roadmap 5 cấp](./00-huong-dan/roadmap.md) để hiểu thứ tự, prerequisite và checkpoint.
 2. Mở [PROGRESS.md](./PROGRESS.md) để xem toàn bộ mục lục dự kiến và trạng thái từng file.
-3. Học theo số module và số bài; chỉ dùng module `04` hiện đã hoàn thành sau khi có prerequisite tương ứng.
+3. Học theo số module và số bài; module `04–05` hiện đã hoàn thành nhưng chỉ nên học sau khi có prerequisite tương ứng trong roadmap.
 
 ## Phạm vi kỹ thuật
 
@@ -75,4 +75,4 @@ Mọi bài tuân theo hướng **problem-first**. Thuật ngữ, keyword, tên h
 
 ## Trạng thái và review
 
-`PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `04-csharp-co-ban` hiện đã hoàn thành và kiểm tra code; checkbox của các module còn lại vẫn biểu thị kế hoạch chưa viết.
+`PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `04-csharp-co-ban` và `05-csharp-nang-cao` hiện đã hoàn thành, kiểm tra code và cross-link; checkbox của các module còn lại vẫn biểu thị kế hoạch chưa viết.
