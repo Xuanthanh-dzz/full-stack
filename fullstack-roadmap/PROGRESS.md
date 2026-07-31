@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 04–05 đã hoàn thành`.
-- Checkpoint hiện tại: `05-csharp-nang-cao` đạt `19 / 19` bài; toàn bộ code đã build/run bằng .NET SDK 9, output và failure path trọng yếu đã kiểm tra, format/cross-link đã audit chéo.
-- Bài tiếp theo theo dependency của module vừa hoàn thành: `06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md`; nếu quay lại tuyến số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `38 / 410` file hoàn thành (`9,3%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–05 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `01-nen-tang-lap-trinh` đạt `15 / 15` bài, `02-c-chuyen-sau` đạt `15 / 15` bài và `03-cpp` đạt `14 / 14` bài; code C11/C++20 đã build/run, output và failure path trọng yếu đã kiểm tra, format/cross-link đã audit chéo.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `82 / 410` file hoàn thành (`20,0%`).
 
 ## Quy ước checkbox
 
@@ -60,56 +60,56 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 01-nen-tang-lap-trinh
 
-- [ ] `01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode.md`
-- [ ] `01-nen-tang-lap-trinh/02-chuong-trinh-c-dau-tien.md`
-- [ ] `01-nen-tang-lap-trinh/03-bien-hang-so-kieu-du-lieu.md`
-- [ ] `01-nen-tang-lap-trinh/04-bo-nho-bien-va-pham-vi.md`
-- [ ] `01-nen-tang-lap-trinh/05-toan-tu-va-bieu-thuc.md`
-- [ ] `01-nen-tang-lap-trinh/06-nhap-xuat-voi-stdio.md`
-- [ ] `01-nen-tang-lap-trinh/07-dieu-kien-if-switch.md`
-- [ ] `01-nen-tang-lap-trinh/08-vong-lap-for-while-do-while.md`
-- [ ] `01-nen-tang-lap-trinh/09-ham-tham-so-gia-tri-tra-ve.md`
-- [ ] `01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham.md`
-- [ ] `01-nen-tang-lap-trinh/11-mang-mot-chieu.md`
-- [ ] `01-nen-tang-lap-trinh/12-mang-hai-chieu.md`
-- [ ] `01-nen-tang-lap-trinh/13-chuoi-ky-tu.md`
-- [ ] `01-nen-tang-lap-trinh/14-debug-va-kiem-thu-chuong-trinh-c.md`
-- [ ] `01-nen-tang-lap-trinh/15-du-an-console-quan-ly-diem.md`
+- [x] `01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode.md`
+- [x] `01-nen-tang-lap-trinh/02-chuong-trinh-c-dau-tien.md`
+- [x] `01-nen-tang-lap-trinh/03-bien-hang-so-kieu-du-lieu.md`
+- [x] `01-nen-tang-lap-trinh/04-bo-nho-bien-va-pham-vi.md`
+- [x] `01-nen-tang-lap-trinh/05-toan-tu-va-bieu-thuc.md`
+- [x] `01-nen-tang-lap-trinh/06-nhap-xuat-voi-stdio.md`
+- [x] `01-nen-tang-lap-trinh/07-dieu-kien-if-switch.md`
+- [x] `01-nen-tang-lap-trinh/08-vong-lap-for-while-do-while.md`
+- [x] `01-nen-tang-lap-trinh/09-ham-tham-so-gia-tri-tra-ve.md`
+- [x] `01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham.md`
+- [x] `01-nen-tang-lap-trinh/11-mang-mot-chieu.md`
+- [x] `01-nen-tang-lap-trinh/12-mang-hai-chieu.md`
+- [x] `01-nen-tang-lap-trinh/13-chuoi-ky-tu.md`
+- [x] `01-nen-tang-lap-trinh/14-debug-va-kiem-thu-chuong-trinh-c.md`
+- [x] `01-nen-tang-lap-trinh/15-du-an-console-quan-ly-diem.md`
 
 ## 02-c-chuyen-sau
 
-- [ ] `02-c-chuyen-sau/01-dia-chi-bo-nho-va-con-tro.md`
-- [ ] `02-c-chuyen-sau/02-con-tro-va-bien.md`
-- [ ] `02-c-chuyen-sau/03-con-tro-voi-mang-va-chuoi.md`
-- [ ] `02-c-chuyen-sau/04-con-tro-cap-hai.md`
-- [ ] `02-c-chuyen-sau/05-con-tro-ham-va-callback.md`
-- [ ] `02-c-chuyen-sau/06-stack-heap-va-vong-doi-bo-nho.md`
-- [ ] `02-c-chuyen-sau/07-cap-phat-dong-malloc-calloc-realloc-free.md`
-- [ ] `02-c-chuyen-sau/08-loi-bo-nho-va-undefined-behavior.md`
-- [ ] `02-c-chuyen-sau/09-struct-enum-typedef.md`
-- [ ] `02-c-chuyen-sau/10-union-bit-field-va-bo-nho.md`
-- [ ] `02-c-chuyen-sau/11-file-io.md`
-- [ ] `02-c-chuyen-sau/12-preprocessor-header-va-macro.md`
-- [ ] `02-c-chuyen-sau/13-qua-trinh-bien-dich-linking-makefile.md`
-- [ ] `02-c-chuyen-sau/14-xu-ly-loi-va-lap-trinh-phong-thu.md`
-- [ ] `02-c-chuyen-sau/15-du-an-c-quan-ly-kho.md`
+- [x] `02-c-chuyen-sau/01-dia-chi-bo-nho-va-con-tro.md`
+- [x] `02-c-chuyen-sau/02-con-tro-va-bien.md`
+- [x] `02-c-chuyen-sau/03-con-tro-voi-mang-va-chuoi.md`
+- [x] `02-c-chuyen-sau/04-con-tro-cap-hai.md`
+- [x] `02-c-chuyen-sau/05-con-tro-ham-va-callback.md`
+- [x] `02-c-chuyen-sau/06-stack-heap-va-vong-doi-bo-nho.md`
+- [x] `02-c-chuyen-sau/07-cap-phat-dong-malloc-calloc-realloc-free.md`
+- [x] `02-c-chuyen-sau/08-loi-bo-nho-va-undefined-behavior.md`
+- [x] `02-c-chuyen-sau/09-struct-enum-typedef.md`
+- [x] `02-c-chuyen-sau/10-union-bit-field-va-bo-nho.md`
+- [x] `02-c-chuyen-sau/11-file-io.md`
+- [x] `02-c-chuyen-sau/12-preprocessor-header-va-macro.md`
+- [x] `02-c-chuyen-sau/13-qua-trinh-bien-dich-linking-makefile.md`
+- [x] `02-c-chuyen-sau/14-xu-ly-loi-va-lap-trinh-phong-thu.md`
+- [x] `02-c-chuyen-sau/15-du-an-c-quan-ly-kho.md`
 
 ## 03-cpp
 
-- [ ] `03-cpp/01-tu-c-sang-cpp20.md`
-- [ ] `03-cpp/02-reference-const-va-vong-doi-doi-tuong.md`
-- [ ] `03-cpp/03-class-object-encapsulation.md`
-- [ ] `03-cpp/04-constructor-destructor-va-bo-nho.md`
-- [ ] `03-cpp/05-copy-move-rule-of-zero-five.md`
-- [ ] `03-cpp/06-ke-thua-va-da-hinh.md`
-- [ ] `03-cpp/07-abstract-class-va-interface-trong-cpp.md`
-- [ ] `03-cpp/08-template-va-generic-programming.md`
-- [ ] `03-cpp/09-stl-container.md`
-- [ ] `03-cpp/10-iterator-algorithm-va-lambda.md`
-- [ ] `03-cpp/11-exception-va-raii.md`
-- [ ] `03-cpp/12-smart-pointer-va-quyen-so-huu.md`
-- [ ] `03-cpp/13-move-semantics-va-perfect-forwarding.md`
-- [ ] `03-cpp/14-du-an-cpp-quan-ly-thu-vien.md`
+- [x] `03-cpp/01-tu-c-sang-cpp20.md`
+- [x] `03-cpp/02-reference-const-va-vong-doi-doi-tuong.md`
+- [x] `03-cpp/03-class-object-encapsulation.md`
+- [x] `03-cpp/04-constructor-destructor-va-bo-nho.md`
+- [x] `03-cpp/05-copy-move-rule-of-zero-five.md`
+- [x] `03-cpp/06-ke-thua-va-da-hinh.md`
+- [x] `03-cpp/07-abstract-class-va-interface-trong-cpp.md`
+- [x] `03-cpp/08-template-va-generic-programming.md`
+- [x] `03-cpp/09-stl-container.md`
+- [x] `03-cpp/10-iterator-algorithm-va-lambda.md`
+- [x] `03-cpp/11-exception-va-raii.md`
+- [x] `03-cpp/12-smart-pointer-va-quyen-so-huu.md`
+- [x] `03-cpp/13-move-semantics-va-perfect-forwarding.md`
+- [x] `03-cpp/14-du-an-cpp-quan-ly-thu-vien.md`
 
 ## 04-csharp-co-ban
 
@@ -531,6 +531,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-07-31`: hoàn thành toàn bộ module `01-nen-tang-lap-trinh` (`15/15` bài), `02-c-chuyen-sau` (`15/15` bài) và `03-cpp` (`14/14` bài); build/run 44 lời giải chính bằng C11/C++20 với warnings-as-errors, đối chiếu output, kiểm tra failure path, Makefile, ASan/UBSan, ownership/lifetime và audit chéo toàn bộ prerequisite/cross-link.
 - `2026-07-30`: hoàn thành toàn bộ module `05-csharp-nang-cao` (`19/19` bài); build/run 19 project .NET 9 với warnings-as-errors, đối chiếu output, audit tuyến prerequisite/memory model/cross-link và kiểm tra failure path của dự án batch JSON bất đồng bộ.
 - `2026-07-30`: hoàn thành toàn bộ module `04-csharp-co-ban` (`16/16` bài); build/run code .NET 9, audit format, memory model, cross-link và các failure path của project JSON.
 - `2026-07-30`: tạo scaffold, roadmap 5 cấp và manifest ban đầu để review; chưa viết bài học.
