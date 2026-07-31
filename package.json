@@ -1,0 +1,16 @@
+{
+  "name": "fullstack-roadmap-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Trang docs cho bộ tài liệu Full-stack Roadmap",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev fullstack-roadmap",
+    "docs:build": "vitepress build fullstack-roadmap",
+    "docs:preview": "vitepress preview fullstack-roadmap"
+  },
+  "devDependencies": {
+    "markdown-it-task-lists": "^2.1.1",
+    "vitepress": "^1.6.4"
+  }
+}

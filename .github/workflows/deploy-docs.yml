@@ -1,0 +1,54 @@
+name: Deploy docs to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Cho phép chạy tay từ tab Actions.
+  workflow_dispatch:
+
+# Quyền tối thiểu để publish lên GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Không hủy deploy đang chạy; các lần push mới xếp hàng phía sau.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # lastUpdated của VitePress đọc từ git log nên cần full history.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run docs:build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: fullstack-roadmap/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
