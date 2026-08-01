@@ -1,10 +1,10 @@
 nav:
-  - 00-huong-dan
-  - Nền tảng ngôn ngữ:
-      - Họ C (C, C++, C#):
-          - 01-nen-tang-lap-trinh
-          - 02-c-chuyen-sau
-          - 03-cpp
-          - 04-csharp-co-ban
-          - 05-csharp-nang-cao
+  - 🏠 Trang chủ: index.md
+  - 🧭 Hướng dẫn: 00-huong-dan
+  - 💻 Lập trình Họ C & .NET:
+      - 01-nen-tang-lap-trinh
+      - 02-c-chuyen-sau
+      - 03-cpp
+      - 04-csharp-co-ban
+      - 05-csharp-nang-cao
   - ...

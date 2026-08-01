@@ -1,0 +1,131 @@
+<div class="hero-container">
+  <h1 class="hero-title">Full-stack: Từ Số 0 Đến Software Architect</h1>
+  <p class="hero-subtitle">Bộ tài liệu tự học lập trình toàn diện bằng tiếng Việt. Lấy C làm nền tảng bộ nhớ & tư duy, C# / .NET 9 làm công nghệ thực chiến đi làm, C++20 hiểu sâu OOP & RAII, tiến tới Web, Microservices & Thiết kế hệ thống.</p>
+  <div class="hero-buttons">
+    <a href="00-huong-dan/roadmap/" class="btn-hero btn-hero-primary">🚀 Khám Phá Roadmap 5 Cấp</a>
+    <a href="01-nen-tang-lap-trinh/01-chuong-trinh-c-dau-tien-va-co-che-bien-dich/" class="btn-hero btn-hero-secondary">💻 Bắt Đầu Học Module 01</a>
+    <a href="PROGRESS/" class="btn-hero btn-hero-secondary">📈 Xem Tiến Độ Chương Trình</a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-number">22</div>
+    <div class="stat-label">Module Kiến Thức</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">79+</div>
+    <div class="stat-label">Bài Học Chuyên Sâu</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">.NET 9</div>
+    <div class="stat-label">Target SDK Mới Nhất</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">100%</div>
+    <div class="stat-label">Code Chạy Tái Tạo Được</div>
+  </div>
+</div>
+
+---
+
+## 🧭 Các Module Đã Hoàn Thành (Sẵn Sàng Học)
+
+<div class="grid cards" markdown>
+
+-   :material-map-legend:{ .card-icon }
+    
+    ### Module 00: Hướng Dẫn & Lộ Trình
+    <span class="badge badge-info">Tổng quan</span>
+    
+    Roadmap 5 cấp độ từ Intern đến Architect, quy chuẩn môi trường làm việc và phương pháp học lập trình hiệu quả.
+    
+    [:octicons-arrow-right-24: Đọc hướng dẫn](00-huong-dan/roadmap/)
+
+-   :material-language-c:{ .card-icon }
+    
+    ### Module 01: Nền Tảng Lập Trình Với C
+    <span class="badge badge-success">15 Bài • Hoàn thành</span>
+    
+    Biến, kiểu dữ liệu, toán tử, cấu trúc điều khiển, hàm, mảng, chuỗi và tư duy thuật toán cơ bản bằng ngôn ngữ C.
+    
+    [:octicons-arrow-right-24: Học Module 01](01-nen-tang-lap-trinh/01-chuong-trinh-c-dau-tien-va-co-che-bien-dich/)
+
+-   :material-memory:{ .card-icon }
+    
+    ### Module 02: C Chuyên Sâu & Mô Hình Bộ Nhớ
+    <span class="badge badge-success">15 Bài • Hoàn thành</span>
+    
+    Con trỏ (pointer), Stack vs Heap, cấp phát động, Struct/Union, Bitwise, C nhiều file và thao tác File I/O.
+    
+    [:octicons-arrow-right-24: Học Module 02](02-c-chuyen-sau/01-con-tro-co-ban-va-mo-hinh-bo-nho/)
+
+-   :material-language-cpp:{ .card-icon }
+    
+    ### Module 03: C++20 & Hướng Đối Tượng
+    <span class="badge badge-success">14 Bài • Hoàn thành</span>
+    
+    OOP căn bản & nâng cao, STL, Smart Pointers, Move Semantics, RAII và các tính năng hiện đại trong C++20.
+    
+    [:octicons-arrow-right-24: Học Module 03](03-cpp/01-tu-c-sang-cpp-references-va-overloading/)
+
+-   :material-language-csharp:{ .card-icon }
+    
+    ### Module 04: C# Cơ Bản & Hệ Sinh Thái .NET
+    <span class="badge badge-success">16 Bài • Hoàn thành</span>
+    
+    Value vs Reference types, Garbage Collector, Generics, Collections, Exception handling và LINQ căn bản với .NET 9.
+    
+    [:octicons-arrow-right-24: Học Module 04](04-csharp-co-ban/01-dotnet-ecosystem-va-chuong-trinh-csharp-dau-tien/)
+
+-   :material-lightning-bolt:{ .card-icon }
+    
+    ### Module 05: C# Nâng Cao & Hiệu Năng Cao
+    <span class="badge badge-success">19 Bài • Hoàn thành</span>
+    
+    `Span<T>`, `Memory<T>`, Async/Await, Threading, Reflection, Expression Trees, Performance optimization và Memory profiling.
+    
+    [:octicons-arrow-right-24: Học Module 05](05-csharp-nang-cao/01-nullable-reference-types-va-null-safety/)
+
+</div>
+
+---
+
+## 🎯 Lộ Trình Phát Triển Tiếp Theo
+
+```mermaid
+graph LR
+    A[Module 01-02: C & Bộ nhớ] --> B[Module 03: C++20 & OOP]
+    B --> C[Module 04-05: C# & .NET 9]
+    C --> D[Module 06-07: SOLID & DSA]
+    D --> E[Module 08-09: SQL & EF Core]
+    E --> F[Module 10-13: Full-stack Web & React]
+    F --> G[Module 14-15: DevOps & Docker]
+    G --> H[Module 16-20: System Design & Architect]
+```
+
+### 📦 Các Module Đang Biên Soạn
+
+| Module | Chủ đề chính | Trạng thái |
+|---|---|---|
+| **06** | OOP, SOLID & Clean Code | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **07** | Cấu trúc dữ liệu & Giải thuật | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+
+---
+
+## 💡 Phương Pháp Học "Problem-First"
+
+Mỗi bài học trong bộ tài liệu được thiết kế theo tiêu chuẩn 8 phần nghiêm ngặt:
+
+1. **Mục tiêu bài học:** Xác định rõ kiến thức cần đạt.
+2. **Bài toán mở đầu:** Đặt ra bài toán thực tế cần giải quyết.
+3. **Lời giải code hoàn chỉnh:** Đã chạy thử nghiệm với comment chi tiết.
+4. **Giải thích cơ chế:** Sơ đồ bộ nhớ / luồng thực thi rõ ràng.
+5. **Kiến thức nền:** Đầy đủ lý thuyết trọng tâm.
+6. **Lỗi thường gặp:** Cách phòng tránh và debug các bẫy hay gặp.
+7. **Bài tập tự luyện:** 3–5 bài tập củng cố kiến thức.
+8. **Checklist tự đánh giá:** Đảm bảo nắm vững bài học trước khi chuyển tiếp.
