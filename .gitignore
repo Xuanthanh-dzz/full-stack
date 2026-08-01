@@ -4,3 +4,4 @@ node_modules/
 fullstack-roadmap/.vitepress/cache/
 fullstack-roadmap/.vitepress/dist/
 *.log
+site/
