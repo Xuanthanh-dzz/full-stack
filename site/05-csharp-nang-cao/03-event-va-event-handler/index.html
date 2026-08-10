@@ -1,0 +1,4560 @@
+
+<!doctype html>
+<html lang="vi" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../02-delegate-action-func-predicate/">
+      
+      
+        <link rel="next" href="../04-lambda-closure-va-bo-nho/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Event và event handler - Full-stack từ số 0 đến Software Architect</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Plus+Jakarta+Sans:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Plus Jakarta Sans";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#event-va-event-handler" class="md-skip">
+          Bỏ qua
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Đầu trang">
+    <a href="../.." title="Full-stack từ số 0 đến Software Architect" class="md-header__button md-logo" aria-label="Full-stack từ số 0 đến Software Architect" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Full-stack từ số 0 đến Software Architect
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Event và event handler
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Chuyển sang Nền tối"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Chuyển sang Nền tối" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Chuyển sang Nền sáng"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Chuyển sang Nền sáng" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Tìm kiếm" placeholder="Tìm kiếm" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Tìm kiếm">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Chia sẻ" aria-label="Chia sẻ" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Xoá" aria-label="Xoá" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Xuanthanh-dzz/full-stack" title="Xem mã nguồn" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  🏠 Trang chủ
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00-huong-dan/roadmap/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Hướng dẫn
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  💻 Lập trình Họ C & .NET
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Thanh điều hướng" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Full-stack từ số 0 đến Software Architect" class="md-nav__button md-logo" aria-label="Full-stack từ số 0 đến Software Architect" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Full-stack từ số 0 đến Software Architect
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Xuanthanh-dzz/full-stack" title="Xem mã nguồn" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 Trang chủ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hướng dẫn
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Hướng dẫn
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-huong-dan/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lộ trình Full-stack từ số 0 đến Software Architect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    💻 Lập trình Họ C & .NET
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    💻 Lập trình Họ C & .NET
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C · Nền tảng
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C · Nền tảng
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bài toán, thuật toán và pseudocode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/02-chuong-trinh-c-dau-tien/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chương trình C đầu tiên
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/03-bien-hang-so-kieu-du-lieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Biến, hằng số và kiểu dữ liệu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/04-bo-nho-bien-va-pham-vi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bộ nhớ, biến và phạm vi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/05-toan-tu-va-bieu-thuc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Toán tử và biểu thức
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/06-nhap-xuat-voi-stdio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nhập xuất với stdio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/07-dieu-kien-if-switch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Điều kiện với if và switch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/08-vong-lap-for-while-do-while/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vòng lặp for, while và do-while
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/09-ham-tham-so-gia-tri-tra-ve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hàm, tham số và giá trị trả về
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ngăn xếp lời gọi hàm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/11-mang-mot-chieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mảng một chiều
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/12-mang-hai-chieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mảng hai chiều
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/13-chuoi-ky-tu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chuỗi ký tự
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/14-debug-va-kiem-thu-chuong-trinh-c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug và kiểm thử chương trình C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/15-du-an-console-quan-ly-diem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án console quản lý điểm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C · Chuyên sâu
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C · Chuyên sâu
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/01-dia-chi-bo-nho-va-con-tro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Địa chỉ bộ nhớ và con trỏ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/02-con-tro-va-bien/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ và biến
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/03-con-tro-voi-mang-va-chuoi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ với mảng và chuỗi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/04-con-tro-cap-hai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ cấp hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/05-con-tro-ham-va-callback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ hàm và callback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/06-stack-heap-va-vong-doi-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack, heap và vòng đời bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/07-cap-phat-dong-malloc-calloc-realloc-free/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cấp phát động: malloc, calloc, realloc và free
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/08-loi-bo-nho-va-undefined-behavior/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lỗi bộ nhớ và undefined behavior
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/09-struct-enum-typedef/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    struct, enum và typedef
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/10-union-bit-field-va-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    union, bit-field và bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/11-file-io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File I/O
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/12-preprocessor-header-va-macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessor, header và macro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/13-qua-trinh-bien-dich-linking-makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quá trình biên dịch, linking và Makefile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/14-xu-ly-loi-va-lap-trinh-phong-thu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Xử lý lỗi và lập trình phòng thủ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/15-du-an-c-quan-ly-kho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án C: quản lý kho
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C++
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/01-tu-c-sang-cpp20/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Từ C sang C++20
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/02-reference-const-va-vong-doi-doi-tuong/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference, const và vòng đời object
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/03-class-object-encapsulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class, object và encapsulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/04-constructor-destructor-va-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constructor, destructor và bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/05-copy-move-rule-of-zero-five/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Copy, move và Rule of Zero/Five
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/06-ke-thua-va-da-hinh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kế thừa và đa hình
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/07-abstract-class-va-interface-trong-cpp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abstract class và interface trong C++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/08-template-va-generic-programming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Template và generic programming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/09-stl-container/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    STL container
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/10-iterator-algorithm-va-lambda/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Iterator, algorithm và lambda
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/11-exception-va-raii/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception và RAII
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/12-smart-pointer-va-quyen-so-huu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smart pointer và quyền sở hữu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/13-move-semantics-va-perfect-forwarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Move semantics và perfect forwarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/14-du-an-cpp-quan-ly-thu-vien/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án C++ quản lý thư viện
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C# · Cơ bản
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C# · Cơ bản
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/01-dotnet-9-va-chuong-trinh-csharp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .NET 9 và chương trình C# đầu tiên
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/02-cu-phap-bien-va-kieu-du-lieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cú pháp, biến và kiểu dữ liệu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/03-toan-tu-dieu-kien-vong-lap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Toán tử, điều kiện và vòng lặp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/04-method-parameter-va-return/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Method, parameter và return
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/05-stack-heap-value-type-reference-type/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack, heap, value type và reference type
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/06-array-string-index-va-range/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mảng, chuỗi, Index và Range
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/07-class-object-constructor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class, object và constructor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/08-property-encapsulation-va-access-modifier/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property, encapsulation và access modifier
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/09-inheritance-polymorphism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inheritance và polymorphism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/10-abstract-class-va-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abstract class, interface và composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/11-struct-enum-va-tuple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Struct, enum và tuple trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/12-exception-va-xu-ly-loi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception và xử lý lỗi trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collection: List, Dictionary, HashSet, Queue và Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/14-project-solution-namespace-va-assembly/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project, solution, namespace và assembly trong .NET
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/15-debug-va-diagnostics-co-ban/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug và diagnostics cơ bản trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-csharp-co-ban/16-du-an-console-csharp-quan-ly-cong-viec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án console C#: trình quản lý công việc có lưu JSON
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C# · Nâng cao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C# · Nâng cao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-generics-va-constraints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generics và constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-delegate-action-func-predicate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Delegate, Action, Func và Predicate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event và event handler
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event và event handler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Mục lục">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Mục lục
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-muc-tieu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mục tiêu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-bai-toan-mo-au" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Bài toán mở đầu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-loi-giai-bang-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Lời giải bằng code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-giai-thich-co-che" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Giải thích cơ chế
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Giải thích cơ chế">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-publisher-subscriber-va-event-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Publisher, subscriber và event data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-event-them-quyen-truy-cap-len-delegate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 event thêm quyền truy cập lên delegate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-ang-ky-va-huy-ang-ky" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Đăng ký và hủy đăng ký
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-raise-ung-thoi-iem-nghiep-vu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Raise đúng thời điểm nghiệp vụ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-sender-va-eventargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 sender và EventArgs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-mo-hinh-bo-nho-va-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Mô hình bộ nhớ và lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-event-trong-vi-du-chay-ong-bo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7 Event trong ví dụ chạy đồng bộ
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-kien-thuc-nen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Kiến thức nền
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Kiến thức nền">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#event-la-notification-khong-phai-command-hai-chieu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event là notification, không phải command hai chiều
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-instance-va-static-event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event instance và static event
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ao-sau-co-the-quay-lai-sau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Đào sâu (có thể quay lại sau)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Đào sâu (có thể quay lại sau)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#field-like-event-va-custom-accessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field-like event và custom accessor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thread-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread safety
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-loi-thuong-gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Lỗi thường gặp
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Lỗi thường gặp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cong-khai-delegate-thay-vi-event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Công khai delegate thay vì event
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raise-event-truoc-khi-state-hop-le" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raise event trước khi state hợp lệ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#khong-unsubscribe-khoi-publisher-song-lau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Không unsubscribe khỏi publisher sống lâu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subscribe-cung-handler-nhieu-lan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscribe cùng handler nhiều lần
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cho-rang-handler-tu-chay-song-song" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cho rằng handler tự chạy song song
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nuot-exception-cua-moi-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nuốt exception của mọi handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-bai-tap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Bài tập
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Bài tập">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bai-1-nhiet-o-vuot-nguong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 1 — Nhiệt độ vượt ngưỡng
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-2-subscribe-va-unsubscribe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 2 — Subscribe và unsubscribe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-3-publisher-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 3 — Publisher lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-4-exception-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 4 — Exception handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-5-event-hay-loi-goi-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 5 — Event hay lời gọi service?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-checklist-tu-anh-gia-va-ieu-huong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Checklist tự đánh giá và điều hướng
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-lambda-closure-va-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lambda, closure và bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-extension-method/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension method
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-nullable-reference-type/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nullable reference type
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-record-init-required-va-immutability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record, init, required và tính bất biến
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-pattern-matching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pattern matching trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-async-await-task-va-state-machine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    async, await, Task và state machine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-cancellation-timeout-va-exception-bat-dong-bo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cancellation, timeout và exception bất đồng bộ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-parallelism-concurrency-va-thread-safety/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parallelism, concurrency và thread safety
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-idisposable-gc-va-quan-ly-tai-nguyen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IDisposable, GC và quản lý tài nguyên
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-reflection-attribute-va-dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reflection, attribute và dynamic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-span-memory-va-lap-trinh-hieu-nang/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Span&lt;T&gt;, Memory&lt;T&gt; và lập trình hiệu năng
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15-covariance-va-contravariance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Covariance và contravariance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16-expression-tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expression tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../17-serialization-system-text-json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serialization với System.Text.Json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../18-do-luong-va-toi-uu-hieu-nang/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Đo lường và tối ưu hiệu năng
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../19-du-an-xu-ly-du-lieu-bat-dong-bo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án C# nâng cao: xử lý batch đơn hàng bất đồng bộ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Mục lục">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Mục lục
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-muc-tieu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mục tiêu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-bai-toan-mo-au" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Bài toán mở đầu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-loi-giai-bang-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Lời giải bằng code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-giai-thich-co-che" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Giải thích cơ chế
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Giải thích cơ chế">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-publisher-subscriber-va-event-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Publisher, subscriber và event data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-event-them-quyen-truy-cap-len-delegate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 event thêm quyền truy cập lên delegate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-ang-ky-va-huy-ang-ky" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Đăng ký và hủy đăng ký
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-raise-ung-thoi-iem-nghiep-vu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Raise đúng thời điểm nghiệp vụ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-sender-va-eventargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 sender và EventArgs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-mo-hinh-bo-nho-va-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Mô hình bộ nhớ và lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-event-trong-vi-du-chay-ong-bo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7 Event trong ví dụ chạy đồng bộ
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-kien-thuc-nen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Kiến thức nền
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Kiến thức nền">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#event-la-notification-khong-phai-command-hai-chieu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event là notification, không phải command hai chiều
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-instance-va-static-event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event instance và static event
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ao-sau-co-the-quay-lai-sau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Đào sâu (có thể quay lại sau)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Đào sâu (có thể quay lại sau)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#field-like-event-va-custom-accessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field-like event và custom accessor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thread-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread safety
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-loi-thuong-gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Lỗi thường gặp
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Lỗi thường gặp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cong-khai-delegate-thay-vi-event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Công khai delegate thay vì event
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raise-event-truoc-khi-state-hop-le" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raise event trước khi state hợp lệ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#khong-unsubscribe-khoi-publisher-song-lau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Không unsubscribe khỏi publisher sống lâu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subscribe-cung-handler-nhieu-lan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscribe cùng handler nhiều lần
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cho-rang-handler-tu-chay-song-song" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cho rằng handler tự chạy song song
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nuot-exception-cua-moi-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nuốt exception của mọi handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-bai-tap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Bài tập
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Bài tập">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bai-1-nhiet-o-vuot-nguong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 1 — Nhiệt độ vượt ngưỡng
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-2-subscribe-va-unsubscribe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 2 — Subscribe và unsubscribe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-3-publisher-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 3 — Publisher lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-4-exception-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 4 — Exception handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-5-event-hay-loi-goi-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 5 — Event hay lời gọi service?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-checklist-tu-anh-gia-va-ieu-huong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Checklist tự đánh giá và điều hướng
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Thanh điều hướng" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    🏠 Trang chủ
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    💻 Lập trình Họ C & .NET
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../01-generics-va-constraints/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    C# · Nâng cao
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="event-va-event-handler">Event và event handler<a class="headerlink" href="#event-va-event-handler" title="Permanent link">&para;</a></h1>
+<h2 id="1-muc-tieu">1. Mục tiêu<a class="headerlink" href="#1-muc-tieu" title="Permanent link">&para;</a></h2>
+<p>Sau bài này, bạn có thể:</p>
+<ul>
+<li>thiết kế quan hệ publisher/subscriber mà publisher không phụ thuộc concrete subscriber;</li>
+<li>khai báo event bằng <code>EventHandler&lt;TEventArgs&gt;</code>;</li>
+<li>tạo event data immutable và truyền <code>sender</code> đúng quy ước .NET;</li>
+<li>đăng ký bằng <code>+=</code>, hủy đăng ký bằng <code>-=</code> và chỉ raise event trong publisher;</li>
+<li>giải thích event dùng multicast delegate phía sau nhưng giới hạn quyền của caller;</li>
+<li>vẽ object graph từ publisher đến delegate invocation list và subscriber target;</li>
+<li>nhận ra rủi ro lifetime, exception và duplicate subscription của event đồng bộ.</li>
+</ul>
+<h2 id="2-bai-toan-mo-au">2. Bài toán mở đầu<a class="headerlink" href="#2-bai-toan-mo-au" title="Permanent link">&para;</a></h2>
+<p>Một kho hàng cần phát tín hiệu khi tồn kho đi từ mức an toàn xuống ngưỡng thấp. Hiện có hai nơi quan tâm:</p>
+<ul>
+<li>dashboard cập nhật cảnh báo;</li>
+<li>email notifier gửi thông báo cho nhân viên kho.</li>
+</ul>
+<p><code>InventoryItem</code> không nên tự <code>new Dashboard</code> hoặc <code>new EmailNotifier</code>. Nếu làm vậy, domain object phụ thuộc hạ tầng hiển thị/gửi mail và phải sửa mỗi khi có kênh mới. Ngược lại, nếu công khai một delegate field, code ngoài có thể gán đè toàn bộ handler hoặc tự phát thông báo giả.</p>
+<p>Ta cần publisher công bố rằng “một sự kiện đã xảy ra”, cho subscriber đăng ký/hủy đăng ký nhưng giữ quyền raise bên trong publisher. C# cung cấp keyword <code>event</code> cho đúng ranh giới đó.</p>
+<h2 id="3-loi-giai-bang-code">3. Lời giải bằng code<a class="headerlink" href="#3-loi-giai-bang-code" title="Permanent link">&para;</a></h2>
+<p>Tạo project:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>new<span class="w"> </span>console<span class="w"> </span>--name<span class="w"> </span>EventDemo<span class="w"> </span>--framework<span class="w"> </span>net9.0<span class="w"> </span>--use-program-main
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>EventDemo
+</span></code></pre></div>
+<p>Thay <code>EventDemo.csproj</code> bằng:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">&lt;Project</span><span class="w"> </span><span class="na">Sdk=</span><span class="s">&quot;Microsoft.NET.Sdk&quot;</span><span class="nt">&gt;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&lt;PropertyGroup&gt;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">&lt;OutputType&gt;</span>Exe<span class="nt">&lt;/OutputType&gt;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">&lt;TargetFramework&gt;</span>net9.0<span class="nt">&lt;/TargetFramework&gt;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">&lt;ImplicitUsings&gt;</span>enable<span class="nt">&lt;/ImplicitUsings&gt;</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">&lt;Nullable&gt;</span>enable<span class="nt">&lt;/Nullable&gt;</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">&lt;TreatWarningsAsErrors&gt;</span>true<span class="nt">&lt;/TreatWarningsAsErrors&gt;</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">&lt;/PropertyGroup&gt;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">&lt;/Project&gt;</span>
+</span></code></pre></div>
+<p>Thay <code>Program.cs</code> bằng:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">namespace</span><span class="w"> </span><span class="nn">EventDemo</span><span class="p">;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">internal</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Program</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">{</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">Main</span><span class="p">()</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="kt">var</span><span class="w"> </span><span class="n">item</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">InventoryItem</span><span class="p">(</span><span class="s">&quot;KB-01&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">initialStock</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">lowStockThreshold</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">        </span><span class="kt">var</span><span class="w"> </span><span class="n">dashboard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">StockDashboard</span><span class="p">();</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">        </span><span class="kt">var</span><span class="w"> </span><span class="n">email</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">WarehouseEmailNotifier</span><span class="p">();</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">StockLow</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">dashboard</span><span class="p">.</span><span class="n">HandleStockLow</span><span class="p">;</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">StockLow</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">email</span><span class="p">.</span><span class="n">HandleStockLow</span><span class="p">;</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">        </span><span class="c1">// 10 -&gt; 3 đi qua ngưỡng: cả hai subscriber được gọi.</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">Sell</span><span class="p">(</span><span class="mi">7</span><span class="p">);</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">        </span><span class="c1">// 3 -&gt; 2 vẫn đang thấp, không phải lần mới đi qua ngưỡng.</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">Sell</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">StockLow</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">email</span><span class="p">.</span><span class="n">HandleStockLow</span><span class="p">;</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Email subscriber removed.&quot;</span><span class="p">);</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">Restock</span><span class="p">(</span><span class="mi">8</span><span class="p">);</span><span class="w"> </span><span class="c1">// 2 -&gt; 10, trở lại mức an toàn.</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">        </span><span class="n">item</span><span class="p">.</span><span class="n">Sell</span><span class="p">(</span><span class="mi">7</span><span class="p">);</span><span class="w">    </span><span class="c1">// 10 -&gt; 3, chỉ dashboard còn đăng ký.</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="p">}</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="k">internal</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">InventoryItem</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="p">{</span>
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="n">Sku</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">Stock</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">private</span><span class="w"> </span><span class="k">set</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">LowStockThreshold</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>
+</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">    </span><span class="c1">// Event ban đầu không có subscriber nên delegate backing field có thể null.</span>
+</span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">event</span><span class="w"> </span><span class="n">EventHandler</span><span class="o">&lt;</span><span class="n">StockLowEventArgs</span><span class="o">&gt;?</span><span class="w"> </span><span class="n">StockLow</span><span class="p">;</span>
+</span><span id="__span-2-36"><a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>
+</span><span id="__span-2-37"><a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="nf">InventoryItem</span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="n">sku</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">initialStock</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">lowStockThreshold</span><span class="p">)</span>
+</span><span id="__span-2-38"><a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-39"><a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="w">        </span><span class="n">ArgumentException</span><span class="p">.</span><span class="n">ThrowIfNullOrWhiteSpace</span><span class="p">(</span><span class="n">sku</span><span class="p">);</span>
+</span><span id="__span-2-40"><a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>
+</span><span id="__span-2-41"><a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">initialStock</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-2-42"><a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-2-43"><a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a><span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="nf">ArgumentOutOfRangeException</span><span class="p">(</span><span class="k">nameof</span><span class="p">(</span><span class="n">initialStock</span><span class="p">));</span>
+</span><span id="__span-2-44"><a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-45"><a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a>
+</span><span id="__span-2-46"><a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lowStockThreshold</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-2-47"><a id="__codelineno-2-47" name="__codelineno-2-47" href="#__codelineno-2-47"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-2-48"><a id="__codelineno-2-48" name="__codelineno-2-48" href="#__codelineno-2-48"></a><span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="nf">ArgumentOutOfRangeException</span><span class="p">(</span><span class="k">nameof</span><span class="p">(</span><span class="n">lowStockThreshold</span><span class="p">));</span>
+</span><span id="__span-2-49"><a id="__codelineno-2-49" name="__codelineno-2-49" href="#__codelineno-2-49"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-50"><a id="__codelineno-2-50" name="__codelineno-2-50" href="#__codelineno-2-50"></a>
+</span><span id="__span-2-51"><a id="__codelineno-2-51" name="__codelineno-2-51" href="#__codelineno-2-51"></a><span class="w">        </span><span class="n">Sku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sku</span><span class="p">.</span><span class="n">Trim</span><span class="p">().</span><span class="n">ToUpperInvariant</span><span class="p">();</span>
+</span><span id="__span-2-52"><a id="__codelineno-2-52" name="__codelineno-2-52" href="#__codelineno-2-52"></a><span class="w">        </span><span class="n">Stock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">initialStock</span><span class="p">;</span>
+</span><span id="__span-2-53"><a id="__codelineno-2-53" name="__codelineno-2-53" href="#__codelineno-2-53"></a><span class="w">        </span><span class="n">LowStockThreshold</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lowStockThreshold</span><span class="p">;</span>
+</span><span id="__span-2-54"><a id="__codelineno-2-54" name="__codelineno-2-54" href="#__codelineno-2-54"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-55"><a id="__codelineno-2-55" name="__codelineno-2-55" href="#__codelineno-2-55"></a>
+</span><span id="__span-2-56"><a id="__codelineno-2-56" name="__codelineno-2-56" href="#__codelineno-2-56"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">Sell</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">quantity</span><span class="p">)</span>
+</span><span id="__span-2-57"><a id="__codelineno-2-57" name="__codelineno-2-57" href="#__codelineno-2-57"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-58"><a id="__codelineno-2-58" name="__codelineno-2-58" href="#__codelineno-2-58"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">quantity</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-2-59"><a id="__codelineno-2-59" name="__codelineno-2-59" href="#__codelineno-2-59"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-2-60"><a id="__codelineno-2-60" name="__codelineno-2-60" href="#__codelineno-2-60"></a><span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="nf">ArgumentOutOfRangeException</span><span class="p">(</span><span class="k">nameof</span><span class="p">(</span><span class="n">quantity</span><span class="p">));</span>
+</span><span id="__span-2-61"><a id="__codelineno-2-61" name="__codelineno-2-61" href="#__codelineno-2-61"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-62"><a id="__codelineno-2-62" name="__codelineno-2-62" href="#__codelineno-2-62"></a>
+</span><span id="__span-2-63"><a id="__codelineno-2-63" name="__codelineno-2-63" href="#__codelineno-2-63"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">quantity</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">Stock</span><span class="p">)</span>
+</span><span id="__span-2-64"><a id="__codelineno-2-64" name="__codelineno-2-64" href="#__codelineno-2-64"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-2-65"><a id="__codelineno-2-65" name="__codelineno-2-65" href="#__codelineno-2-65"></a><span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="nf">InvalidOperationException</span><span class="p">(</span><span class="s">&quot;Not enough stock.&quot;</span><span class="p">);</span>
+</span><span id="__span-2-66"><a id="__codelineno-2-66" name="__codelineno-2-66" href="#__codelineno-2-66"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-67"><a id="__codelineno-2-67" name="__codelineno-2-67" href="#__codelineno-2-67"></a>
+</span><span id="__span-2-68"><a id="__codelineno-2-68" name="__codelineno-2-68" href="#__codelineno-2-68"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">previousStock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Stock</span><span class="p">;</span>
+</span><span id="__span-2-69"><a id="__codelineno-2-69" name="__codelineno-2-69" href="#__codelineno-2-69"></a><span class="w">        </span><span class="n">Stock</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">quantity</span><span class="p">;</span>
+</span><span id="__span-2-70"><a id="__codelineno-2-70" name="__codelineno-2-70" href="#__codelineno-2-70"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">$&quot;Stock changed: {previousStock} -&gt; {Stock}&quot;</span><span class="p">);</span>
+</span><span id="__span-2-71"><a id="__codelineno-2-71" name="__codelineno-2-71" href="#__codelineno-2-71"></a>
+</span><span id="__span-2-72"><a id="__codelineno-2-72" name="__codelineno-2-72" href="#__codelineno-2-72"></a><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">crossedLowThreshold</span><span class="w"> </span><span class="o">=</span>
+</span><span id="__span-2-73"><a id="__codelineno-2-73" name="__codelineno-2-73" href="#__codelineno-2-73"></a><span class="w">            </span><span class="n">previousStock</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">LowStockThreshold</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">Stock</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">LowStockThreshold</span><span class="p">;</span>
+</span><span id="__span-2-74"><a id="__codelineno-2-74" name="__codelineno-2-74" href="#__codelineno-2-74"></a>
+</span><span id="__span-2-75"><a id="__codelineno-2-75" name="__codelineno-2-75" href="#__codelineno-2-75"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">crossedLowThreshold</span><span class="p">)</span>
+</span><span id="__span-2-76"><a id="__codelineno-2-76" name="__codelineno-2-76" href="#__codelineno-2-76"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-2-77"><a id="__codelineno-2-77" name="__codelineno-2-77" href="#__codelineno-2-77"></a><span class="w">            </span><span class="n">OnStockLow</span><span class="p">();</span>
+</span><span id="__span-2-78"><a id="__codelineno-2-78" name="__codelineno-2-78" href="#__codelineno-2-78"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-79"><a id="__codelineno-2-79" name="__codelineno-2-79" href="#__codelineno-2-79"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-80"><a id="__codelineno-2-80" name="__codelineno-2-80" href="#__codelineno-2-80"></a>
+</span><span id="__span-2-81"><a id="__codelineno-2-81" name="__codelineno-2-81" href="#__codelineno-2-81"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">Restock</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">quantity</span><span class="p">)</span>
+</span><span id="__span-2-82"><a id="__codelineno-2-82" name="__codelineno-2-82" href="#__codelineno-2-82"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-83"><a id="__codelineno-2-83" name="__codelineno-2-83" href="#__codelineno-2-83"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">quantity</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-2-84"><a id="__codelineno-2-84" name="__codelineno-2-84" href="#__codelineno-2-84"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-2-85"><a id="__codelineno-2-85" name="__codelineno-2-85" href="#__codelineno-2-85"></a><span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="nf">ArgumentOutOfRangeException</span><span class="p">(</span><span class="k">nameof</span><span class="p">(</span><span class="n">quantity</span><span class="p">));</span>
+</span><span id="__span-2-86"><a id="__codelineno-2-86" name="__codelineno-2-86" href="#__codelineno-2-86"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-87"><a id="__codelineno-2-87" name="__codelineno-2-87" href="#__codelineno-2-87"></a>
+</span><span id="__span-2-88"><a id="__codelineno-2-88" name="__codelineno-2-88" href="#__codelineno-2-88"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">previousStock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Stock</span><span class="p">;</span>
+</span><span id="__span-2-89"><a id="__codelineno-2-89" name="__codelineno-2-89" href="#__codelineno-2-89"></a><span class="w">        </span><span class="n">Stock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">checked</span><span class="p">(</span><span class="n">Stock</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">quantity</span><span class="p">);</span>
+</span><span id="__span-2-90"><a id="__codelineno-2-90" name="__codelineno-2-90" href="#__codelineno-2-90"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">$&quot;Stock changed: {previousStock} -&gt; {Stock}&quot;</span><span class="p">);</span>
+</span><span id="__span-2-91"><a id="__codelineno-2-91" name="__codelineno-2-91" href="#__codelineno-2-91"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-92"><a id="__codelineno-2-92" name="__codelineno-2-92" href="#__codelineno-2-92"></a>
+</span><span id="__span-2-93"><a id="__codelineno-2-93" name="__codelineno-2-93" href="#__codelineno-2-93"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">OnStockLow</span><span class="p">()</span>
+</span><span id="__span-2-94"><a id="__codelineno-2-94" name="__codelineno-2-94" href="#__codelineno-2-94"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-95"><a id="__codelineno-2-95" name="__codelineno-2-95" href="#__codelineno-2-95"></a><span class="w">        </span><span class="kt">var</span><span class="w"> </span><span class="n">eventData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">StockLowEventArgs</span><span class="p">(</span><span class="n">Sku</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p">,</span><span class="w"> </span><span class="n">LowStockThreshold</span><span class="p">);</span>
+</span><span id="__span-2-96"><a id="__codelineno-2-96" name="__codelineno-2-96" href="#__codelineno-2-96"></a>
+</span><span id="__span-2-97"><a id="__codelineno-2-97" name="__codelineno-2-97" href="#__codelineno-2-97"></a><span class="w">        </span><span class="c1">// ?. chỉ invoke khi invocation list khác null.</span>
+</span><span id="__span-2-98"><a id="__codelineno-2-98" name="__codelineno-2-98" href="#__codelineno-2-98"></a><span class="w">        </span><span class="n">StockLow</span><span class="o">?.</span><span class="n">Invoke</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">eventData</span><span class="p">);</span>
+</span><span id="__span-2-99"><a id="__codelineno-2-99" name="__codelineno-2-99" href="#__codelineno-2-99"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-100"><a id="__codelineno-2-100" name="__codelineno-2-100" href="#__codelineno-2-100"></a><span class="p">}</span>
+</span><span id="__span-2-101"><a id="__codelineno-2-101" name="__codelineno-2-101" href="#__codelineno-2-101"></a>
+</span><span id="__span-2-102"><a id="__codelineno-2-102" name="__codelineno-2-102" href="#__codelineno-2-102"></a><span class="k">internal</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">StockLowEventArgs</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">EventArgs</span>
+</span><span id="__span-2-103"><a id="__codelineno-2-103" name="__codelineno-2-103" href="#__codelineno-2-103"></a><span class="p">{</span>
+</span><span id="__span-2-104"><a id="__codelineno-2-104" name="__codelineno-2-104" href="#__codelineno-2-104"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="n">Sku</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-105"><a id="__codelineno-2-105" name="__codelineno-2-105" href="#__codelineno-2-105"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">CurrentStock</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-106"><a id="__codelineno-2-106" name="__codelineno-2-106" href="#__codelineno-2-106"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">Threshold</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-107"><a id="__codelineno-2-107" name="__codelineno-2-107" href="#__codelineno-2-107"></a>
+</span><span id="__span-2-108"><a id="__codelineno-2-108" name="__codelineno-2-108" href="#__codelineno-2-108"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="nf">StockLowEventArgs</span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="n">sku</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">currentStock</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">threshold</span><span class="p">)</span>
+</span><span id="__span-2-109"><a id="__codelineno-2-109" name="__codelineno-2-109" href="#__codelineno-2-109"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-110"><a id="__codelineno-2-110" name="__codelineno-2-110" href="#__codelineno-2-110"></a><span class="w">        </span><span class="n">Sku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sku</span><span class="p">;</span>
+</span><span id="__span-2-111"><a id="__codelineno-2-111" name="__codelineno-2-111" href="#__codelineno-2-111"></a><span class="w">        </span><span class="n">CurrentStock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">currentStock</span><span class="p">;</span>
+</span><span id="__span-2-112"><a id="__codelineno-2-112" name="__codelineno-2-112" href="#__codelineno-2-112"></a><span class="w">        </span><span class="n">Threshold</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">threshold</span><span class="p">;</span>
+</span><span id="__span-2-113"><a id="__codelineno-2-113" name="__codelineno-2-113" href="#__codelineno-2-113"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-114"><a id="__codelineno-2-114" name="__codelineno-2-114" href="#__codelineno-2-114"></a><span class="p">}</span>
+</span><span id="__span-2-115"><a id="__codelineno-2-115" name="__codelineno-2-115" href="#__codelineno-2-115"></a>
+</span><span id="__span-2-116"><a id="__codelineno-2-116" name="__codelineno-2-116" href="#__codelineno-2-116"></a><span class="k">internal</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">StockDashboard</span>
+</span><span id="__span-2-117"><a id="__codelineno-2-117" name="__codelineno-2-117" href="#__codelineno-2-117"></a><span class="p">{</span>
+</span><span id="__span-2-118"><a id="__codelineno-2-118" name="__codelineno-2-118" href="#__codelineno-2-118"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">HandleStockLow</span><span class="p">(</span><span class="kt">object?</span><span class="w"> </span><span class="n">sender</span><span class="p">,</span><span class="w"> </span><span class="n">StockLowEventArgs</span><span class="w"> </span><span class="n">eventData</span><span class="p">)</span>
+</span><span id="__span-2-119"><a id="__codelineno-2-119" name="__codelineno-2-119" href="#__codelineno-2-119"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-120"><a id="__codelineno-2-120" name="__codelineno-2-120" href="#__codelineno-2-120"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span>
+</span><span id="__span-2-121"><a id="__codelineno-2-121" name="__codelineno-2-121" href="#__codelineno-2-121"></a><span class="w">            </span><span class="s">$&quot;DASHBOARD: {eventData.Sku} has {eventData.CurrentStock} item(s).&quot;</span><span class="p">);</span>
+</span><span id="__span-2-122"><a id="__codelineno-2-122" name="__codelineno-2-122" href="#__codelineno-2-122"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-123"><a id="__codelineno-2-123" name="__codelineno-2-123" href="#__codelineno-2-123"></a><span class="p">}</span>
+</span><span id="__span-2-124"><a id="__codelineno-2-124" name="__codelineno-2-124" href="#__codelineno-2-124"></a>
+</span><span id="__span-2-125"><a id="__codelineno-2-125" name="__codelineno-2-125" href="#__codelineno-2-125"></a><span class="k">internal</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WarehouseEmailNotifier</span>
+</span><span id="__span-2-126"><a id="__codelineno-2-126" name="__codelineno-2-126" href="#__codelineno-2-126"></a><span class="p">{</span>
+</span><span id="__span-2-127"><a id="__codelineno-2-127" name="__codelineno-2-127" href="#__codelineno-2-127"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">HandleStockLow</span><span class="p">(</span><span class="kt">object?</span><span class="w"> </span><span class="n">sender</span><span class="p">,</span><span class="w"> </span><span class="n">StockLowEventArgs</span><span class="w"> </span><span class="n">eventData</span><span class="p">)</span>
+</span><span id="__span-2-128"><a id="__codelineno-2-128" name="__codelineno-2-128" href="#__codelineno-2-128"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-2-129"><a id="__codelineno-2-129" name="__codelineno-2-129" href="#__codelineno-2-129"></a><span class="w">        </span><span class="c1">// Demo local: chỉ in ra console, không thực hiện email I/O thật.</span>
+</span><span id="__span-2-130"><a id="__codelineno-2-130" name="__codelineno-2-130" href="#__codelineno-2-130"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span>
+</span><span id="__span-2-131"><a id="__codelineno-2-131" name="__codelineno-2-131" href="#__codelineno-2-131"></a><span class="w">            </span><span class="s">$&quot;EMAIL: Restock {eventData.Sku}; threshold {eventData.Threshold}.&quot;</span><span class="p">);</span>
+</span><span id="__span-2-132"><a id="__codelineno-2-132" name="__codelineno-2-132" href="#__codelineno-2-132"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-133"><a id="__codelineno-2-133" name="__codelineno-2-133" href="#__codelineno-2-133"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Build và chạy:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dotnet<span class="w"> </span>build<span class="w"> </span>--configuration<span class="w"> </span>Release
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>dotnet<span class="w"> </span>run<span class="w"> </span>--configuration<span class="w"> </span>Release<span class="w"> </span>--no-build
+</span></code></pre></div>
+<p>Kết quả:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Stock changed: 10 -&gt; 3
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>DASHBOARD: KB-01 has 3 item(s).
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>EMAIL: Restock KB-01; threshold 3.
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>Stock changed: 3 -&gt; 2
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>Email subscriber removed.
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>Stock changed: 2 -&gt; 10
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>Stock changed: 10 -&gt; 3
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>DASHBOARD: KB-01 has 3 item(s).
+</span></code></pre></div>
+<h2 id="4-giai-thich-co-che">4. Giải thích cơ chế<a class="headerlink" href="#4-giai-thich-co-che" title="Permanent link">&para;</a></h2>
+<h3 id="41-publisher-subscriber-va-event-data">4.1 Publisher, subscriber và event data<a class="headerlink" href="#41-publisher-subscriber-va-event-data" title="Permanent link">&para;</a></h3>
+<p>Trong ví dụ:</p>
+<ul>
+<li><code>InventoryItem</code> là publisher: nó sở hữu state và biết lúc nào sự kiện thật sự xảy ra;</li>
+<li><code>StockDashboard</code> và <code>WarehouseEmailNotifier</code> là subscriber;</li>
+<li><code>StockLowEventArgs</code> là snapshot dữ liệu tại thời điểm raise;</li>
+<li><code>EventHandler&lt;StockLowEventArgs&gt;</code> là delegate contract có dạng <code>(object? sender, StockLowEventArgs eventData) -&gt; void</code>.</li>
+</ul>
+<p>Publisher không biết subscriber concrete nào đang nghe. Nó chỉ invoke contract. Subscriber không sửa stock; nó phản ứng với notification đã xảy ra.</p>
+<h3 id="42-event-them-quyen-truy-cap-len-delegate">4.2 <code>event</code> thêm quyền truy cập lên delegate<a class="headerlink" href="#42-event-them-quyen-truy-cap-len-delegate" title="Permanent link">&para;</a></h3>
+<p>Khai báo:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">public</span><span class="w"> </span><span class="k">event</span><span class="w"> </span><span class="n">EventHandler</span><span class="o">&lt;</span><span class="n">StockLowEventArgs</span><span class="o">&gt;?</span><span class="w"> </span><span class="n">StockLow</span><span class="p">;</span>
+</span></code></pre></div>
+<p>dùng một multicast delegate làm backing storage. Tuy nhiên, code ngoài declaring type chỉ được:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">item</span><span class="p">.</span><span class="n">StockLow</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">handler</span><span class="p">;</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">item</span><span class="p">.</span><span class="n">StockLow</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">handler</span><span class="p">;</span>
+</span></code></pre></div>
+<p>Code ngoài không được <code>item.StockLow = ...</code>, không đọc invocation list và không <code>Invoke</code> event. Chỉ <code>InventoryItem</code> có quyền raise. Đây là khác biệt quan trọng so với public delegate field/property.</p>
+<p>Dấu <code>?</code> nói backing delegate có thể là <code>null</code> khi chưa có subscriber. Toán tử null-conditional <code>?.</code> chỉ gọi <code>Invoke</code> khi reference khác <code>null</code>. Bài <a href="../06-nullable-reference-type/">Nullable reference type</a> sẽ giải thích đầy đủ nullable annotation và flow analysis; ở đây nó phản ánh đúng trạng thái tự nhiên của event.</p>
+<h3 id="43-ang-ky-va-huy-ang-ky">4.3 Đăng ký và hủy đăng ký<a class="headerlink" href="#43-ang-ky-va-huy-ang-ky" title="Permanent link">&para;</a></h3>
+<p>Câu:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">item</span><span class="p">.</span><span class="n">StockLow</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">dashboard</span><span class="p">.</span><span class="n">HandleStockLow</span><span class="p">;</span>
+</span></code></pre></div>
+<p>tạo delegate tới instance method, rồi ghép entry đó vào invocation list của event. <code>-=</code> tìm entry có cùng method và cùng target object để bỏ. Vì code giữ biến <code>dashboard</code> và dùng cùng method group, unsubscribe khớp chính xác.</p>
+<p>Đăng ký cùng handler hai lần tạo hai entry và handler chạy hai lần. C# event không tự loại trùng. Publisher/subscriber phải quy định ownership subscription rõ ràng.</p>
+<h3 id="44-raise-ung-thoi-iem-nghiep-vu">4.4 Raise đúng thời điểm nghiệp vụ<a class="headerlink" href="#44-raise-ung-thoi-iem-nghiep-vu" title="Permanent link">&para;</a></h3>
+<p>Event không thay validation. <code>Sell</code> kiểm tra input, commit <code>Stock</code>, rồi mới quyết định có đi qua ngưỡng không:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>previousStock &gt; threshold &amp;&amp; currentStock &lt;= threshold
+</span></code></pre></div>
+<p>Nhờ vậy event chỉ phát khi chuyển từ an toàn sang thấp, không phát lại ở mọi lần bán khi đã thấp. Tên event <code>StockLow</code> mô tả một fact đã xảy ra; event data chứa state sau commit.</p>
+<p>Method <code>OnStockLow</code> gom logic tạo event data và invoke vào một điểm. Quy ước <code>On&lt;EventName&gt;</code> thường là <code>protected virtual</code> trong base class muốn derived type tùy biến; class <code>sealed</code> ở đây dùng <code>private</code> vì không có extension point kế thừa.</p>
+<h3 id="45-sender-va-eventargs">4.5 <code>sender</code> và <code>EventArgs</code><a class="headerlink" href="#45-sender-va-eventargs" title="Permanent link">&para;</a></h3>
+<p>Publisher truyền <code>this</code> làm <code>sender</code>, vì chính <code>InventoryItem</code> phát event. Subscriber thường ưu tiên data có type trong <code>StockLowEventArgs</code>; chỉ dùng/cast <code>sender</code> khi contract thật sự cần publisher object.</p>
+<p>Event data dùng get-only property nên subscriber không thể gán lại snapshot. <code>EventArgs</code> là base type theo convention .NET và cho phép dùng <code>EventHandler&lt;TEventArgs&gt;</code> nhất quán.</p>
+<h3 id="46-mo-hinh-bo-nho-va-lifetime">4.6 Mô hình bộ nhớ và lifetime<a class="headerlink" href="#46-mo-hinh-bo-nho-va-lifetime" title="Permanent link">&para;</a></h3>
+<p>Sau hai subscription:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Main locals                         Managed heap
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>+---------------------+            +--------------------------------+
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>| item ref ------------+----------&gt;| InventoryItem H1               |
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>| dashboard ref -------+-----+      | StockLow backing delegate D1 --+---+
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>| email ref -----------+--+  |      +--------------------------------+   |
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>+---------------------+  |  |                                           v
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>                         |  |      +----------------------------------------+
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>                         |  |      | Invocation list                        |
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>                         |  +------| entry 1: target H2, method Handle...  |
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>                         +---------| entry 2: target H3, method Handle...  |
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>                                  +----------------------------------------+
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>H2 StockDashboard object
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>H3 WarehouseEmailNotifier object
+</span></code></pre></div>
+<p>H1 giữ backing delegate; delegate giữ target reference H2/H3. Vì vậy một publisher sống lâu có thể giữ subscriber sống dù nơi khác đã bỏ reference. Sau <code>-= email.HandleStockLow</code>, entry H3 bị bỏ; nếu không còn root/reference khác, email object mới có thể trở thành GC-eligible.</p>
+<p><code>new StockLowEventArgs(...)</code> tạo event-data object mới cho mỗi lần raise trong demo. Từng handler nhận bản sao reference tới cùng object event data; publisher không clone cho mỗi subscriber.</p>
+<h3 id="47-event-trong-vi-du-chay-ong-bo">4.7 Event trong ví dụ chạy đồng bộ<a class="headerlink" href="#47-event-trong-vi-du-chay-ong-bo" title="Permanent link">&para;</a></h3>
+<p><code>StockLow?.Invoke(...)</code> gọi handler ngay trên cùng call stack và cùng thread đang chạy <code>Sell</code>. <code>Sell</code> chỉ return sau khi tất cả handler return. Nếu handler chậm, publisher chậm; nếu handler ném exception, invocation dừng và exception đi ngược về caller của <code>Sell</code>. <code>Stock</code> đã được commit trước khi raise nên exception handler không tự rollback state; contract production phải nói rõ operation thành công nhưng notification lỗi được xử lý thế nào.</p>
+<p>Event không tự tạo background thread, queue hay retry. Những nhu cầu đó cần thiết kế riêng bằng async, channel hoặc message broker ở các module sau.</p>
+<h2 id="5-kien-thuc-nen">5. Kiến thức nền<a class="headerlink" href="#5-kien-thuc-nen" title="Permanent link">&para;</a></h2>
+<h3 id="event-la-notification-khong-phai-command-hai-chieu">Event là notification, không phải command hai chiều<a class="headerlink" href="#event-la-notification-khong-phai-command-hai-chieu" title="Permanent link">&para;</a></h3>
+<p>Publisher thông báo fact đã xảy ra; nó không nên hỏi subscriber để quyết định invariant cốt lõi. Nếu workflow cần câu trả lời bắt buộc hoặc transaction chung, gọi dependency/service có contract return rõ thường phù hợp hơn event.</p>
+<h3 id="event-instance-va-static-event">Event instance và static event<a class="headerlink" href="#event-instance-va-static-event" title="Permanent link">&para;</a></h3>
+<p>Event instance thuộc một publisher object cụ thể. Static event thuộc type/process và dễ giữ subscriber rất lâu; phải có ownership unsubscribe đặc biệt rõ. Không dùng static event như một global message bus tiện tay.</p>
+<h3 id="ao-sau-co-the-quay-lai-sau">Đào sâu (có thể quay lại sau)<a class="headerlink" href="#ao-sau-co-the-quay-lai-sau" title="Permanent link">&para;</a></h3>
+<h4 id="field-like-event-va-custom-accessor">Field-like event và custom accessor<a class="headerlink" href="#field-like-event-va-custom-accessor" title="Permanent link">&para;</a></h4>
+<p>Khai báo trong ví dụ là field-like event; compiler tạo backing delegate và <code>add/remove</code> accessor. C# cũng cho tự viết custom <code>add</code>/<code>remove</code> để chuyển tiếp subscription hoặc quản lý storage đặc biệt. Đây là công cụ framework-level; code ứng dụng thường nên bắt đầu bằng field-like event đơn giản.</p>
+<h4 id="thread-safety">Thread safety<a class="headerlink" href="#thread-safety" title="Permanent link">&para;</a></h4>
+<p>Việc add/remove field-like event được compiler triển khai an toàn ở mức cập nhật delegate, nhưng toàn bộ business state và quan hệ với thời điểm raise không tự thread-safe. Race giữa unsubscribe và invocation vẫn có thể khiến handler đang được gọi từ snapshot invocation hiện tại. Concurrency cần policy riêng và sẽ học sau.</p>
+<p>Không đặt I/O chậm vào handler của hot path nếu chưa thiết kế async/backpressure.</p>
+<p>Nếu cần cô lập, xác định handler nào best-effort, log đủ context và quyết định retry/dead-letter rõ ràng.</p>
+<h2 id="6-loi-thuong-gap">6. Lỗi thường gặp<a class="headerlink" href="#6-loi-thuong-gap" title="Permanent link">&para;</a></h2>
+<h3 id="cong-khai-delegate-thay-vi-event">Công khai delegate thay vì event<a class="headerlink" href="#cong-khai-delegate-thay-vi-event" title="Permanent link">&para;</a></h3>
+<p>Public delegate cho caller quyền gán đè hoặc invoke notification giả. Dùng <code>event</code> khi bên ngoài chỉ được subscribe/unsubscribe.</p>
+<h3 id="raise-event-truoc-khi-state-hop-le">Raise event trước khi state hợp lệ<a class="headerlink" href="#raise-event-truoc-khi-state-hop-le" title="Permanent link">&para;</a></h3>
+<p>Nếu phát event trước <code>Stock</code> được commit, subscriber đọc publisher sẽ thấy state cũ. Validate, cập nhật invariant, rồi raise fact tương ứng; nếu commit có thể rollback, định nghĩa semantics rõ hơn.</p>
+<h3 id="khong-unsubscribe-khoi-publisher-song-lau">Không unsubscribe khỏi publisher sống lâu<a class="headerlink" href="#khong-unsubscribe-khoi-publisher-song-lau" title="Permanent link">&para;</a></h3>
+<p>Publisher giữ delegate, delegate giữ subscriber target. Subscriber ngắn hạn phải hủy đăng ký khi lifecycle kết thúc hoặc dùng cơ chế ownership khác.</p>
+<h3 id="subscribe-cung-handler-nhieu-lan">Subscribe cùng handler nhiều lần<a class="headerlink" href="#subscribe-cung-handler-nhieu-lan" title="Permanent link">&para;</a></h3>
+<p>Mỗi <code>+=</code> thêm entry. Handler chạy lặp và một <code>-=</code> chỉ bỏ một matching occurrence theo quy tắc delegate. Đừng coi event như set tự loại trùng.</p>
+<h3 id="cho-rang-handler-tu-chay-song-song">Cho rằng handler tự chạy song song<a class="headerlink" href="#cho-rang-handler-tu-chay-song-song" title="Permanent link">&para;</a></h3>
+<p>Invocation mặc định đồng bộ, tuần tự.</p>
+<h3 id="nuot-exception-cua-moi-handler">Nuốt exception của mọi handler<a class="headerlink" href="#nuot-exception-cua-moi-handler" title="Permanent link">&para;</a></h3>
+<p><code>catch { }</code> làm mất lỗi và che trạng thái thiếu notification.</p>
+<h2 id="7-bai-tap">7. Bài tập<a class="headerlink" href="#7-bai-tap" title="Permanent link">&para;</a></h2>
+<h3 id="bai-1-nhiet-o-vuot-nguong">Bài 1 — Nhiệt độ vượt ngưỡng<a class="headerlink" href="#bai-1-nhiet-o-vuot-nguong" title="Permanent link">&para;</a></h3>
+<p>Tạo <code>TemperatureSensor</code> phát <code>TemperatureExceeded</code> chỉ khi value đi từ không vượt sang vượt threshold. Hai subscriber in console theo format khác nhau.</p>
+<p><strong>Gợi ý:</strong> lưu previous/current value; event data là snapshot get-only.</p>
+<h3 id="bai-2-subscribe-va-unsubscribe">Bài 2 — Subscribe và unsubscribe<a class="headerlink" href="#bai-2-subscribe-va-unsubscribe" title="Permanent link">&para;</a></h3>
+<p>Đăng ký cùng một handler hai lần, raise, hủy một lần rồi raise lại. Dự đoán số lần gọi trước khi chạy.</p>
+<p><strong>Gợi ý:</strong> vẽ invocation list như một danh sách có thứ tự, không phải set.</p>
+<h3 id="bai-3-publisher-lifetime">Bài 3 — Publisher lifetime<a class="headerlink" href="#bai-3-publisher-lifetime" title="Permanent link">&para;</a></h3>
+<p>Vẽ graph khi một static publisher giữ event tới một subscriber tạm thời. Giải thích vì sao subscriber chưa GC-eligible và đề xuất lifecycle hủy đăng ký.</p>
+<p><strong>Gợi ý:</strong> lần theo reference từ static root đến delegate rồi target.</p>
+<h3 id="bai-4-exception-handler">Bài 4 — Exception handler<a class="headerlink" href="#bai-4-exception-handler" title="Permanent link">&para;</a></h3>
+<p>Thêm ba subscriber, subscriber thứ hai ném exception. Quan sát thứ tự và thiết kế hai policy: fail-fast và best-effort.</p>
+<p><strong>Gợi ý:</strong> event mặc định là fail-fast theo invocation; best-effort cần gọi từng delegate có log.</p>
+<h3 id="bai-5-event-hay-loi-goi-service">Bài 5 — Event hay lời gọi service?<a class="headerlink" href="#bai-5-event-hay-loi-goi-service" title="Permanent link">&para;</a></h3>
+<p>Phân tích: “Order đã tạo” gửi analytics và “Order phải được thanh toán trước khi xác nhận”. Chọn event hay dependency return result cho từng trường hợp.</p>
+<p><strong>Gợi ý:</strong> notification phụ trợ có thể dùng event; precondition bắt buộc cần workflow trực tiếp/transaction rõ.</p>
+<h2 id="8-checklist-tu-anh-gia-va-ieu-huong">8. Checklist tự đánh giá và điều hướng<a class="headerlink" href="#8-checklist-tu-anh-gia-va-ieu-huong" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi phân biệt publisher, subscriber, handler và event data.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi khai báo/raise event theo <code>EventHandler&lt;TEventArgs&gt;</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi hiểu code ngoài chỉ được <code>+=</code>/<code>-=</code> chứ không invoke event.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi phát event sau khi state hợp lệ và đúng transition nghiệp vụ.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi vẽ được publisher → delegate → subscriber target.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi biết event giữ strong reference và có thể kéo dài lifetime subscriber.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi không giả định event tự chạy async hay tự cô lập exception.</li>
+</ul>
+<p>Điều hướng:</p>
+<ul>
+<li>Bài tiên quyết: <a href="../02-delegate-action-func-predicate/">Delegate, Action, Func và Predicate</a></li>
+<li>Ôn encapsulation: <a href="../../04-csharp-co-ban/08-property-encapsulation-va-access-modifier/">Property, encapsulation và access modifier</a></li>
+<li>Bài tiếp theo: <a href="../04-lambda-closure-va-bo-nho/">Lambda, closure và bộ nhớ</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Trở lại mục lục
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Chân trang" >
+        
+          
+          <a href="../02-delegate-action-func-predicate/" class="md-footer__link md-footer__link--prev" aria-label="Trước: Delegate, Action, Func và Predicate">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Trước
+              </span>
+              <div class="md-ellipsis">
+                Delegate, Action, Func và Predicate
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../04-lambda-closure-va-bo-nho/" class="md-footer__link md-footer__link--next" aria-label="Sau: Lambda, closure và bộ nhớ">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Sau
+              </span>
+              <div class="md-ellipsis">
+                Lambda, closure và bộ nhớ
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.footer", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.select", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0110\u00e3 sao ch\u00e9p", "clipboard.copy": "Sao ch\u00e9p v\u00e0o b\u1ed9 nh\u1edb t\u1ea1m", "search.result.more.one": "1 t\u1eeb kh\u00e1c trong trang", "search.result.more.other": "# t\u1eeb kh\u00e1c trong trang", "search.result.none": "Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i li\u1ec7u li\u00ean quan", "search.result.one": "1 t\u00e0i li\u1ec7u li\u00ean quan", "search.result.other": "# t\u00e0i li\u1ec7u li\u00ean quan", "search.result.placeholder": "Nh\u1eadp \u0111\u1ec3 b\u1eaft \u0111\u1ea7u t\u00ecm ki\u1ebfm", "search.result.term.missing": "Kh\u00f4ng", "select.version": "Ch\u1ecdn phi\u00ean b\u1ea3n"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

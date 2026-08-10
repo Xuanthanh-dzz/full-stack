@@ -1,0 +1,4710 @@
+
+<!doctype html>
+<html lang="vi" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../03-toan-tu-dieu-kien-vong-lap/">
+      
+      
+        <link rel="next" href="../05-stack-heap-value-type-reference-type/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Method, parameter và return - Full-stack từ số 0 đến Software Architect</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Plus+Jakarta+Sans:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Plus Jakarta Sans";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#method-parameter-va-return" class="md-skip">
+          Bỏ qua
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Đầu trang">
+    <a href="../.." title="Full-stack từ số 0 đến Software Architect" class="md-header__button md-logo" aria-label="Full-stack từ số 0 đến Software Architect" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Full-stack từ số 0 đến Software Architect
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Method, parameter và return
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Chuyển sang Nền tối"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Chuyển sang Nền tối" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Chuyển sang Nền sáng"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Chuyển sang Nền sáng" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Tìm kiếm" placeholder="Tìm kiếm" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Tìm kiếm">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Chia sẻ" aria-label="Chia sẻ" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Xoá" aria-label="Xoá" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Xuanthanh-dzz/full-stack" title="Xem mã nguồn" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  🏠 Trang chủ
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00-huong-dan/roadmap/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Hướng dẫn
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  💻 Lập trình Họ C & .NET
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Thanh điều hướng" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Full-stack từ số 0 đến Software Architect" class="md-nav__button md-logo" aria-label="Full-stack từ số 0 đến Software Architect" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Full-stack từ số 0 đến Software Architect
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Xuanthanh-dzz/full-stack" title="Xem mã nguồn" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 Trang chủ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hướng dẫn
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Hướng dẫn
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-huong-dan/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lộ trình Full-stack từ số 0 đến Software Architect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    💻 Lập trình Họ C & .NET
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    💻 Lập trình Họ C & .NET
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C · Nền tảng
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C · Nền tảng
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bài toán, thuật toán và pseudocode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/02-chuong-trinh-c-dau-tien/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chương trình C đầu tiên
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/03-bien-hang-so-kieu-du-lieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Biến, hằng số và kiểu dữ liệu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/04-bo-nho-bien-va-pham-vi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bộ nhớ, biến và phạm vi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/05-toan-tu-va-bieu-thuc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Toán tử và biểu thức
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/06-nhap-xuat-voi-stdio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nhập xuất với stdio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/07-dieu-kien-if-switch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Điều kiện với if và switch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/08-vong-lap-for-while-do-while/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vòng lặp for, while và do-while
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/09-ham-tham-so-gia-tri-tra-ve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hàm, tham số và giá trị trả về
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ngăn xếp lời gọi hàm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/11-mang-mot-chieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mảng một chiều
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/12-mang-hai-chieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mảng hai chiều
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/13-chuoi-ky-tu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chuỗi ký tự
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/14-debug-va-kiem-thu-chuong-trinh-c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug và kiểm thử chương trình C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-nen-tang-lap-trinh/15-du-an-console-quan-ly-diem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án console quản lý điểm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C · Chuyên sâu
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C · Chuyên sâu
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/01-dia-chi-bo-nho-va-con-tro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Địa chỉ bộ nhớ và con trỏ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/02-con-tro-va-bien/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ và biến
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/03-con-tro-voi-mang-va-chuoi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ với mảng và chuỗi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/04-con-tro-cap-hai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ cấp hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/05-con-tro-ham-va-callback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Con trỏ hàm và callback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/06-stack-heap-va-vong-doi-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack, heap và vòng đời bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/07-cap-phat-dong-malloc-calloc-realloc-free/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cấp phát động: malloc, calloc, realloc và free
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/08-loi-bo-nho-va-undefined-behavior/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lỗi bộ nhớ và undefined behavior
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/09-struct-enum-typedef/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    struct, enum và typedef
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/10-union-bit-field-va-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    union, bit-field và bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/11-file-io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File I/O
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/12-preprocessor-header-va-macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessor, header và macro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/13-qua-trinh-bien-dich-linking-makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quá trình biên dịch, linking và Makefile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/14-xu-ly-loi-va-lap-trinh-phong-thu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Xử lý lỗi và lập trình phòng thủ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-c-chuyen-sau/15-du-an-c-quan-ly-kho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án C: quản lý kho
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C++
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/01-tu-c-sang-cpp20/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Từ C sang C++20
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/02-reference-const-va-vong-doi-doi-tuong/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference, const và vòng đời object
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/03-class-object-encapsulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class, object và encapsulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/04-constructor-destructor-va-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constructor, destructor và bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/05-copy-move-rule-of-zero-five/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Copy, move và Rule of Zero/Five
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/06-ke-thua-va-da-hinh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kế thừa và đa hình
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/07-abstract-class-va-interface-trong-cpp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abstract class và interface trong C++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/08-template-va-generic-programming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Template và generic programming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/09-stl-container/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    STL container
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/10-iterator-algorithm-va-lambda/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Iterator, algorithm và lambda
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/11-exception-va-raii/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception và RAII
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/12-smart-pointer-va-quyen-so-huu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smart pointer và quyền sở hữu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/13-move-semantics-va-perfect-forwarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Move semantics và perfect forwarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-cpp/14-du-an-cpp-quan-ly-thu-vien/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án C++ quản lý thư viện
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C# · Cơ bản
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C# · Cơ bản
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-dotnet-9-va-chuong-trinh-csharp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .NET 9 và chương trình C# đầu tiên
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-cu-phap-bien-va-kieu-du-lieu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cú pháp, biến và kiểu dữ liệu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-toan-tu-dieu-kien-vong-lap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Toán tử, điều kiện và vòng lặp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Method, parameter và return
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Method, parameter và return
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Mục lục">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Mục lục
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-muc-tieu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mục tiêu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-bai-toan-mo-au" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Bài toán mở đầu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-loi-giai-bang-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Lời giải bằng code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-giai-thich-co-che" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Giải thích cơ chế
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Giải thích cơ chế">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-method-declaration-va-loi-goi-ghep-voi-nhau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Method declaration và lời gọi ghép với nhau
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-pass-by-value-mac-inh-tao-ban-sao-gia-tri-parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. Pass-by-value mặc định tạo bản sao giá trị parameter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-ref-tao-alias-en-storage-cua-caller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. ref tạo alias đến storage của caller
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-out-cung-alias-storage-nhung-co-hop-ong-gan-au-ra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4. out cũng alias storage nhưng có hợp đồng gán đầu ra
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-call-stack-khi-goi-tryreserveitem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5. Call stack khi gọi TryReserveItem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-return-ket-thuc-invocation-hien-tai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6. return kết thúc invocation hiện tại
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-params-optional-va-named-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7. params, optional và named arguments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-kien-thuc-nen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Kiến thức nền
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Kiến thức nền">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mot-method-tot-co-hop-ong-ro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Một method tốt có hợp đồng rõ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ref-out-va-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ref, out và in
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-overloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method overloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-scope-va-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local scope và lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#khi-nao-khong-nen-dung-nhieu-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Khi nào không nên dùng nhiều out
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ao-sau-co-the-quay-lai-sau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Đào sâu (có thể quay lại sau)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Đào sâu (có thể quay lại sau)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#params-optional-va-named-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        params, optional và named arguments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-loi-thuong-gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Lỗi thường gặp
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Lỗi thường gặp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quen-modifier-o-call-site" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quên modifier ở call site
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truyen-literal-hoac-expression-cho-refout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Truyền literal hoặc expression cho ref/out
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#khong-gan-out-tren-moi-uong-return" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Không gán out trên mọi đường return
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tin-parameter-thuong-co-the-oi-bien-caller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tin parameter thường có thể đổi biến caller
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nham-reference-type-voi-pass-by-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nhầm “reference type” với “pass by reference”
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#params-nhan-null-hoac-zero-arguments-ma-khong-co-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        params nhận null hoặc zero arguments mà không có policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optional-parameter-che-giau-y-nghia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional parameter che giấu ý nghĩa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-lam-qua-nhieu-viec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method làm quá nhiều việc
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-bai-tap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Bài tập
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Bài tập">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bai-1-method-tinh-vat-thuan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 1 — Method tính VAT thuần
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-2-trywithdraw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 2 — TryWithdraw
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-3-tong-linh-hoat-voi-params" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 3 — Tổng linh hoạt với params
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-4-optionalnamed-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 4 — Optional/named arguments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-5-ve-call-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 5 — Vẽ call stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-checklist-tu-anh-gia-va-ieu-huong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Checklist tự đánh giá và điều hướng
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-stack-heap-value-type-reference-type/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack, heap, value type và reference type
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-array-string-index-va-range/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mảng, chuỗi, Index và Range
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-class-object-constructor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class, object và constructor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-property-encapsulation-va-access-modifier/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property, encapsulation và access modifier
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-inheritance-polymorphism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inheritance và polymorphism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-abstract-class-va-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abstract class, interface và composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-struct-enum-va-tuple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Struct, enum và tuple trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-exception-va-xu-ly-loi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception và xử lý lỗi trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-collection-list-dictionary-hashset-queue-stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collection: List, Dictionary, HashSet, Queue và Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-project-solution-namespace-va-assembly/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project, solution, namespace và assembly trong .NET
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15-debug-va-diagnostics-co-ban/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug và diagnostics cơ bản trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16-du-an-console-csharp-quan-ly-cong-viec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án console C#: trình quản lý công việc có lưu JSON
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C# · Nâng cao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C# · Nâng cao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/01-generics-va-constraints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generics và constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/02-delegate-action-func-predicate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Delegate, Action, Func và Predicate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/03-event-va-event-handler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event và event handler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/04-lambda-closure-va-bo-nho/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lambda, closure và bộ nhớ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/05-extension-method/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension method
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/06-nullable-reference-type/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nullable reference type
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/07-record-init-required-va-immutability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record, init, required và tính bất biến
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/08-pattern-matching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pattern matching trong C
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/09-async-await-task-va-state-machine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    async, await, Task và state machine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/10-cancellation-timeout-va-exception-bat-dong-bo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cancellation, timeout và exception bất đồng bộ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/11-parallelism-concurrency-va-thread-safety/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parallelism, concurrency và thread safety
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/12-idisposable-gc-va-quan-ly-tai-nguyen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IDisposable, GC và quản lý tài nguyên
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/13-reflection-attribute-va-dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reflection, attribute và dynamic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/14-span-memory-va-lap-trinh-hieu-nang/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Span&lt;T&gt;, Memory&lt;T&gt; và lập trình hiệu năng
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/15-covariance-va-contravariance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Covariance và contravariance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/16-expression-tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expression tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/17-serialization-system-text-json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serialization với System.Text.Json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/18-do-luong-va-toi-uu-hieu-nang/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Đo lường và tối ưu hiệu năng
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-csharp-nang-cao/19-du-an-xu-ly-du-lieu-bat-dong-bo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dự án C# nâng cao: xử lý batch đơn hàng bất đồng bộ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Mục lục">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Mục lục
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-muc-tieu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mục tiêu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-bai-toan-mo-au" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Bài toán mở đầu
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-loi-giai-bang-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Lời giải bằng code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-giai-thich-co-che" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Giải thích cơ chế
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Giải thích cơ chế">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-method-declaration-va-loi-goi-ghep-voi-nhau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Method declaration và lời gọi ghép với nhau
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-pass-by-value-mac-inh-tao-ban-sao-gia-tri-parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. Pass-by-value mặc định tạo bản sao giá trị parameter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-ref-tao-alias-en-storage-cua-caller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. ref tạo alias đến storage của caller
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-out-cung-alias-storage-nhung-co-hop-ong-gan-au-ra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4. out cũng alias storage nhưng có hợp đồng gán đầu ra
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-call-stack-khi-goi-tryreserveitem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5. Call stack khi gọi TryReserveItem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-return-ket-thuc-invocation-hien-tai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6. return kết thúc invocation hiện tại
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-params-optional-va-named-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7. params, optional và named arguments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-kien-thuc-nen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Kiến thức nền
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Kiến thức nền">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mot-method-tot-co-hop-ong-ro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Một method tốt có hợp đồng rõ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ref-out-va-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ref, out và in
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-overloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method overloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-scope-va-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local scope và lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#khi-nao-khong-nen-dung-nhieu-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Khi nào không nên dùng nhiều out
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ao-sau-co-the-quay-lai-sau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Đào sâu (có thể quay lại sau)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Đào sâu (có thể quay lại sau)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#params-optional-va-named-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        params, optional và named arguments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-loi-thuong-gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Lỗi thường gặp
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Lỗi thường gặp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quen-modifier-o-call-site" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quên modifier ở call site
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truyen-literal-hoac-expression-cho-refout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Truyền literal hoặc expression cho ref/out
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#khong-gan-out-tren-moi-uong-return" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Không gán out trên mọi đường return
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tin-parameter-thuong-co-the-oi-bien-caller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tin parameter thường có thể đổi biến caller
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nham-reference-type-voi-pass-by-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nhầm “reference type” với “pass by reference”
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#params-nhan-null-hoac-zero-arguments-ma-khong-co-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        params nhận null hoặc zero arguments mà không có policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optional-parameter-che-giau-y-nghia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional parameter che giấu ý nghĩa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-lam-qua-nhieu-viec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method làm quá nhiều việc
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-bai-tap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Bài tập
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Bài tập">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bai-1-method-tinh-vat-thuan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 1 — Method tính VAT thuần
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-2-trywithdraw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 2 — TryWithdraw
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-3-tong-linh-hoat-voi-params" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 3 — Tổng linh hoạt với params
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-4-optionalnamed-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 4 — Optional/named arguments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bai-5-ve-call-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bài 5 — Vẽ call stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-checklist-tu-anh-gia-va-ieu-huong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Checklist tự đánh giá và điều hướng
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Thanh điều hướng" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    🏠 Trang chủ
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    💻 Lập trình Họ C & .NET
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../01-dotnet-9-va-chuong-trinh-csharp/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    C# · Cơ bản
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="method-parameter-va-return">Method, parameter và return<a class="headerlink" href="#method-parameter-va-return" title="Permanent link">&para;</a></h1>
+<h2 id="1-muc-tieu">1. Mục tiêu<a class="headerlink" href="#1-muc-tieu" title="Permanent link">&para;</a></h2>
+<p>Sau bài này, bạn có thể:</p>
+<ul>
+<li>tách một quy trình thành các method có một trách nhiệm rõ;</li>
+<li>đọc và viết method signature, parameter, argument và return value;</li>
+<li>giải thích pass-by-value mặc định;</li>
+<li>dùng <code>ref</code> khi method cần đọc/ghi storage đã khởi tạo của caller;</li>
+<li>dùng <code>out</code> cho output bắt buộc phải được gán trong method;</li>
+<li>dùng <code>params</code>, optional argument và named argument đúng chỗ;</li>
+<li>theo dõi call stack và lifetime của local qua một chuỗi lời gọi;</li>
+<li>nhận ra khi API dùng quá nhiều <code>ref/out</code> và nên trả một object kết quả.</li>
+</ul>
+<h2 id="2-bai-toan-mo-au">2. Bài toán mở đầu<a class="headerlink" href="#2-bai-toan-mo-au" title="Permanent link">&para;</a></h2>
+<p>Một quầy thanh toán cần đặt hàng từ tồn kho, tính tiền từng dòng, cộng tổng, giảm giá, tính giá trị trung bình và tạo biên nhận. Nếu viết tất cả trong <code>Main</code>, validation tồn kho và công thức tiền sẽ bị lặp lại cho từng sản phẩm.</p>
+<p>Ta cần chia quy trình sao cho:</p>
+<ul>
+<li><code>TryReserveItem</code> trả thành công/thất bại, đồng thời cập nhật tồn kho và đưa line total/message ra ngoài;</li>
+<li><code>ApplyDiscount</code> cập nhật tổng hiện có;</li>
+<li><code>CalculateAverage</code> nhận số lượng line total linh hoạt;</li>
+<li><code>FormatReceipt</code> có giá trị mặc định nhưng caller vẫn có thể gọi bằng tên argument.</li>
+</ul>
+<p>Mục tiêu không phải tạo nhiều method nhất có thể. Mỗi method phải có hợp đồng dễ gọi và dễ kiểm tra.</p>
+<h2 id="3-loi-giai-bang-code">3. Lời giải bằng code<a class="headerlink" href="#3-loi-giai-bang-code" title="Permanent link">&para;</a></h2>
+<p>Tạo project:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>new<span class="w"> </span>console<span class="w"> </span>--name<span class="w"> </span>CheckoutMethods<span class="w"> </span>--framework<span class="w"> </span>net9.0<span class="w"> </span>--use-program-main
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>CheckoutMethods
+</span></code></pre></div>
+<p>Thay <code>Program.cs</code> bằng:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">namespace</span><span class="w"> </span><span class="nn">CheckoutMethods</span><span class="p">;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">internal</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Program</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">Main</span><span class="p">()</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">stock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="kt">decimal</span><span class="w"> </span><span class="n">orderTotal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0m</span><span class="p">;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">keyboardReserved</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TryReserveItem</span><span class="p">(</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">            </span><span class="n">productName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Keyboard&quot;</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">            </span><span class="n">unitPrice</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span><span class="n">_000m</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">            </span><span class="n">requestedQuantity</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">            </span><span class="n">availableStock</span><span class="p">:</span><span class="w"> </span><span class="k">ref</span><span class="w"> </span><span class="n">stock</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">            </span><span class="n">lineTotal</span><span class="p">:</span><span class="w"> </span><span class="k">out</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">keyboardTotal</span><span class="p">,</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">            </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="k">out</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="n">keyboardMessage</span><span class="p">);</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">keyboardMessage</span><span class="p">);</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">keyboardReserved</span><span class="p">)</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">            </span><span class="n">orderTotal</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">keyboardTotal</span><span class="p">;</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">mouseReserved</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TryReserveItem</span><span class="p">(</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">            </span><span class="s">&quot;Mouse&quot;</span><span class="p">,</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">            </span><span class="mi">125</span><span class="n">_000m</span><span class="p">,</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">            </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">            </span><span class="k">ref</span><span class="w"> </span><span class="n">stock</span><span class="p">,</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">            </span><span class="k">out</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">mouseTotal</span><span class="p">,</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">            </span><span class="k">out</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="n">mouseMessage</span><span class="p">);</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">mouseMessage</span><span class="p">);</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mouseReserved</span><span class="p">)</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">            </span><span class="n">orderTotal</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">mouseTotal</span><span class="p">;</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">        </span><span class="n">ApplyDiscount</span><span class="p">(</span><span class="k">ref</span><span class="w"> </span><span class="n">orderTotal</span><span class="p">,</span><span class="w"> </span><span class="n">percentage</span><span class="p">:</span><span class="w"> </span><span class="mf">10m</span><span class="p">);</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">        </span><span class="c1">// Chỉ đưa các dòng đặt thành công vào average. Compiler gom những</span>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">        </span><span class="c1">// argument được chọn thành một decimal[] cho params.</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">        </span><span class="kt">decimal</span><span class="w"> </span><span class="n">averageLineTotal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">keyboardReserved</span><span class="p">,</span><span class="w"> </span><span class="n">mouseReserved</span><span class="p">)</span><span class="w"> </span><span class="k">switch</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="w">            </span><span class="p">(</span><span class="k">true</span><span class="p">,</span><span class="w"> </span><span class="k">true</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">CalculateAverage</span><span class="p">(</span><span class="n">keyboardTotal</span><span class="p">,</span><span class="w"> </span><span class="n">mouseTotal</span><span class="p">),</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="w">            </span><span class="p">(</span><span class="k">true</span><span class="p">,</span><span class="w"> </span><span class="k">false</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">CalculateAverage</span><span class="p">(</span><span class="n">keyboardTotal</span><span class="p">),</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">            </span><span class="p">(</span><span class="k">false</span><span class="p">,</span><span class="w"> </span><span class="k">true</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">CalculateAverage</span><span class="p">(</span><span class="n">mouseTotal</span><span class="p">),</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="w">            </span><span class="n">_</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">CalculateAverage</span><span class="p">()</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">        </span><span class="p">};</span>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>
+</span><span id="__span-1-50"><a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="w">        </span><span class="c1">// Named arguments cho phép thể hiện ý nghĩa và đổi thứ tự khi cần.</span>
+</span><span id="__span-1-51"><a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="w">        </span><span class="c1">// currency bị bỏ qua nên nhận default &quot;VND&quot;.</span>
+</span><span id="__span-1-52"><a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="n">receipt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FormatReceipt</span><span class="p">(</span>
+</span><span id="__span-1-53"><a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">            </span><span class="n">total</span><span class="p">:</span><span class="w"> </span><span class="n">orderTotal</span><span class="p">,</span>
+</span><span id="__span-1-54"><a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">            </span><span class="n">customerName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Lan&quot;</span><span class="p">,</span>
+</span><span id="__span-1-55"><a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">            </span><span class="n">includeHeader</span><span class="p">:</span><span class="w"> </span><span class="k">true</span><span class="p">);</span>
+</span><span id="__span-1-56"><a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a>
+</span><span id="__span-1-57"><a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">$&quot;Stock remaining: {stock}&quot;</span><span class="p">);</span>
+</span><span id="__span-1-58"><a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">$&quot;Average line total: {averageLineTotal:N0} VND&quot;</span><span class="p">);</span>
+</span><span id="__span-1-59"><a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="w">        </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">receipt</span><span class="p">);</span>
+</span><span id="__span-1-60"><a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-61"><a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a>
+</span><span id="__span-1-62"><a id="__codelineno-1-62" name="__codelineno-1-62" href="#__codelineno-1-62"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">TryReserveItem</span><span class="p">(</span>
+</span><span id="__span-1-63"><a id="__codelineno-1-63" name="__codelineno-1-63" href="#__codelineno-1-63"></a><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="n">productName</span><span class="p">,</span>
+</span><span id="__span-1-64"><a id="__codelineno-1-64" name="__codelineno-1-64" href="#__codelineno-1-64"></a><span class="w">        </span><span class="kt">decimal</span><span class="w"> </span><span class="n">unitPrice</span><span class="p">,</span>
+</span><span id="__span-1-65"><a id="__codelineno-1-65" name="__codelineno-1-65" href="#__codelineno-1-65"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">requestedQuantity</span><span class="p">,</span>
+</span><span id="__span-1-66"><a id="__codelineno-1-66" name="__codelineno-1-66" href="#__codelineno-1-66"></a><span class="w">        </span><span class="k">ref</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">availableStock</span><span class="p">,</span>
+</span><span id="__span-1-67"><a id="__codelineno-1-67" name="__codelineno-1-67" href="#__codelineno-1-67"></a><span class="w">        </span><span class="k">out</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">lineTotal</span><span class="p">,</span>
+</span><span id="__span-1-68"><a id="__codelineno-1-68" name="__codelineno-1-68" href="#__codelineno-1-68"></a><span class="w">        </span><span class="k">out</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="n">message</span><span class="p">)</span>
+</span><span id="__span-1-69"><a id="__codelineno-1-69" name="__codelineno-1-69" href="#__codelineno-1-69"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-70"><a id="__codelineno-1-70" name="__codelineno-1-70" href="#__codelineno-1-70"></a><span class="w">        </span><span class="c1">// out parameters phải được gán trên mọi đường return.</span>
+</span><span id="__span-1-71"><a id="__codelineno-1-71" name="__codelineno-1-71" href="#__codelineno-1-71"></a><span class="w">        </span><span class="n">lineTotal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0m</span><span class="p">;</span>
+</span><span id="__span-1-72"><a id="__codelineno-1-72" name="__codelineno-1-72" href="#__codelineno-1-72"></a>
+</span><span id="__span-1-73"><a id="__codelineno-1-73" name="__codelineno-1-73" href="#__codelineno-1-73"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">requestedQuantity</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-1-74"><a id="__codelineno-1-74" name="__codelineno-1-74" href="#__codelineno-1-74"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-75"><a id="__codelineno-1-75" name="__codelineno-1-75" href="#__codelineno-1-75"></a><span class="w">            </span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$&quot;{productName}: quantity must be positive.&quot;</span><span class="p">;</span>
+</span><span id="__span-1-76"><a id="__codelineno-1-76" name="__codelineno-1-76" href="#__codelineno-1-76"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="k">false</span><span class="p">;</span>
+</span><span id="__span-1-77"><a id="__codelineno-1-77" name="__codelineno-1-77" href="#__codelineno-1-77"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-78"><a id="__codelineno-1-78" name="__codelineno-1-78" href="#__codelineno-1-78"></a>
+</span><span id="__span-1-79"><a id="__codelineno-1-79" name="__codelineno-1-79" href="#__codelineno-1-79"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">unitPrice</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0m</span><span class="p">)</span>
+</span><span id="__span-1-80"><a id="__codelineno-1-80" name="__codelineno-1-80" href="#__codelineno-1-80"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-81"><a id="__codelineno-1-81" name="__codelineno-1-81" href="#__codelineno-1-81"></a><span class="w">            </span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$&quot;{productName}: price cannot be negative.&quot;</span><span class="p">;</span>
+</span><span id="__span-1-82"><a id="__codelineno-1-82" name="__codelineno-1-82" href="#__codelineno-1-82"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="k">false</span><span class="p">;</span>
+</span><span id="__span-1-83"><a id="__codelineno-1-83" name="__codelineno-1-83" href="#__codelineno-1-83"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-84"><a id="__codelineno-1-84" name="__codelineno-1-84" href="#__codelineno-1-84"></a>
+</span><span id="__span-1-85"><a id="__codelineno-1-85" name="__codelineno-1-85" href="#__codelineno-1-85"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">requestedQuantity</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">availableStock</span><span class="p">)</span>
+</span><span id="__span-1-86"><a id="__codelineno-1-86" name="__codelineno-1-86" href="#__codelineno-1-86"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-87"><a id="__codelineno-1-87" name="__codelineno-1-87" href="#__codelineno-1-87"></a><span class="w">            </span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$&quot;{productName}: not enough stock.&quot;</span><span class="p">;</span>
+</span><span id="__span-1-88"><a id="__codelineno-1-88" name="__codelineno-1-88" href="#__codelineno-1-88"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="k">false</span><span class="p">;</span>
+</span><span id="__span-1-89"><a id="__codelineno-1-89" name="__codelineno-1-89" href="#__codelineno-1-89"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-90"><a id="__codelineno-1-90" name="__codelineno-1-90" href="#__codelineno-1-90"></a>
+</span><span id="__span-1-91"><a id="__codelineno-1-91" name="__codelineno-1-91" href="#__codelineno-1-91"></a><span class="w">        </span><span class="n">availableStock</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">requestedQuantity</span><span class="p">;</span>
+</span><span id="__span-1-92"><a id="__codelineno-1-92" name="__codelineno-1-92" href="#__codelineno-1-92"></a><span class="w">        </span><span class="n">lineTotal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">unitPrice</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">requestedQuantity</span><span class="p">;</span>
+</span><span id="__span-1-93"><a id="__codelineno-1-93" name="__codelineno-1-93" href="#__codelineno-1-93"></a><span class="w">        </span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$&quot;{productName}: reserved, line total {lineTotal:N0} VND.&quot;</span><span class="p">;</span>
+</span><span id="__span-1-94"><a id="__codelineno-1-94" name="__codelineno-1-94" href="#__codelineno-1-94"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="k">true</span><span class="p">;</span>
+</span><span id="__span-1-95"><a id="__codelineno-1-95" name="__codelineno-1-95" href="#__codelineno-1-95"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-96"><a id="__codelineno-1-96" name="__codelineno-1-96" href="#__codelineno-1-96"></a>
+</span><span id="__span-1-97"><a id="__codelineno-1-97" name="__codelineno-1-97" href="#__codelineno-1-97"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">ApplyDiscount</span><span class="p">(</span><span class="k">ref</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">percentage</span><span class="p">)</span>
+</span><span id="__span-1-98"><a id="__codelineno-1-98" name="__codelineno-1-98" href="#__codelineno-1-98"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-99"><a id="__codelineno-1-99" name="__codelineno-1-99" href="#__codelineno-1-99"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">percentage</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0m</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">percentage</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">100m</span><span class="p">)</span>
+</span><span id="__span-1-100"><a id="__codelineno-1-100" name="__codelineno-1-100" href="#__codelineno-1-100"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-101"><a id="__codelineno-1-101" name="__codelineno-1-101" href="#__codelineno-1-101"></a><span class="w">            </span><span class="c1">// Bài exception sẽ giải thích cách thiết kế lỗi đầy đủ hơn.</span>
+</span><span id="__span-1-102"><a id="__codelineno-1-102" name="__codelineno-1-102" href="#__codelineno-1-102"></a><span class="w">            </span><span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Invalid discount; no discount was applied.&quot;</span><span class="p">);</span>
+</span><span id="__span-1-103"><a id="__codelineno-1-103" name="__codelineno-1-103" href="#__codelineno-1-103"></a><span class="w">            </span><span class="k">return</span><span class="p">;</span>
+</span><span id="__span-1-104"><a id="__codelineno-1-104" name="__codelineno-1-104" href="#__codelineno-1-104"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-105"><a id="__codelineno-1-105" name="__codelineno-1-105" href="#__codelineno-1-105"></a>
+</span><span id="__span-1-106"><a id="__codelineno-1-106" name="__codelineno-1-106" href="#__codelineno-1-106"></a><span class="w">        </span><span class="n">total</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">percentage</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100m</span><span class="p">;</span>
+</span><span id="__span-1-107"><a id="__codelineno-1-107" name="__codelineno-1-107" href="#__codelineno-1-107"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-108"><a id="__codelineno-1-108" name="__codelineno-1-108" href="#__codelineno-1-108"></a>
+</span><span id="__span-1-109"><a id="__codelineno-1-109" name="__codelineno-1-109" href="#__codelineno-1-109"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="nf">CalculateAverage</span><span class="p">(</span><span class="k">params</span><span class="w"> </span><span class="kt">decimal</span><span class="p">[]</span><span class="w"> </span><span class="n">values</span><span class="p">)</span>
+</span><span id="__span-1-110"><a id="__codelineno-1-110" name="__codelineno-1-110" href="#__codelineno-1-110"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-111"><a id="__codelineno-1-111" name="__codelineno-1-111" href="#__codelineno-1-111"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">values</span><span class="p">.</span><span class="n">Length</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-1-112"><a id="__codelineno-1-112" name="__codelineno-1-112" href="#__codelineno-1-112"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-113"><a id="__codelineno-1-113" name="__codelineno-1-113" href="#__codelineno-1-113"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="mf">0m</span><span class="p">;</span>
+</span><span id="__span-1-114"><a id="__codelineno-1-114" name="__codelineno-1-114" href="#__codelineno-1-114"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-115"><a id="__codelineno-1-115" name="__codelineno-1-115" href="#__codelineno-1-115"></a>
+</span><span id="__span-1-116"><a id="__codelineno-1-116" name="__codelineno-1-116" href="#__codelineno-1-116"></a><span class="w">        </span><span class="kt">decimal</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0m</span><span class="p">;</span>
+</span><span id="__span-1-117"><a id="__codelineno-1-117" name="__codelineno-1-117" href="#__codelineno-1-117"></a><span class="w">        </span><span class="k">foreach</span><span class="w"> </span><span class="p">(</span><span class="kt">decimal</span><span class="w"> </span><span class="k">value</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">values</span><span class="p">)</span>
+</span><span id="__span-1-118"><a id="__codelineno-1-118" name="__codelineno-1-118" href="#__codelineno-1-118"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-119"><a id="__codelineno-1-119" name="__codelineno-1-119" href="#__codelineno-1-119"></a><span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="k">value</span><span class="p">;</span>
+</span><span id="__span-1-120"><a id="__codelineno-1-120" name="__codelineno-1-120" href="#__codelineno-1-120"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-121"><a id="__codelineno-1-121" name="__codelineno-1-121" href="#__codelineno-1-121"></a>
+</span><span id="__span-1-122"><a id="__codelineno-1-122" name="__codelineno-1-122" href="#__codelineno-1-122"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">values</span><span class="p">.</span><span class="n">Length</span><span class="p">;</span>
+</span><span id="__span-1-123"><a id="__codelineno-1-123" name="__codelineno-1-123" href="#__codelineno-1-123"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-124"><a id="__codelineno-1-124" name="__codelineno-1-124" href="#__codelineno-1-124"></a>
+</span><span id="__span-1-125"><a id="__codelineno-1-125" name="__codelineno-1-125" href="#__codelineno-1-125"></a><span class="w">    </span><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="nf">FormatReceipt</span><span class="p">(</span>
+</span><span id="__span-1-126"><a id="__codelineno-1-126" name="__codelineno-1-126" href="#__codelineno-1-126"></a><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="n">customerName</span><span class="p">,</span>
+</span><span id="__span-1-127"><a id="__codelineno-1-127" name="__codelineno-1-127" href="#__codelineno-1-127"></a><span class="w">        </span><span class="kt">decimal</span><span class="w"> </span><span class="n">total</span><span class="p">,</span>
+</span><span id="__span-1-128"><a id="__codelineno-1-128" name="__codelineno-1-128" href="#__codelineno-1-128"></a><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="n">currency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;VND&quot;</span><span class="p">,</span>
+</span><span id="__span-1-129"><a id="__codelineno-1-129" name="__codelineno-1-129" href="#__codelineno-1-129"></a><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">includeHeader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">false</span><span class="p">)</span>
+</span><span id="__span-1-130"><a id="__codelineno-1-130" name="__codelineno-1-130" href="#__codelineno-1-130"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-131"><a id="__codelineno-1-131" name="__codelineno-1-131" href="#__codelineno-1-131"></a><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="n">header</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">includeHeader</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;=== RECEIPT ===\n&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+</span><span id="__span-1-132"><a id="__codelineno-1-132" name="__codelineno-1-132" href="#__codelineno-1-132"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s">$&quot;{header}Customer: {customerName}\nTotal: {total:N0} {currency}&quot;</span><span class="p">;</span>
+</span><span id="__span-1-133"><a id="__codelineno-1-133" name="__codelineno-1-133" href="#__codelineno-1-133"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-134"><a id="__codelineno-1-134" name="__codelineno-1-134" href="#__codelineno-1-134"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Build và chạy:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>dotnet<span class="w"> </span>build
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>dotnet<span class="w"> </span>run<span class="w"> </span>--no-build
+</span></code></pre></div>
+<p>Kết quả chính:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Keyboard: reserved, line total 750,000 VND.
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Mouse: reserved, line total 250,000 VND.
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Stock remaining: 5
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Average line total: 500,000 VND
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>=== RECEIPT ===
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>Customer: Lan
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>Total: 900,000 VND
+</span></code></pre></div>
+<p>Dấu phân cách số phụ thuộc locale. Project đã được kiểm tra bằng .NET SDK <code>9.0.119</code>, target <code>net9.0</code>, không dùng package ngoài.</p>
+<h2 id="4-giai-thich-co-che">4. Giải thích cơ chế<a class="headerlink" href="#4-giai-thich-co-che" title="Permanent link">&para;</a></h2>
+<h3 id="41-method-declaration-va-loi-goi-ghep-voi-nhau">4.1. Method declaration và lời gọi ghép với nhau<a class="headerlink" href="#41-method-declaration-va-loi-goi-ghep-voi-nhau" title="Permanent link">&para;</a></h3>
+<p>Đây là toàn bộ <strong>method declaration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">TryReserveItem</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="n">productName</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="kt">decimal</span><span class="w"> </span><span class="n">unitPrice</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">requestedQuantity</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="k">ref</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">availableStock</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="k">out</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">lineTotal</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="k">out</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="n">message</span><span class="p">)</span>
+</span></code></pre></div>
+<ul>
+<li>tên method là <code>TryReserveItem</code>;</li>
+<li>return type là <code>bool</code>;</li>
+<li>sáu parameter có type, thứ tự và modifier;</li>
+<li><code>private</code> giới hạn truy cập trong type <code>Program</code>;</li>
+<li><code>static</code> cho phép gọi không cần object <code>Program</code>.</li>
+</ul>
+<p>Không gọi toàn bộ declaration trên là “signature”. Khi phân biệt các overload, C# dựa vào tên method, số type parameter và parameter list (type cùng dạng truyền value/<code>ref</code>/<code>out</code>/<code>in</code> theo quy tắc ngôn ngữ). Return type, access modifier và <code>static</code> không cho phép tạo một overload khác. Vì vậy hai method chỉ khác <code>bool</code>/<code>int</code> ở return type sẽ không compile.</p>
+<p>Parameter là biến trong khai báo method. Argument là biểu thức/biến caller truyền ở lời gọi. <code>requestedQuantity</code> là parameter; literal <code>3</code> là argument.</p>
+<p>Mỗi lời gọi phải khớp type và modifier. Caller phải viết <code>ref stock</code>, <code>out decimal keyboardTotal</code>; chỉ khai báo <code>ref/out</code> ở phía method là chưa đủ.</p>
+<h3 id="42-pass-by-value-mac-inh-tao-ban-sao-gia-tri-parameter">4.2. Pass-by-value mặc định tạo bản sao giá trị parameter<a class="headerlink" href="#42-pass-by-value-mac-inh-tao-ban-sao-gia-tri-parameter" title="Permanent link">&para;</a></h3>
+<p>Ba parameter đầu không có modifier:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kt">string</span><span class="w"> </span><span class="n">productName</span><span class="p">,</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">unitPrice</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">requestedQuantity</span>
+</span></code></pre></div>
+<p>Caller truyền <strong>by value</strong>: parameter nhận một bản sao giá trị argument. Với <code>decimal</code> và <code>int</code>, sửa parameter local sẽ không sửa biến caller. Với reference type như <code>string</code>, giá trị được sao chép là reference; cả hai reference ban đầu cùng trỏ object, không phải object được deep-copy. Bài 05 sẽ vẽ chính xác trường hợp này.</p>
+<h3 id="43-ref-tao-alias-en-storage-cua-caller">4.3. <code>ref</code> tạo alias đến storage của caller<a class="headerlink" href="#43-ref-tao-alias-en-storage-cua-caller" title="Permanent link">&para;</a></h3>
+<p>Trước lời gọi, <code>stock</code> đã có giá trị <code>10</code>. Khi truyền <code>ref stock</code>, parameter <code>availableStock</code> không nhận bản sao <code>10</code>; nó alias đúng storage của <code>stock</code>. Vì vậy:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">availableStock</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">requestedQuantity</span><span class="p">;</span>
+</span></code></pre></div>
+<p>thay đổi <code>stock</code> trong <code>Main</code>. <code>ref</code> cho phép method đọc và ghi; argument phải là biến đã definite-assigned và type phải khớp chính xác.</p>
+<p><code>ref</code> không phải raw pointer tùy ý như C. Nó là managed reference chịu quy tắc type/lifetime của C#; bạn không tự làm arithmetic trên địa chỉ.</p>
+<h3 id="44-out-cung-alias-storage-nhung-co-hop-ong-gan-au-ra">4.4. <code>out</code> cũng alias storage nhưng có hợp đồng gán đầu ra<a class="headerlink" href="#44-out-cung-alias-storage-nhung-co-hop-ong-gan-au-ra" title="Permanent link">&para;</a></h3>
+<p><code>keyboardTotal</code> và <code>keyboardMessage</code> được khai báo ngay tại call site. Caller không cần khởi tạo trước. Bên trong <code>TryReserveItem</code>, compiler buộc <code>lineTotal</code> và <code>message</code> được gán trên mọi đường <code>return</code>.</p>
+<p>Code gán <code>lineTotal = 0m</code> ở đầu, rồi mỗi nhánh gán <code>message</code> trước khi return. Nếu bỏ một phép gán, build thất bại thay vì để caller đọc dữ liệu chưa xác định.</p>
+<p>Quy ước tên <code>Try...</code> trong .NET thường là: return <code>bool</code>, kết quả qua <code>out</code>, lỗi input dự kiến không dùng exception. Ví dụ chuẩn là <code>int.TryParse</code>.</p>
+<h3 id="45-call-stack-khi-goi-tryreserveitem">4.5. Call stack khi gọi <code>TryReserveItem</code><a class="headerlink" href="#45-call-stack-khi-goi-tryreserveitem" title="Permanent link">&para;</a></h3>
+<p>Mô hình khái niệm tại lời gọi đầu tiên:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>CALL STACK (top)
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>TryReserveItem frame
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>├── productName       = copy của reference tới &quot;Keyboard&quot;
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>├── unitPrice         = copy 250000m
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>├── requestedQuantity = copy 3
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>├── availableStock -------- alias ----------┐
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>├── lineTotal ------------- out alias ----┐  |
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>└── message --------------- out alias --┐ |  |
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>                                        | |  |
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>Main frame                              | |  |
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>├── stock = 10 &lt;------------------------|-|--┘
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>├── keyboardTotal &lt;---------------------|-┘
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>├── keyboardMessage &lt;-------------------┘
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>└── orderTotal = 0m
+</span></code></pre></div>
+<p>Sau khi method chạy, <code>stock = 7</code>, <code>keyboardTotal = 750000m</code> và <code>keyboardMessage</code> có text. Frame <code>TryReserveItem</code> được pop; local riêng của nó hết lifetime, còn storage của <code>Main</code> vẫn tồn tại.</p>
+<h3 id="46-return-ket-thuc-invocation-hien-tai">4.6. <code>return</code> kết thúc invocation hiện tại<a class="headerlink" href="#46-return-ket-thuc-invocation-hien-tai" title="Permanent link">&para;</a></h3>
+<p><code>return false;</code> vừa chọn giá trị trả về vừa dừng method ngay. Code phía dưới trong method không chạy. <code>return;</code> trong method <code>void</code> chỉ kết thúc sớm, như nhánh discount sai.</p>
+<p>Return value được caller nhận vào <code>keyboardReserved</code>. Một method chỉ có một return value tường minh, nhưng có thể có nhiều statement <code>return</code> ở các nhánh; mọi nhánh reachable của method non-<code>void</code> phải trả type tương thích.</p>
+<h3 id="47-params-optional-va-named-arguments">4.7. <code>params</code>, optional và named arguments<a class="headerlink" href="#47-params-optional-va-named-arguments" title="Permanent link">&para;</a></h3>
+<p><code>params decimal[] values</code> cho phép hai kiểu gọi:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">CalculateAverage</span><span class="p">(</span><span class="mf">10m</span><span class="p">,</span><span class="w"> </span><span class="mf">20m</span><span class="p">,</span><span class="w"> </span><span class="mf">30m</span><span class="p">);</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">CalculateAverage</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="kt">decimal</span><span class="p">[]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mf">10m</span><span class="p">,</span><span class="w"> </span><span class="mf">20m</span><span class="p">,</span><span class="w"> </span><span class="mf">30m</span><span class="w"> </span><span class="p">});</span>
+</span></code></pre></div>
+<p>Ở lời gọi thứ nhất, compiler tạo array chứa argument. <code>params</code> phải là parameter cuối và chỉ có một <code>params</code> trong signature.</p>
+<p><code>currency = "VND"</code> và <code>includeHeader = false</code> là optional parameters với compile-time default. Caller bỏ <code>currency</code>, nên compiler chèn giá trị mặc định vào call site.</p>
+<p>Named arguments (<code>total:</code>, <code>customerName:</code>) ánh xạ theo tên thay vì vị trí, giúp lời gọi có nhiều <code>bool</code>/số dễ đọc.</p>
+<h2 id="5-kien-thuc-nen">5. Kiến thức nền<a class="headerlink" href="#5-kien-thuc-nen" title="Permanent link">&para;</a></h2>
+<h3 id="mot-method-tot-co-hop-ong-ro">Một method tốt có hợp đồng rõ<a class="headerlink" href="#mot-method-tot-co-hop-ong-ro" title="Permanent link">&para;</a></h3>
+<p>Hợp đồng gồm:</p>
+<ul>
+<li>input hợp lệ là gì;</li>
+<li>output/return biểu diễn gì;</li>
+<li>state nào có thể thay đổi;</li>
+<li>lỗi được báo thế nào;</li>
+<li>có side effect như I/O, ghi database hay log không.</li>
+</ul>
+<p><code>CalculateAverage</code> chỉ tính và return nên dễ test. <code>TryReserveItem</code> có side effect lên <code>availableStock</code>, thể hiện bằng <code>ref</code>, nhưng nhiều output làm signature nặng; đây là tín hiệu cân nhắc một result type khi mô hình lớn hơn.</p>
+<h3 id="ref-out-va-in"><code>ref</code>, <code>out</code> và <code>in</code><a class="headerlink" href="#ref-out-va-in" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Modifier</th>
+<th style="text-align: right;">Caller phải khởi tạo?</th>
+<th style="text-align: right;">Callee được đọc ban đầu?</th>
+<th style="text-align: right;">Callee phải gán?</th>
+<th>Mục đích</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>không có</td>
+<td style="text-align: right;">có giá trị hợp lệ</td>
+<td style="text-align: right;">có, từ bản sao</td>
+<td style="text-align: right;">không</td>
+<td>input mặc định</td>
+</tr>
+<tr>
+<td><code>ref</code></td>
+<td style="text-align: right;">có</td>
+<td style="text-align: right;">có</td>
+<td style="text-align: right;">không</td>
+<td>đọc/ghi cùng storage</td>
+</tr>
+<tr>
+<td><code>out</code></td>
+<td style="text-align: right;">không</td>
+<td style="text-align: right;">không trước khi gán</td>
+<td style="text-align: right;">có</td>
+<td>output bắt buộc</td>
+</tr>
+<tr>
+<td><code>in</code></td>
+<td style="text-align: right;">có</td>
+<td style="text-align: right;">có</td>
+<td style="text-align: right;">không</td>
+<td>readonly reference, hữu ích có chọn lọc với struct lớn</td>
+</tr>
+</tbody>
+</table>
+<h3 id="method-overloading">Method overloading<a class="headerlink" href="#method-overloading" title="Permanent link">&para;</a></h3>
+<p>C# cho phép nhiều method cùng tên nếu parameter list khác đủ để compiler chọn:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">static</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="nf">CalculateTax</span><span class="p">(</span><span class="kt">decimal</span><span class="w"> </span><span class="n">amount</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">amount</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.10m</span><span class="p">;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">static</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="nf">CalculateTax</span><span class="p">(</span><span class="kt">decimal</span><span class="w"> </span><span class="n">amount</span><span class="p">,</span><span class="w"> </span><span class="kt">decimal</span><span class="w"> </span><span class="n">rate</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">amount</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rate</span><span class="p">;</span>
+</span></code></pre></div>
+<p>Không thể overload chỉ bằng return type. Overload quá giống nhau, kết hợp optional arguments, có thể gây ambiguous call.</p>
+<h3 id="local-scope-va-lifetime">Local scope và lifetime<a class="headerlink" href="#local-scope-va-lifetime" title="Permanent link">&para;</a></h3>
+<p>Local trong method không thể truy cập trực tiếp từ method khác. Mỗi invocation có bộ local logic riêng, nên recursive call cũng có state riêng. Lifetime của managed object mà local reference trỏ tới lại do reachability/GC quyết định, không nhất thiết kết thúc khi frame pop.</p>
+<h3 id="khi-nao-khong-nen-dung-nhieu-out">Khi nào không nên dùng nhiều <code>out</code><a class="headerlink" href="#khi-nao-khong-nen-dung-nhieu-out" title="Permanent link">&para;</a></h3>
+<p>Một cặp <code>bool + out value</code> phù hợp <code>TryParse</code> đơn giản. Nếu operation trả status, error code, nhiều data field và metadata, hãy định nghĩa result object/record rõ tên. Nó dễ mở rộng và tránh argument list dài. Class/record sẽ được học sau.</p>
+<h3 id="ao-sau-co-the-quay-lai-sau">Đào sâu (có thể quay lại sau)<a class="headerlink" href="#ao-sau-co-the-quay-lai-sau" title="Permanent link">&para;</a></h3>
+<p>JIT có thể inline method và không tạo physical frame đúng như hình. Hình mô tả semantics quan sát được: mỗi invocation có local/parameter logic riêng và return quay lại call site.</p>
+<h4 id="params-optional-va-named-arguments">params, optional và named arguments<a class="headerlink" href="#params-optional-va-named-arguments" title="Permanent link">&para;</a></h4>
+<p>Đừng dùng nó ở hot path mà bỏ qua chi phí array allocation; đo trước khi tối ưu.</p>
+<p>Với public library, đổi default ở library mới không tự đổi call site cũ nếu caller chưa recompile.</p>
+<p>Đổi tên public parameter có thể làm vỡ source của caller dùng named arguments.</p>
+<p><code>in</code> có thể tránh copy một struct lớn nhưng không mặc nhiên nhanh hơn; JIT và defensive copy ảnh hưởng kết quả. Đo benchmark trước khi dùng vì hiệu năng.</p>
+<h2 id="6-loi-thuong-gap">6. Lỗi thường gặp<a class="headerlink" href="#6-loi-thuong-gap" title="Permanent link">&para;</a></h2>
+<h3 id="quen-modifier-o-call-site">Quên modifier ở call site<a class="headerlink" href="#quen-modifier-o-call-site" title="Permanent link">&para;</a></h3>
+<p><code>TryReserveItem(..., stock, ...)</code> không khớp <code>ref int</code>. Viết <code>ref stock</code>. Modifier là một phần hợp đồng, caller phải nhìn thấy mutation.</p>
+<h3 id="truyen-literal-hoac-expression-cho-refout">Truyền literal hoặc expression cho <code>ref/out</code><a class="headerlink" href="#truyen-literal-hoac-expression-cho-refout" title="Permanent link">&para;</a></h3>
+<p>Không thể truyền <code>ref (stock + 1)</code> hay <code>ref 10</code>; chúng không phải storage variable phù hợp để alias. Gán expression vào biến trước nếu thực sự cần.</p>
+<h3 id="khong-gan-out-tren-moi-uong-return">Không gán <code>out</code> trên mọi đường return<a class="headerlink" href="#khong-gan-out-tren-moi-uong-return" title="Permanent link">&para;</a></h3>
+<p>Compiler báo lỗi. Khởi tạo output hợp lý ở đầu hoặc gán rõ trong từng nhánh; đừng gán giá trị giả khiến caller hiểu nhầm mà không document.</p>
+<h3 id="tin-parameter-thuong-co-the-oi-bien-caller">Tin parameter thường có thể đổi biến caller<a class="headerlink" href="#tin-parameter-thuong-co-the-oi-bien-caller" title="Permanent link">&para;</a></h3>
+<p><code>void Reset(int value) { value = 0; }</code> chỉ đổi bản sao. Cần return giá trị mới hoặc <code>ref</code>; thường return làm data flow rõ hơn.</p>
+<h3 id="nham-reference-type-voi-pass-by-reference">Nhầm “reference type” với “pass by reference”<a class="headerlink" href="#nham-reference-type-voi-pass-by-reference" title="Permanent link">&para;</a></h3>
+<p>Truyền một class instance bằng parameter thường vẫn là pass-by-value của <strong>reference</strong>. Method có thể mutate object được trỏ tới, nhưng gán parameter sang object khác không đổi biến caller. Bài 05 minh họa bằng địa chỉ logic.</p>
+<h3 id="params-nhan-null-hoac-zero-arguments-ma-khong-co-policy"><code>params</code> nhận <code>null</code> hoặc zero arguments mà không có policy<a class="headerlink" href="#params-nhan-null-hoac-zero-arguments-ma-khong-co-policy" title="Permanent link">&para;</a></h3>
+<p>Zero arguments tạo array rỗng và sample trả <code>0m</code>; đó là lựa chọn domain, không phải trung bình toán học chuẩn. Với public API, hãy document hoặc reject. Caller cũng có thể truyền <code>null</code> tường minh nếu nullable warning bị bỏ qua; API production cần guard.</p>
+<h3 id="optional-parameter-che-giau-y-nghia">Optional parameter che giấu ý nghĩa<a class="headerlink" href="#optional-parameter-che-giau-y-nghia" title="Permanent link">&para;</a></h3>
+<p>Lời gọi nhiều <code>bool</code> như <code>FormatReceipt("Lan", total, "VND", true)</code> khó đọc. Dùng named arguments hoặc options object khi tùy chọn tăng nhiều.</p>
+<h3 id="method-lam-qua-nhieu-viec">Method làm quá nhiều việc<a class="headerlink" href="#method-lam-qua-nhieu-viec" title="Permanent link">&para;</a></h3>
+<p>Method vừa validate, tính tiền, ghi file, gửi email và mutate global state sẽ khó test. Tách theo trách nhiệm và data flow, không tách máy móc mỗi ba dòng.</p>
+<h2 id="7-bai-tap">7. Bài tập<a class="headerlink" href="#7-bai-tap" title="Permanent link">&para;</a></h2>
+<h3 id="bai-1-method-tinh-vat-thuan">Bài 1 — Method tính VAT thuần<a class="headerlink" href="#bai-1-method-tinh-vat-thuan" title="Permanent link">&para;</a></h3>
+<p>Viết <code>CalculateVat(decimal subtotal, decimal rate)</code> trả số VAT, không đọc <code>Console</code> và không sửa biến ngoài.</p>
+<p><strong>Gợi ý:</strong> validate rate ở caller trước; thử nhiều lời gọi với cùng input phải cùng output.</p>
+<h3 id="bai-2-trywithdraw">Bài 2 — <code>TryWithdraw</code><a class="headerlink" href="#bai-2-trywithdraw" title="Permanent link">&para;</a></h3>
+<p>Viết method nhận số tiền yêu cầu, <code>ref decimal balance</code>, <code>out string message</code>; chỉ trừ khi số tiền dương và không vượt số dư.</p>
+<p><strong>Gợi ý:</strong> gán <code>message</code> trên mọi đường; kiểm tra balance không đổi khi thất bại.</p>
+<h3 id="bai-3-tong-linh-hoat-voi-params">Bài 3 — Tổng linh hoạt với <code>params</code><a class="headerlink" href="#bai-3-tong-linh-hoat-voi-params" title="Permanent link">&para;</a></h3>
+<p>Viết <code>Sum(params decimal[] values)</code> và gọi với zero, one, many arguments và một array có sẵn.</p>
+<p><strong>Gợi ý:</strong> xác định policy của zero arguments; không sửa array đầu vào.</p>
+<h3 id="bai-4-optionalnamed-arguments">Bài 4 — Optional/named arguments<a class="headerlink" href="#bai-4-optionalnamed-arguments" title="Permanent link">&para;</a></h3>
+<p>Viết <code>CreateUserLabel(string name, string role = "User", bool uppercase = false)</code> rồi gọi bằng positional và named arguments.</p>
+<p><strong>Gợi ý:</strong> thử bỏ <code>role</code> nhưng vẫn truyền <code>uppercase</code> bằng tên.</p>
+<h3 id="bai-5-ve-call-stack">Bài 5 — Vẽ call stack<a class="headerlink" href="#bai-5-ve-call-stack" title="Permanent link">&para;</a></h3>
+<p>Viết <code>Main → CalculateInvoice → CalculateTax</code>, đặt local ở mỗi method và vẽ frame ngay khi đang ở <code>CalculateTax</code>.</p>
+<p><strong>Gợi ý:</strong> ghi rõ parameter nào là copy, local nào thuộc frame nào, frame nào pop trước; sau đó bật debugger kiểm tra call stack.</p>
+<h2 id="8-checklist-tu-anh-gia-va-ieu-huong">8. Checklist tự đánh giá và điều hướng<a class="headerlink" href="#8-checklist-tu-anh-gia-va-ieu-huong" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi đọc được access modifier, <code>static</code>, return type, tên và parameter list.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi phân biệt parameter với argument và pass-by-value với <code>ref/out</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi giải thích được tại sao <code>stock</code> đổi qua <code>ref</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi bảo đảm <code>out</code> được gán trên mọi đường return.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi dùng <code>params</code>, optional và named argument có chủ đích.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Tôi vẽ đúng call stack và không đồng nhất frame với lifetime của object trên heap.</li>
+</ul>
+<p>Điều hướng:</p>
+<ul>
+<li>Prerequisite: <a href="../03-toan-tu-dieu-kien-vong-lap/">Toán tử, điều kiện và vòng lặp</a></li>
+<li>Bài tiếp theo: <a href="../05-stack-heap-value-type-reference-type/">Stack, heap, value type và reference type</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Trở lại mục lục
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Chân trang" >
+        
+          
+          <a href="../03-toan-tu-dieu-kien-vong-lap/" class="md-footer__link md-footer__link--prev" aria-label="Trước: Toán tử, điều kiện và vòng lặp">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Trước
+              </span>
+              <div class="md-ellipsis">
+                Toán tử, điều kiện và vòng lặp
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../05-stack-heap-value-type-reference-type/" class="md-footer__link md-footer__link--next" aria-label="Sau: Stack, heap, value type và reference type">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Sau
+              </span>
+              <div class="md-ellipsis">
+                Stack, heap, value type và reference type
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.footer", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.select", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0110\u00e3 sao ch\u00e9p", "clipboard.copy": "Sao ch\u00e9p v\u00e0o b\u1ed9 nh\u1edb t\u1ea1m", "search.result.more.one": "1 t\u1eeb kh\u00e1c trong trang", "search.result.more.other": "# t\u1eeb kh\u00e1c trong trang", "search.result.none": "Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i li\u1ec7u li\u00ean quan", "search.result.one": "1 t\u00e0i li\u1ec7u li\u00ean quan", "search.result.other": "# t\u00e0i li\u1ec7u li\u00ean quan", "search.result.placeholder": "Nh\u1eadp \u0111\u1ec3 b\u1eaft \u0111\u1ea7u t\u00ecm ki\u1ebfm", "search.result.term.missing": "Kh\u00f4ng", "select.version": "Ch\u1ecdn phi\u00ean b\u1ea3n"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,87 @@
+site_name: Full-stack từ số 0 đến Software Architect
+docs_dir: fullstack-roadmap
+repo_url: https://github.com/Xuanthanh-dzz/full-stack
+edit_uri: edit/main/fullstack-roadmap/
+
+theme:
+  name: material
+  language: vi
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Chuyển sang Nền tối
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Chuyển sang Nền sáng
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+  font:
+    text: Plus Jakarta Sans
+    code: JetBrains Mono
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.keys
+  - pymdownx.caret
+  - pymdownx.tilde
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - awesome-pages
+
+not_in_nav: |
+  PROGRESS.md
+
+exclude_docs: |
+  PROMPT.md
+  README.md
