@@ -1137,4 +1137,4 @@ Bạn hoàn thành bài khi có thể tự trả lời:
 
 **Ôn lại project nền:** [Module 04, bài 16 — Dự án console C# quản lý công việc](../04-csharp-co-ban/16-du-an-console-csharp-quan-ly-cong-viec.md)
 
-**Bài tiếp theo theo lộ trình:** [Module 06 — OOP và thiết kế](../PROGRESS.md#06-oop-va-thiet-ke), bắt đầu bằng `01-mo-hinh-hoa-doi-tuong.md` khi module đó được biên soạn.
+**Bài tiếp theo theo lộ trình:** [Module 06, bài 1 — Mô hình hóa đối tượng](../06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md)

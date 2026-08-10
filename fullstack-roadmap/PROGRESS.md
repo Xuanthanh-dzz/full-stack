@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 01–05 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `01-nen-tang-lap-trinh` đạt `15 / 15` bài, `02-c-chuyen-sau` đạt `15 / 15` bài và `03-cpp` đạt `14 / 14` bài; code C11/C++20 đã build/run, output và failure path trọng yếu đã kiểm tra, format/cross-link đã audit chéo.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `82 / 410` file hoàn thành (`20,0%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–06 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `06-oop-va-thiet-ke` đạt `14 / 14` bài; toàn bộ sample .NET 9 đã build/run với warnings-as-errors, output trong bài khớp với lần chạy thật, dự án refactor cuối module đối chiếu bản cũ và bản mới trên bốn bộ dữ liệu đều `same`.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `96 / 410` file hoàn thành (`23,4%`).
 
 ## Quy ước checkbox
 
@@ -154,20 +154,20 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 06-oop-va-thiet-ke
 
-- [ ] `06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md`
-- [ ] `06-oop-va-thiet-ke/02-encapsulation-abstraction-inheritance-polymorphism.md`
-- [ ] `06-oop-va-thiet-ke/03-composition-over-inheritance.md`
-- [ ] `06-oop-va-thiet-ke/04-single-responsibility.md`
-- [ ] `06-oop-va-thiet-ke/05-open-closed.md`
-- [ ] `06-oop-va-thiet-ke/06-liskov-substitution.md`
-- [ ] `06-oop-va-thiet-ke/07-interface-segregation.md`
-- [ ] `06-oop-va-thiet-ke/08-dependency-inversion.md`
-- [ ] `06-oop-va-thiet-ke/09-coupling-va-cohesion.md`
-- [ ] `06-oop-va-thiet-ke/10-dependency-injection-va-inversion-of-control.md`
-- [ ] `06-oop-va-thiet-ke/11-clean-code-ten-ham-va-cau-truc.md`
-- [ ] `06-oop-va-thiet-ke/12-code-smell-va-refactoring.md`
-- [ ] `06-oop-va-thiet-ke/13-design-by-contract-va-invariant.md`
-- [ ] `06-oop-va-thiet-ke/14-du-an-refactor-ung-dung-csharp.md`
+- [x] `06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md`
+- [x] `06-oop-va-thiet-ke/02-encapsulation-abstraction-inheritance-polymorphism.md`
+- [x] `06-oop-va-thiet-ke/03-composition-over-inheritance.md`
+- [x] `06-oop-va-thiet-ke/04-single-responsibility.md`
+- [x] `06-oop-va-thiet-ke/05-open-closed.md`
+- [x] `06-oop-va-thiet-ke/06-liskov-substitution.md`
+- [x] `06-oop-va-thiet-ke/07-interface-segregation.md`
+- [x] `06-oop-va-thiet-ke/08-dependency-inversion.md`
+- [x] `06-oop-va-thiet-ke/09-coupling-va-cohesion.md`
+- [x] `06-oop-va-thiet-ke/10-dependency-injection-va-inversion-of-control.md`
+- [x] `06-oop-va-thiet-ke/11-clean-code-ten-ham-va-cau-truc.md`
+- [x] `06-oop-va-thiet-ke/12-code-smell-va-refactoring.md`
+- [x] `06-oop-va-thiet-ke/13-design-by-contract-va-invariant.md`
+- [x] `06-oop-va-thiet-ke/14-du-an-refactor-ung-dung-csharp.md`
 
 ## 07-cau-truc-du-lieu-giai-thuat
 
@@ -531,6 +531,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-07-31`: hoàn thành toàn bộ module `06-oop-va-thiet-ke` (`14/14` bài); build/run 14 sample .NET 9 với `Nullable` bật và warnings-as-errors, đối chiếu từng dòng output, kiểm tra failure path của các bài Liskov/contract, và dựng dự án refactor 10 file có characterization harness so sánh bản cũ với bản mới.
 - `2026-07-31`: hoàn thành toàn bộ module `01-nen-tang-lap-trinh` (`15/15` bài), `02-c-chuyen-sau` (`15/15` bài) và `03-cpp` (`14/14` bài); build/run 44 lời giải chính bằng C11/C++20 với warnings-as-errors, đối chiếu output, kiểm tra failure path, Makefile, ASan/UBSan, ownership/lifetime và audit chéo toàn bộ prerequisite/cross-link.
 - `2026-07-30`: hoàn thành toàn bộ module `05-csharp-nang-cao` (`19/19` bài); build/run 19 project .NET 9 với warnings-as-errors, đối chiếu output, audit tuyến prerequisite/memory model/cross-link và kiểm tra failure path của dự án batch JSON bất đồng bộ.
 - `2026-07-30`: hoàn thành toàn bộ module `04-csharp-co-ban` (`16/16` bài); build/run code .NET 9, audit format, memory model, cross-link và các failure path của project JSON.
