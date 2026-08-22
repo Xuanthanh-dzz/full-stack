@@ -186,8 +186,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [x] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
 
