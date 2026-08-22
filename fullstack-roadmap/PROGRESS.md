@@ -178,8 +178,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [x] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
