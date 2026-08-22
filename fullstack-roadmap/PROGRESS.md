@@ -201,10 +201,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 - [x] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
 - [x] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
-- [ ] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
-- [ ] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
-- [ ] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
-- [ ] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
+- [x] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
+- [x] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
+- [x] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
+- [x] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
 - [ ] `08-sql-va-csdl/07-group-by-aggregate-va-having.md`
 - [ ] `08-sql-va-csdl/08-inner-left-right-full-cross-join.md`
 - [ ] `08-sql-va-csdl/09-subquery-va-correlated-subquery.md`
