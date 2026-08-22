@@ -17,6 +17,12 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - Chỉ cập nhật một bài sang `[x]` sau khi hoàn tất; hoàn thành trọn module hiện tại rồi mới viết module tiếp theo.
 - Khi thêm, đổi tên hoặc tách bài, phải cập nhật tổng số, prerequisite, roadmap và mọi cross-link liên quan.
 
+## Ghi chú kiểm chứng module 08 (SQL)
+
+- Baseline phương ngữ của module 08 là **SQL Server (T-SQL)** để nhất quán với module 09 (EF Core).
+- Môi trường biên soạn không tải/cài được SQL Server (bản cài bị chặn bởi egress policy), nên phần **SQL chuẩn/portable** (DDL, CRUD, filter/sort, hàm, aggregate, join, subquery, set operator, CTE, window function, transaction/ACID, chuẩn hóa...) được **chạy kiểm chứng logic trên PostgreSQL 16** với cùng schema/dữ liệu; output trong bài phản ánh kết quả thật đó (đầu cột trình bày theo casing T-SQL).
+- Phần **đặc thù SQL Server không portable** (cài đặt, cú pháp/thông báo lỗi T-SQL, stored procedure/trigger, execution plan & statistics, phân loại index clustered/nonclustered, isolation/lock nội bộ, backup/restore) được viết theo **tài liệu chính thức SQL Server** và **không chạy live** trong môi trường này — các bài liên quan sẽ ghi rõ khi output là doc-based.
+
 ## Baseline cần giữ nhất quán
 
 | Thành phần | Baseline biên soạn |
@@ -193,8 +199,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 08-sql-va-csdl
 
-- [ ] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
-- [ ] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
+- [x] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
+- [x] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
 - [ ] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
 - [ ] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
 - [ ] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
