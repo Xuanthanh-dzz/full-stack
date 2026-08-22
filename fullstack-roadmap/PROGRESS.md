@@ -184,8 +184,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [x] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
