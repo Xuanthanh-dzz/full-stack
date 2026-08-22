@@ -174,8 +174,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [x] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
 - [x] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
 - [ ] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
