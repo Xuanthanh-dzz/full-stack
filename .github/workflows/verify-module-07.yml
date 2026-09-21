@@ -1,0 +1,36 @@
+name: Verify Module 07
+
+on:
+  push:
+    paths:
+      - "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/**"
+      - "scripts/verify_module_07.py"
+      - ".github/workflows/verify-module-07.yml"
+  pull_request:
+    paths:
+      - "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/**"
+      - "scripts/verify_module_07.py"
+      - ".github/workflows/verify-module-07.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Verify lesson structure, links, build and run
+        run: python scripts/verify_module_07.py
