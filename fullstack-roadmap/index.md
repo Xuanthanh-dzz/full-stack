@@ -3,7 +3,7 @@
   <p class="hero-subtitle">Bộ tài liệu tự học lập trình toàn diện bằng tiếng Việt. Lấy C làm nền tảng bộ nhớ & tư duy, C# / .NET 9 làm công nghệ thực chiến đi làm, C++20 hiểu sâu OOP & RAII, tiến tới Web, Microservices & Thiết kế hệ thống.</p>
   <div class="hero-buttons">
     <a href="00-huong-dan/roadmap/" class="btn-hero btn-hero-primary">🚀 Khám Phá Roadmap 5 Cấp</a>
-    <a href="01-nen-tang-lap-trinh/01-chuong-trinh-c-dau-tien-va-co-che-bien-dich/" class="btn-hero btn-hero-secondary">💻 Bắt Đầu Học Module 01</a>
+    <a href="01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/" class="btn-hero btn-hero-secondary">💻 Bắt Đầu Học Module 01</a>
     <a href="PROGRESS/" class="btn-hero btn-hero-secondary">📈 Xem Tiến Độ Chương Trình</a>
   </div>
 </div>
@@ -14,7 +14,7 @@
     <div class="stat-label">Module Kiến Thức</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number">79+</div>
+    <div class="stat-number">112+</div>
     <div class="stat-label">Bài Học Chuyên Sâu</div>
   </div>
   <div class="stat-card">
@@ -49,7 +49,7 @@
     
     Biến, kiểu dữ liệu, toán tử, cấu trúc điều khiển, hàm, mảng, chuỗi và tư duy thuật toán cơ bản bằng ngôn ngữ C.
     
-    [:octicons-arrow-right-24: Học Module 01](01-nen-tang-lap-trinh/01-chuong-trinh-c-dau-tien-va-co-che-bien-dich/)
+    [:octicons-arrow-right-24: Học Module 01](01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode/)
 
 -   :material-memory:{ .card-icon }
     
@@ -58,7 +58,7 @@
     
     Con trỏ (pointer), Stack vs Heap, cấp phát động, Struct/Union, Bitwise, C nhiều file và thao tác File I/O.
     
-    [:octicons-arrow-right-24: Học Module 02](02-c-chuyen-sau/01-con-tro-co-ban-va-mo-hinh-bo-nho/)
+    [:octicons-arrow-right-24: Học Module 02](02-c-chuyen-sau/01-dia-chi-bo-nho-va-con-tro/)
 
 -   :material-language-cpp:{ .card-icon }
     
@@ -67,7 +67,7 @@
     
     OOP căn bản & nâng cao, STL, Smart Pointers, Move Semantics, RAII và các tính năng hiện đại trong C++20.
     
-    [:octicons-arrow-right-24: Học Module 03](03-cpp/01-tu-c-sang-cpp-references-va-overloading/)
+    [:octicons-arrow-right-24: Học Module 03](03-cpp/01-tu-c-sang-cpp20/)
 
 -   :material-language-csharp:{ .card-icon }
     
@@ -76,7 +76,7 @@
     
     Value vs Reference types, Garbage Collector, Generics, Collections, Exception handling và LINQ căn bản với .NET 9.
     
-    [:octicons-arrow-right-24: Học Module 04](04-csharp-co-ban/01-dotnet-ecosystem-va-chuong-trinh-csharp-dau-tien/)
+    [:octicons-arrow-right-24: Học Module 04](04-csharp-co-ban/01-dotnet-9-va-chuong-trinh-csharp/)
 
 -   :material-lightning-bolt:{ .card-icon }
     
@@ -85,7 +85,21 @@
     
     `Span<T>`, `Memory<T>`, Async/Await, Threading, Reflection, Expression Trees, Performance optimization và Memory profiling.
     
-    [:octicons-arrow-right-24: Học Module 05](05-csharp-nang-cao/01-nullable-reference-types-va-null-safety/)
+    [:octicons-arrow-right-24: Học Module 05](05-csharp-nang-cao/01-generics-va-constraints/)
+
+-   ### Module 06: OOP, SOLID & Thiết Kế
+    <span class="badge badge-success">14 Bài • Hoàn thành</span>
+    
+    Mô hình hóa đối tượng, SOLID, coupling/cohesion, dependency injection, clean code, invariant và refactoring.
+    
+    [:octicons-arrow-right-24: Học Module 06](06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong/)
+
+-   ### Module 07: Cấu Trúc Dữ Liệu & Giải Thuật
+    <span class="badge badge-success">19 Bài • Hoàn thành</span>
+    
+    Big-O, array, linked list, hash table, tree, heap, graph, BFS/DFS, Dijkstra, sorting, greedy, backtracking, dynamic programming và Route Engine.
+    
+    [:octicons-arrow-right-24: Học Module 07](07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho/)
 
 </div>
 
@@ -108,8 +122,6 @@ graph LR
 
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
-| **06** | OOP, SOLID & Clean Code | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **07** | Cấu trúc dữ liệu & Giải thuật | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
