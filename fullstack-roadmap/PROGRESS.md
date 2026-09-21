@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 01–06 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `06-oop-va-thiet-ke` đạt `14 / 14` bài; toàn bộ sample .NET 9 đã build/run với warnings-as-errors, output trong bài khớp với lần chạy thật, dự án refactor cuối module đối chiếu bản cũ và bản mới trên bốn bộ dữ liệu đều `same`.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `96 / 410` file hoàn thành (`23,4%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–07 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `07-cau-truc-du-lieu-giai-thuat` đạt `19 / 19` bài; GitHub Actions đã kiểm tra đủ tám phần, cross-link nội bộ và build/run 19 sample .NET 9 với warnings-as-errors thành công.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `115 / 410` file hoàn thành (`28,0%`).
 
 ## Quy ước checkbox
 
@@ -171,25 +171,25 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 07-cau-truc-du-lieu-giai-thuat
 
-- [ ] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
 
 ## 08-sql-va-csdl
 
@@ -531,6 +531,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-09-21`: hoàn thành toàn bộ module `07-cau-truc-du-lieu-giai-thuat` (`19/19` bài); bổ sung CI kiểm tra cấu trúc tám phần, cross-link, build warnings-as-errors và run toàn bộ sample .NET 9; project cuối module là Route Engine dùng weighted graph, priority queue và Dijkstra.
 - `2026-07-31`: hoàn thành toàn bộ module `06-oop-va-thiet-ke` (`14/14` bài); build/run 14 sample .NET 9 với `Nullable` bật và warnings-as-errors, đối chiếu từng dòng output, kiểm tra failure path của các bài Liskov/contract, và dựng dự án refactor 10 file có characterization harness so sánh bản cũ với bản mới.
 - `2026-07-31`: hoàn thành toàn bộ module `01-nen-tang-lap-trinh` (`15/15` bài), `02-c-chuyen-sau` (`15/15` bài) và `03-cpp` (`14/14` bài); build/run 44 lời giải chính bằng C11/C++20 với warnings-as-errors, đối chiếu output, kiểm tra failure path, Makefile, ASan/UBSan, ownership/lifetime và audit chéo toàn bộ prerequisite/cross-link.
 - `2026-07-30`: hoàn thành toàn bộ module `05-csharp-nang-cao` (`19/19` bài); build/run 19 project .NET 9 với warnings-as-errors, đối chiếu output, audit tuyến prerequisite/memory model/cross-link và kiểm tra failure path của dự án batch JSON bất đồng bộ.
