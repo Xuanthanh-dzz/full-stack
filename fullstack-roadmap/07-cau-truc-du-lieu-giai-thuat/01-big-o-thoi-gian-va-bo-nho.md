@@ -83,14 +83,14 @@ internal static class Program
             int missingValue = -1;
 
             long linearOperations = LinearSearch(values, missingValue);
-            long pairOperations = CountOrderedPairs(values);
+            long pairOperations = EstimateOrderedPairOperations(size);
 
             Console.WriteLine(
                 $"n={size:N0}: linear={linearOperations:N0}, pairs={pairOperations:N0}");
         }
 
         Console.WriteLine();
-        CompareLookupStructures(200_000, 20_000);
+        CompareLookupStructures(50_000, 200);
     }
 
     private static long LinearSearch(int[] values, int target)
@@ -110,19 +110,12 @@ internal static class Program
         return operations;
     }
 
-    private static long CountOrderedPairs(int[] values)
+    private static long EstimateOrderedPairOperations(int count)
     {
-        long operations = 0;
-
-        for (int i = 0; i < values.Length; i++)
-        {
-            for (int j = 0; j < values.Length; j++)
-            {
-                operations++;
-            }
-        }
-
-        return operations;
+        // Một cặp vòng lặp n x n sẽ thực hiện n² lượt.
+        // Ta tính số lượt bằng công thức để demo không cố chạy
+        // hàng tỷ vòng lặp trên input lớn.
+        return checked((long)count * count);
     }
 
     private static void CompareLookupStructures(int itemCount, int lookupCount)
@@ -180,7 +173,7 @@ dotnet build
 dotnet run --no-build
 ```
 
-Ba dòng đầu có tính xác định:
+Ba dòng đầu có tính xác định. Cột `pairs` là số lượt mà một cặp vòng lặp `n × n` sẽ phải thực hiện; sample tính bằng công thức thay vì cố chạy hàng tỷ vòng lặp:
 
 ```text
 n=1,000: linear=1,000, pairs=1,000,000
