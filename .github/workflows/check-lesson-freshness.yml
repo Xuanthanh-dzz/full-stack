@@ -9,6 +9,7 @@ on:
     paths:
       - "fullstack-roadmap/01-nen-tang-lap-trinh/**"
       - "fullstack-roadmap/02-c-chuyen-sau/**"
+      - "fullstack-roadmap/03-cpp/**"
       - "fullstack-roadmap/09-linq-va-ef-core/**"
       - "fullstack-roadmap/10-web-nen-tang/**"
       - "fullstack-roadmap/11-aspnet-core-backend/**"
@@ -46,3 +47,4 @@ jobs:
         run: |
           python scripts/verify_retrofit_v4.py 01
           python scripts/verify_retrofit_v4.py 02
+          python scripts/verify_retrofit_v4.py 03
