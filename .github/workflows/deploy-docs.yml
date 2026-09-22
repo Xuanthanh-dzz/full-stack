@@ -7,33 +7,106 @@ on:
       - "mkdocs.yml"
       - "requirements-docs.txt"
       - ".github/workflows/deploy-docs.yml"
+      - ".github/workflows/preview-docs.yml"
   workflow_dispatch:
+
 permissions:
   contents: read
+  pull-requests: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-src
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - run: pip install -r requirements-docs.txt
-      - run: mkdocs build
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Install production docs dependencies
+        run: python -m pip install -r main-src/requirements-docs.txt
+
+      - name: Build production root
+        run: |
+          mkdocs build \
+            -f main-src/mkdocs.yml \
+            -d "$GITHUB_WORKSPACE/site"
+
+      - name: Build previews for all open same-repo PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          mkdir -p "$GITHUB_WORKSPACE/site/pr-preview"
+
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+            --jq '.[] | [.number, .head.sha, .head.repo.full_name] | @tsv' \
+            > "$RUNNER_TEMP/open-prs.tsv"
+
+          while IFS=$'\t' read -r number sha head_repo; do
+            [ -n "$number" ] || continue
+            [ "$head_repo" = "$GITHUB_REPOSITORY" ] || continue
+
+            workdir="$RUNNER_TEMP/pr-$number"
+            target="$GITHUB_WORKSPACE/site/pr-preview/pr-$number"
+            rm -rf "$workdir" "$target"
+
+            echo "Building preview for PR #$number at $sha"
+
+            if ! git -C main-src fetch --no-tags --depth=1 origin "$sha"; then
+              echo "::warning::Could not fetch PR #$number; skipping preview"
+              continue
+            fi
+
+            if ! git -C main-src worktree add --detach "$workdir" "$sha"; then
+              echo "::warning::Could not create worktree for PR #$number; skipping preview"
+              continue
+            fi
+
+            if ! python -m pip install -r "$workdir/requirements-docs.txt"; then
+              echo "::warning::Dependency install failed for PR #$number; skipping preview"
+              git -C main-src worktree remove "$workdir" --force || true
+              continue
+            fi
+
+            if ! mkdocs build -f "$workdir/mkdocs.yml" -d "$target"; then
+              echo "::warning::MkDocs build failed for PR #$number; skipping preview"
+              rm -rf "$target"
+              git -C main-src worktree remove "$workdir" --force || true
+              continue
+            fi
+
+            git -C main-src worktree remove "$workdir" --force || true
+          done < "$RUNNER_TEMP/open-prs.tsv"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - id: deployment
+      - name: Deploy production root + all open PR previews
+        id: deployment
         uses: actions/deploy-pages@v4
