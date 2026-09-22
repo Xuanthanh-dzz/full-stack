@@ -203,9 +203,14 @@ def check_supplemental_artifacts() -> None:
 def compile_linq_samples(paths: list[Path]) -> None:
     for path in paths[:10]:
         text = path.read_text(encoding="utf-8")
-        blocks = CSHARP_BLOCK.findall(text)
+        section_start = text.find("## 3. Lời giải chạy được")
+        section_end = text.find("## 4. Cơ chế hoạt động")
+        if section_start == -1 or section_end == -1 or section_end <= section_start:
+            fail(f"{path}: could not isolate runnable solution section")
+        solution_section = text[section_start:section_end]
+        blocks = CSHARP_BLOCK.findall(solution_section)
         if not blocks:
-            fail(f"{path}: no csharp block found for LINQ compile gate")
+            fail(f"{path}: no csharp block found in runnable solution section")
         source = blocks[0]
         with tempfile.TemporaryDirectory(prefix="module09-linq-") as temp:
             temp_path = Path(temp)
