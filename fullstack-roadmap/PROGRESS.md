@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 01–07 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `07-cau-truc-du-lieu-giai-thuat` đạt `19 / 19` bài; GitHub Actions đã kiểm tra đủ tám phần, cross-link nội bộ và build/run 19 sample .NET 9 với warnings-as-errors thành công.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `115 / 421` file hoàn thành (`27,3%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–08 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `08-sql-va-csdl` đạt `25 / 25` bài; GitHub Actions đã kiểm tra đủ tám phần, cross-link nội bộ, chạy toàn bộ SQL sample trên SQL Server 2025 và build MkDocs thành công.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `140 / 421` file hoàn thành (`33,3%`).
 
 ## Quy ước checkbox
 
@@ -26,7 +26,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 | .NET | Target framework `net9.0`; pin exact SDK trong bài môi trường |
 | C# | Dùng compiler đã pin và các tính năng ngôn ngữ mới tương thích với target; nêu rõ `LangVersion` khi không dùng mặc định |
 | ASP.NET Core / EF Core | Major version 9; pin package patch version trong project |
-| Database chính | SQL Server; ghi chú khác biệt PostgreSQL khi điều đó giúp hiểu provider/dialect |
+| Database chính | SQL Server; Module 08 được chạy kiểm chứng trên SQL Server 2025; ghi chú khác biệt PostgreSQL khi điều đó giúp hiểu provider/dialect |
 | Frontend | Node.js LTS, TypeScript; người học chọn React hoặc Angular và pin version bằng lockfile khi viết project |
 | Hạ tầng | Docker làm môi trường tái tạo cục bộ; GitHub Actions và GitLab CI đều có pipeline mẫu |
 
@@ -193,31 +193,31 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 08-sql-va-csdl
 
-- [ ] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
-- [ ] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
-- [ ] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
-- [ ] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
-- [ ] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
-- [ ] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
-- [ ] `08-sql-va-csdl/07-group-by-aggregate-va-having.md`
-- [ ] `08-sql-va-csdl/08-inner-left-right-full-cross-join.md`
-- [ ] `08-sql-va-csdl/09-subquery-va-correlated-subquery.md`
-- [ ] `08-sql-va-csdl/10-set-operator-union-intersect-except.md`
-- [ ] `08-sql-va-csdl/11-cte-va-recursive-cte.md`
-- [ ] `08-sql-va-csdl/12-window-function.md`
-- [ ] `08-sql-va-csdl/13-view-stored-procedure-function-trigger.md`
-- [ ] `08-sql-va-csdl/14-mo-hinh-er-va-quan-he.md`
-- [ ] `08-sql-va-csdl/15-chuan-hoa-1nf-2nf-3nf-bcnf.md`
-- [ ] `08-sql-va-csdl/16-denormalization-va-du-lieu-lich-su.md`
-- [ ] `08-sql-va-csdl/17-index-btree-clustered-nonclustered.md`
-- [ ] `08-sql-va-csdl/18-covering-filtered-composite-index.md`
-- [ ] `08-sql-va-csdl/19-transaction-va-acid.md`
-- [ ] `08-sql-va-csdl/20-isolation-level-mvcc-lock-deadlock.md`
-- [ ] `08-sql-va-csdl/21-execution-plan-va-statistics.md`
-- [ ] `08-sql-va-csdl/22-toi-uu-truy-van-va-sargability.md`
-- [ ] `08-sql-va-csdl/23-bao-mat-phan-quyen-va-sql-injection.md`
-- [ ] `08-sql-va-csdl/24-backup-restore-va-migration-du-lieu.md`
-- [ ] `08-sql-va-csdl/25-du-an-csdl-thuong-mai-dien-tu.md`
+- [x] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
+- [x] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
+- [x] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
+- [x] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
+- [x] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
+- [x] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
+- [x] `08-sql-va-csdl/07-group-by-aggregate-va-having.md`
+- [x] `08-sql-va-csdl/08-inner-left-right-full-cross-join.md`
+- [x] `08-sql-va-csdl/09-subquery-va-correlated-subquery.md`
+- [x] `08-sql-va-csdl/10-set-operator-union-intersect-except.md`
+- [x] `08-sql-va-csdl/11-cte-va-recursive-cte.md`
+- [x] `08-sql-va-csdl/12-window-function.md`
+- [x] `08-sql-va-csdl/13-view-stored-procedure-function-trigger.md`
+- [x] `08-sql-va-csdl/14-mo-hinh-er-va-quan-he.md`
+- [x] `08-sql-va-csdl/15-chuan-hoa-1nf-2nf-3nf-bcnf.md`
+- [x] `08-sql-va-csdl/16-denormalization-va-du-lieu-lich-su.md`
+- [x] `08-sql-va-csdl/17-index-btree-clustered-nonclustered.md`
+- [x] `08-sql-va-csdl/18-covering-filtered-composite-index.md`
+- [x] `08-sql-va-csdl/19-transaction-va-acid.md`
+- [x] `08-sql-va-csdl/20-isolation-level-mvcc-lock-deadlock.md`
+- [x] `08-sql-va-csdl/21-execution-plan-va-statistics.md`
+- [x] `08-sql-va-csdl/22-toi-uu-truy-van-va-sargability.md`
+- [x] `08-sql-va-csdl/23-bao-mat-phan-quyen-va-sql-injection.md`
+- [x] `08-sql-va-csdl/24-backup-restore-va-migration-du-lieu.md`
+- [x] `08-sql-va-csdl/25-du-an-csdl-thuong-mai-dien-tu.md`
 
 ## 09-linq-va-ef-core
 
@@ -553,6 +553,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-09-22`: hoàn thành toàn bộ module `08-sql-va-csdl` (`25/25` bài); verifier chạy từng lab trên SQL Server 2025 trong Docker, kiểm tra cấu trúc tám phần/cross-link và build toàn bộ MkDocs; capstone cuối module là CSDL thương mại điện tử có schema, constraint, index, transaction, security, backup/migration và query tuning.
 - `2026-09-22`: mở rộng module `12-frontend` thành hai lựa chọn song song React/Angular sau 12 bài nền tảng HTML/CSS/JavaScript/TypeScript; Module 13 chấp nhận framework đã chọn. Tổng manifest tăng từ `410` lên `421` file.
 - `2026-09-21`: hoàn thành toàn bộ module `07-cau-truc-du-lieu-giai-thuat` (`19/19` bài); bổ sung CI kiểm tra cấu trúc tám phần, cross-link, build warnings-as-errors và run toàn bộ sample .NET 9; project cuối module là Route Engine dùng weighted graph, priority queue và Dijkstra.
 - `2026-07-31`: hoàn thành toàn bộ module `06-oop-va-thiet-ke` (`14/14` bài); build/run 14 sample .NET 9 với `Nullable` bật và warnings-as-errors, đối chiếu từng dòng output, kiểm tra failure path của các bài Liskov/contract, và dựng dự án refactor 10 file có characterization harness so sánh bản cũ với bản mới.
