@@ -18,3 +18,8 @@ Mandatory rules:
 - Prefer the simplest solution that satisfies the stated scale.
 - Never add architecture/patterns without a concrete driver.
 - Update `Last verified` only after rerunning the relevant sample/tests.
+
+- For Module 09+, add dedicated Failure Labs at the cadence defined by the standard.
+- Add spaced review checkpoints after each 4–6 lesson cluster.
+- Add at least one PR/code-review lab per technical module.
+- Add the career checkpoint artifact when the module is a defined career milestone.
