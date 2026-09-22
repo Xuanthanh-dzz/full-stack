@@ -23,7 +23,7 @@ hide:
     <div class="stat-label">Module Kiến Thức</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number">137+</div>
+    <div class="stat-number">94+</div>
     <div class="stat-label">Bài Học Chuyên Sâu</div>
   </div>
   <div class="stat-card">
@@ -105,24 +105,6 @@ hide:
     
     [:octicons-arrow-right-24: Học Module 06](06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md)
 
--   :material-source-branch:{ .card-icon }
-    
-    ### Module 07: Cấu Trúc Dữ Liệu & Giải Thuật
-    <span class="badge badge-success">19 Bài • Hoàn thành</span>
-    
-    Big-O, array, linked list, hash table, tree, heap, graph, BFS/DFS, Dijkstra, sorting, greedy, backtracking, dynamic programming và Route Engine.
-    
-    [:octicons-arrow-right-24: Học Module 07](07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md)
-
--   :material-database:{ .card-icon }
-    
-    ### Module 08: SQL & Cơ Sở Dữ Liệu
-    <span class="badge badge-success">25 Bài • Hoàn thành</span>
-    
-    Mô hình quan hệ, CRUD, JOIN, CTE, window function, chuẩn hóa, index, transaction, isolation, execution plan, security, backup/migration và capstone CSDL thương mại điện tử.
-    
-    [:octicons-arrow-right-24: Học Module 08](08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md)
-
 </div>
 
 ---
@@ -135,34 +117,21 @@ graph LR
     B --> C[Module 04-05: C# & .NET 9]
     C --> D[Module 06: OOP & SOLID]
     D --> E[Module 07: CTDL & Giải thuật]
-    E --> F[Module 08: SQL & Database]
-    F --> G[Module 09: LINQ & EF Core]
-    G --> H[Module 10-13: Full-stack Web & React/Angular]
-    H --> I[Module 14-15: DevOps & Docker]
-    I --> J[Module 16-20: System Design & Architect]
+    E --> F[Module 08-09: SQL & EF Core]
+    F --> G[Module 10-13: Full-stack Web & React]
+    G --> H[Module 14-15: DevOps & Docker]
+    H --> I[Module 16-20: System Design & Architect]
 ```
 
 ### 📦 Các Module Đang Biên Soạn
 
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
-| **09** | LINQ & Entity Framework Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **10-13** | Web Foundation, ASP.NET Core & React/Angular | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **07** | Cấu trúc dữ liệu & Giải thuật | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-
----
-
-## 🧩 Hai Lựa Chọn Frontend
-
-Sau phần nền tảng chung **HTML → CSS → JavaScript → TypeScript**, người học chọn **một** framework để đi tiếp:
-
-| Nhánh | Trọng tâm | Kết nối backend |
-|---|---|---|
-| **React** | JSX, hooks, React Router, Context/Reducer, TanStack Query | ASP.NET Core API |
-| **Angular** | Standalone Components, DI, RxJS, Reactive Forms, Router, HttpClient, Signals | ASP.NET Core API |
-
-Cả hai nhánh quay lại cùng Module 13 để học authentication, validation end-to-end, upload/download, realtime, Docker và triển khai full-stack. Không bắt buộc học cả React và Angular.
 
 ---
 
