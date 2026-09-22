@@ -10,14 +10,14 @@ theme:
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: indigo
-      accent: teal
+      accent: indigo
       toggle:
         icon: material/weather-sunny
         name: Chuyển sang Nền tối
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: indigo
-      accent: teal
+      accent: indigo
       toggle:
         icon: material/weather-night
         name: Chuyển sang Nền sáng
@@ -32,6 +32,7 @@ theme:
     - navigation.top
     - navigation.footer
     - navigation.indexes
+    - navigation.prune
     - toc.follow
     - search.suggest
     - search.highlight
@@ -44,6 +45,7 @@ theme:
     code: JetBrains Mono
 
 markdown_extensions:
+  - md_in_html
   - admonition
   - attr_list
   - tables
