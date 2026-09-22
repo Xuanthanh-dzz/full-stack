@@ -1,12 +1,10 @@
 nav:
   - 🏠 Trang chủ: index.md
   - 🧭 Hướng dẫn: 00-huong-dan
-  - 💻 Lập trình Họ C & .NET:
-      - 01-nen-tang-lap-trinh
-      - 02-c-chuyen-sau
-      - 03-cpp
-      - 04-csharp-co-ban
-      - 05-csharp-nang-cao
-      - 06-oop-va-thiet-ke
+  - 01 · C Nền tảng: 01-nen-tang-lap-trinh
+  - 02 · C Chuyên sâu: 02-c-chuyen-sau
+  - 03 · C++20: 03-cpp
+  - 04 · C# Cơ bản: 04-csharp-co-ban
+  - 05 · C# Nâng cao: 05-csharp-nang-cao
+  - 06 · OOP & Thiết kế: 06-oop-va-thiet-ke
   - ...
-
