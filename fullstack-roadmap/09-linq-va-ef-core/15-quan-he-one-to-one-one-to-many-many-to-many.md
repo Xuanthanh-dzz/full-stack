@@ -115,3 +115,4 @@ Order-Payment nên one-to-one hay one-to-many nếu provider cho retry/refund? D
 
 - Bài trước: [CRUD, change tracking và Unit of Work](./14-crud-change-tracking-va-unit-of-work.md)
 - Bài tiếp theo: [Eager, explicit và lazy loading](./16-eager-explicit-va-lazy-loading.md)
+- Spaced review: [Review 03 — EF modeling & tracking](./reviews/review-03-ef-modeling-and-tracking.md)
