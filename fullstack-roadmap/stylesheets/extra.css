@@ -853,7 +853,7 @@ body.zen-mode .md-sidebar--secondary {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 380px;
+  max-height: calc(90vh - 100px);
   overflow-y: auto;
   padding-right: 0.2rem;
 }
