@@ -21,6 +21,25 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn chỉ bắt được bug nếu test environment **có khả năng tái hiện failure mode đó**.
+
+Nếu bug là “SQL Server không translate function này”, mock `DbSet` không thể bắt được vì nó không chạy EF SQL provider thật.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| unit test | test logic cô lập, thường không DB thật |
+| integration test | test nhiều component tương tác thật |
+| relational provider | provider thật sự dùng relational semantics |
+| SQLite in-memory | SQLite DB sống trong memory cho test nhanh |
+| Testcontainers | quản lifecycle dependency Docker cho test |
+| provider-specific | behavior chỉ đúng với DB/provider cụ thể |
+
+Không có một loại test tốt nhất. Mỗi loại bắt một nhóm lỗi khác nhau.
+
 Test dùng EF InMemory pass, production SQL Server fail vì query không translate hoặc constraint/case sensitivity khác. Test đã kiểm tra business list behavior, không kiểm tra relational contract thật.
 
 ## 3. Lời giải chạy được
@@ -50,7 +69,65 @@ await container.StartAsync();
 var connectionString = container.GetConnectionString();
 ~~~
 
+### Walkthrough: vì sao mock có thể cho false confidence?
+
+Code production:
+
+~~~text
+LINQ expression
+→ EF SQL Server translator
+→ SQL
+→ SQL Server
+~~~
+
+Mock test có thể chỉ chạy:
+
+~~~text
+LINQ expression
+→ fake/in-memory collection behavior
+~~~
+
+Nó bỏ qua phần translator + SQL Server — đúng nơi production bug có thể xảy ra.
+
+SQLite relational test thêm được:
+
+~~~text
+LINQ
+→ EF SQLite translator
+→ SQLite SQL engine
+~~~
+
+nhưng vẫn chưa giống SQL Server 100%.
+
 ## 4. Cơ chế hoạt động
+
+### Test pyramid cho data access
+
+| Loại | Nhanh | Bắt translation | Bắt SQL Server-specific | Dùng cho |
+|---|---:|---:|---:|---|
+| pure unit | ✅✅✅ | ❌ | ❌ | domain logic |
+| SQLite relational | ✅✅ | ✅ một phần | ❌ | mapping/query generic |
+| SQL Server container | ✅/✅✅ | ✅ | ✅ | critical query/migration/provider behavior |
+
+### Vì sao không chạy mọi test trên container?
+
+Vì startup/resource/time có cost. Test pyramid cân bằng feedback speed và fidelity.
+
+### Misconception check
+
+**Đúng hay sai?** Test xanh với SQLite chứng minh migration SQL Server đúng.
+
+**Đáp án:** Sai. Provider/schema/type semantics khác.
+
+**Đúng hay sai?** Mock repository luôn làm test tốt hơn vì nhanh.
+
+**Đáp án:** Sai. Nếu risk nằm ở query translation/mapping, mock bỏ mất chính failure mode.
+
+### Mini-check
+
+Query dùng SQL Server `rowversion` hoặc full-text. Test nào phải có?
+
+Đáp án: ít nhất một provider-real SQL Server integration test.
 
 SQLite in-memory vẫn có relational engine, SQL generation và constraints nhất định, nên tốt hơn pure fake cho nhiều test.
 
@@ -59,6 +136,14 @@ Nhưng provider differences vẫn tồn tại: schema, SQL functions, type behav
 Testcontainers quản lifecycle Docker dependency, cấp connection string tạm và cleanup sau test.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** phân biệt unit và relational integration test.
+
+**Working developer:** SQLite + provider-real test theo risk.
+
+**Deep dive:** container lifecycle optimization, migration test, fixture isolation và parallel test.
 
 Testing strategy phải mirror failure mode cần bắt. Unit test domain không cần database; query translation/provider semantics thì cần relational/provider integration.
 
