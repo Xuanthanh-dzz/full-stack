@@ -21,6 +21,25 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Delegate giống một **máy đã đóng hộp**: bạn có thể bấm nút chạy, nhưng người khác không dễ nhìn vào bên trong để hiểu từng bước.
+
+Expression tree giống một **bản thiết kế dưới dạng object**: nó nói rõ “đọc `Price`, so sánh với 1.000.000, trả bool”. Vì là dữ liệu, EF Core có thể đọc nó và chuyển ý nghĩa sang SQL.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| expression | biểu thức tạo ra giá trị |
+| expression tree | object graph mô tả biểu thức |
+| node | một phần tử trong tree như `GreaterThan` |
+| provider | thành phần hiểu tree |
+| translation | chuyển tree sang ngôn ngữ khác, ví dụ SQL |
+| materialization | đổi row kết quả thành object/DTO |
+
+Không phải mọi C# expression đều có đối tác trong SQL. Đây là nguồn gốc của nhiều lỗi translation.
+
 Một helper `NormalizeSku()` hoạt động hoàn hảo với `List<Product>` nhưng query EF dùng helper trong `Where` lại không translate. Cần hiểu provider chỉ biết những node/method nó có translator.
 
 ## 3. Lời giải chạy được
@@ -46,7 +65,78 @@ Console.WriteLine(string.Join(",", products.Where(predicate).Select(x => x.Sku))
 public sealed record Product(string Sku, decimal Price);
 ~~~
 
+### Walkthrough expression nhỏ
+
+Expression:
+
+~~~csharp
+product => product.Price >= 1_000_000m
+~~~
+
+Ta có thể hình dung tree:
+
+~~~text
+Lambda(product)
+  ↓
+GreaterThanOrEqual
+  ├─ MemberAccess: product.Price
+  └─ Constant: 1000000
+~~~
+
+Provider nhìn vào cấu trúc này và có thể tạo SQL tương đương:
+
+~~~sql
+WHERE Price >= @p0
+~~~
+
+Nhưng nếu tree chứa:
+
+~~~csharp
+product => MyCustomNormalization(product.Sku) == input
+~~~
+
+provider chỉ dịch được nếu nó có translator cho `MyCustomNormalization`. Thông thường nó không tự biết method tùy ý của bạn.
+
 ## 4. Cơ chế hoạt động
+
+### Từ LINQ đến SQL từng bước
+
+~~~text
+1. C# compiler tạo expression tree object
+2. Queryable operator gắn tree vào query
+3. EF Core đọc tree
+4. EF xác định phần nào có thể translate
+5. EF tạo SQL + parameters
+6. ADO.NET gửi SQL tới SQL Server
+7. SQL Server optimize + execute
+8. rows trả về
+9. EF materialize result
+~~~
+
+### Delegate vs expression tree
+
+| Tiêu chí | Delegate | Expression tree |
+|---|---|---|
+| Có thể gọi trực tiếp | có | không, trừ compile |
+| Dễ inspect structure | không | có |
+| Provider có thể translate | không trực tiếp | có thể |
+| Chứa mọi C# construct | nhiều hơn | bị giới hạn |
+
+### Misconception check
+
+**Đúng hay sai?** EF Core chạy lambda C# bên trong SQL Server.
+
+**Đáp án:** Sai. EF dịch semantics được hỗ trợ sang SQL; SQL Server không chạy CLR lambda đó.
+
+**Đúng hay sai?** Method compile được trong C# thì chắc chắn query EF cũng chạy.
+
+**Đáp án:** Sai. Compile-time legality và provider translation là hai chuyện khác nhau.
+
+### Mini-check
+
+Nếu một query fail translation, giải pháp đầu tiên có nên là `AsEnumerable()` không?
+
+Đáp án: không. Trước tiên phải hiểu data volume, generated query và xem có thể viết expression translatable hoặc đổi data model/query shape không.
 
 Delegate là executable code. Expression tree là object graph như `Lambda → GreaterThanOrEqual → MemberAccess + Constant`.
 
@@ -55,6 +145,14 @@ Delegate là executable code. Expression tree là object graph như `Lambda → 
 Sau SQL execution, provider đọc row và materialize projection/entity. Business method tùy ý không tự nhiên tồn tại trong SQL.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** expression tree là dữ liệu mô tả code.
+
+**Working developer:** biết translation boundary và inspect generated SQL.
+
+**Deep dive:** provider translator pipeline, custom translation và expression visitor.
 
 Expression tree bị giới hạn so với toàn bộ syntax C#. Đây là lý do một số lambda compile được nhưng không thể trở thành expression tree/SQL translation.
 
