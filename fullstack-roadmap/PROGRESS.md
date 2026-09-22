@@ -5,7 +5,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 ## Trạng thái hiện tại
 
 - Giai đoạn: `Biên soạn nội dung — module 01–09 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `09-linq-va-ef-core` đạt `24 / 24` bài; GitHub Actions đã kiểm tra Lesson Authoring Standard v2, compile 10 sample LINQ độc lập, build/test EF Core 10, generate/apply migration, chạy SQL Server 2025 smoke test và build MkDocs thành công.
+- Checkpoint hiện tại: module `09-linq-va-ef-core` đạt `24 / 24` bài và đã nâng lên Lesson Authoring Standard v4: beginner-first explanation, glossary/table, walkthrough, execution trace, misconception check, mini-check, learning levels, Failure Labs, Spaced Reviews, PR Reviews, Career Checkpoint; CI vẫn kiểm tra compile/test/migration/SQL Server/MkDocs.
 - Bài tiếp theo theo dependency của các module đã hoàn thành: `10-web-nen-tang/01-internet-dns-tcp-tls-va-trinh-duyet.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
 - Tiến độ: `164 / 421` file hoàn thành (`39,0%`).
 
@@ -33,7 +33,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 ## Definition of Done cho một bài học
 
 - Module 01–08 hiện dùng gate legacy tám phần cho tới khi retrofit.
-- Module 09+ bắt buộc Lesson Authoring Standard v2: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment và retrieval practice.
+- Module 09+ bắt buộc Lesson Authoring Standard v4: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment/retrieval, cùng clarity blocks: trực giác, từ vựng, walkthrough, comparison/trace, misconception check, mini-check và Beginner/Working Developer/Deep Dive.
 - Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.
 - Có lệnh build/run/test và version cần thiết; không phụ thuộc trạng thái riêng của IDE.
@@ -555,6 +555,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-09-22`: rewrite 24/24 bài Module 09 theo clarity gate v4 để giảm độ khó: thêm trực giác 60 giây, bảng từ vựng, ví dụ tính tay, walkthrough/execution trace, bảng so sánh, misconception check, mini-check và phân tầng Beginner/Working Developer/Deep Dive; không đổi manifest `164/421`.
 - `2026-09-22`: nâng quality system Module 09 lên module gate v3: thêm 4 Failure Labs, 5 Spaced Reviews, 2 PR Review Labs và Career Checkpoint `Junior Data/Backend`; các artifact bổ trợ không làm thay đổi tiến độ manifest `164/421`.
 - `2026-09-22`: hoàn thành module `09-linq-va-ef-core` (`24/24` bài) theo Lesson Authoring Standard v2; baseline .NET 10/C# 14/EF Core 10.0.12/SQL Server 2025; thêm Entry/Exit test, rubric, TL;DR, mục `Khi nào KHÔNG dùng`, scale notes, bài judgment liên module, retrieval practice, sample CommerceLab Data Access và CI migration/provider-real smoke test.
 - `2026-09-22`: hoàn thành toàn bộ module `08-sql-va-csdl` (`25/25` bài); verifier chạy từng lab trên SQL Server 2025 trong Docker, kiểm tra cấu trúc tám phần/cross-link và build toàn bộ MkDocs; capstone cuối module là CSDL thương mại điện tử có schema, constraint, index, transaction, security, backup/migration và query tuning.
