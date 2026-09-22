@@ -1,6 +1,7 @@
 using CommerceLab.Data.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace CommerceLab.Data.Tests;
 
