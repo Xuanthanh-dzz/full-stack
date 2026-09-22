@@ -21,6 +21,30 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Đây là bài phải hiểu bằng mental model, không học thuộc interface.
+
+`IEnumerable<T>` có thể nghĩ là: **“khi anh hỏi, tôi sẽ đưa từng object .NET cho anh.”**
+
+`IQueryable<T>` thêm một khả năng khác: **“tôi còn giữ bản mô tả truy vấn để một provider khác có thể hiểu và thực thi.”**
+
+Với EF Core, provider đó là EF; nó đọc bản mô tả và cố dịch sang SQL Server.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| enumerable | nguồn có thể lấy từng phần tử |
+| queryable | nguồn có thể giữ/mở rộng mô tả query |
+| delegate | code .NET có thể gọi |
+| expression tree | object graph mô tả một biểu thức |
+| query provider | thành phần đọc query description và thực thi/dịch nó |
+| client-side | chạy trong process app |
+| server-side | chạy ở data source, ví dụ SQL Server |
+
+Điểm quan trọng: `IQueryable` **không phải database**. Nó chỉ là contract cho provider-backed query. `EnumerableQuery` in-memory cũng có thể implement `IQueryable`.
+
 Một query EF đang filter ở SQL. Developer chèn `AsEnumerable()` để dùng helper C#, rồi đặt `Where` tiếp theo. Code vẫn chạy nhưng filter mới không còn được database xử lý.
 
 ## 3. Lời giải chạy được
@@ -44,7 +68,100 @@ Console.WriteLine(queryableResult.Expression.NodeType);
 Console.WriteLine(queryableResult.Expression);
 ~~~
 
+### Walkthrough: cùng `Where`, khác overload
+
+Với:
+
+~~~csharp
+IEnumerable<Product> a = products;
+IQueryable<Product> b = db.Products;
+~~~
+
+Cùng viết:
+
+~~~csharp
+.Where(p => p.Price > 1000)
+~~~
+
+nhưng compiler có thể chọn hai API khác:
+
+~~~text
+a.Where(...)
+→ Enumerable.Where
+→ nhận Func<Product,bool>
+→ delegate chạy trên object .NET
+
+b.Where(...)
+→ Queryable.Where
+→ nhận Expression<Func<Product,bool>>
+→ expression được provider đọc/dịch
+~~~
+
+Đây là lý do một lambda trông giống nhau nhưng nơi thực thi khác nhau.
+
 ## 4. Cơ chế hoạt động
+
+### Pipeline đầy đủ với EF Core
+
+~~~text
+C# code
+  ↓
+IQueryable<Order>
+  ↓ .Where/.Select/.OrderBy
+expression tree lớn dần
+  ↓ terminal operator ToListAsync
+EF Core query translator
+  ↓
+SQL
+  ↓
+SQL Server executes
+  ↓
+rows
+  ↓
+EF materializes DTO/entity
+~~~
+
+### `IEnumerable` vs `IQueryable`
+
+| Tiêu chí | `IEnumerable<T>` | `IQueryable<T>` |
+|---|---|---|
+| Operator chính | `Enumerable.*` | `Queryable.*` |
+| Lambda | delegate `Func` | expression tree |
+| Thường chạy ở | process .NET | provider quyết định |
+| Provider translation | không | có thể |
+| Dùng cho list/array | tự nhiên | thường không cần |
+| Dùng cho EF composition | sau materialization | trước materialization |
+
+### `AsEnumerable()` thực sự làm gì?
+
+Nó **không tự chạy query ngay**. Nó thay static view của pipeline để các operator phía sau dùng LINQ to Objects.
+
+Ví dụ:
+
+~~~text
+db.Products                  IQueryable
+.Where(IsActive)             still provider-backed
+.AsEnumerable()              switch operator family
+.Where(CustomHelper)         now .NET-side logic
+~~~
+
+Query database có thể chỉ filter `IsActive`; phần `CustomHelper` chạy sau khi rows được đọc.
+
+### Misconception check
+
+**Đúng hay sai?** `AsEnumerable()` tương đương `ToList()`.
+
+**Đáp án:** Sai. `ToList()` materialize ngay; `AsEnumerable()` chủ yếu đổi cách các operator sau được bind.
+
+**Đúng hay sai?** `IQueryable<T>` luôn sinh SQL.
+
+**Đáp án:** Sai. Nó phụ thuộc provider.
+
+### Mini-check
+
+Nếu 2 triệu product đi qua `AsEnumerable()` trước filter SKU, nguy cơ lớn nhất là gì?
+
+Đáp án: quá nhiều row bị kéo về process trước khi filter local.
 
 `IEnumerable<T>` operator thường nhận `Func<T,...>` và chạy delegate trên object .NET.
 
@@ -53,6 +170,14 @@ Console.WriteLine(queryableResult.Expression);
 `AsEnumerable()` không tự chạy query ngay, nhưng operator LINQ-to-Objects phía sau nó không còn được query provider translate.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** biết `IEnumerable` = object stream; `IQueryable` = query description + provider.
+
+**Working developer:** biết giữ filter/projection server-side đủ lâu và đặt materialization boundary rõ.
+
+**Deep dive:** overload resolution, provider translation internals, expression tree limitations.
 
 Extension method overload resolution chọn `Enumerable.Where` hay `Queryable.Where` dựa trên static type của source.
 
