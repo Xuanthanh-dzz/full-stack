@@ -122,62 +122,11 @@ html {
   transform: scale(1.05);
 }
 
-/* --- Navigation Tabs --- */
+/* --- Navigation Tabs (Ẩn thanh tab ngang để giao diện tinh gọn, dùng menu 3 gạch) --- */
 .md-tabs {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
+  display: none !important;
 }
 
-[data-md-color-scheme="default"] .md-tabs {
-  background-color: rgba(248, 250, 252, 0.85) !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
-}
-
-[data-md-color-scheme="default"] .md-tabs__link {
-  color: #64748b !important;
-  font-weight: 600;
-  font-size: 0.85rem;
-  padding: 0.65rem 0.95rem;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-[data-md-color-scheme="default"] .md-tabs__link:hover {
-  color: #4f46e5 !important;
-  background-color: rgba(79, 70, 229, 0.06);
-}
-
-[data-md-color-scheme="default"] .md-tabs__link--active {
-  color: #4f46e5 !important;
-  font-weight: 700;
-  background-color: rgba(79, 70, 229, 0.1);
-}
-
-[data-md-color-scheme="slate"] .md-tabs {
-  background-color: rgba(15, 23, 42, 0.82) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-
-[data-md-color-scheme="slate"] .md-tabs__link {
-  color: #94a3b8 !important;
-  font-weight: 600;
-  font-size: 0.85rem;
-  padding: 0.65rem 0.95rem;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-[data-md-color-scheme="slate"] .md-tabs__link:hover {
-  color: #818cf8 !important;
-  background-color: rgba(129, 140, 248, 0.08);
-}
-
-[data-md-color-scheme="slate"] .md-tabs__link--active {
-  color: #818cf8 !important;
-  font-weight: 700;
-  background-color: rgba(129, 140, 248, 0.14);
-}
 
 /* --- Search Bar Styling --- */
 [data-md-color-scheme="default"] .md-search__input {
@@ -684,7 +633,7 @@ body.zen-mode .md-header {
   display: none !important;
 }
 
-body.zen-mode .md-tabs {
+body.zen-mode .md-tabs { display: none !important; 
   display: none !important;
 }
 
@@ -904,7 +853,7 @@ body.zen-mode .md-sidebar--secondary {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 380px;
+  max-height: calc(90vh - 100px);
   overflow-y: auto;
   padding-right: 0.2rem;
 }
