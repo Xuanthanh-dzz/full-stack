@@ -22,6 +22,26 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+EF Core là một lớp trung gian giúp C# nói chuyện với relational database bằng object/query thay vì tự viết mapping cho mọi câu lệnh.
+
+`DbContext` có thể hình dung như **một phiên làm việc ngắn với database**. Trong phiên đó, nó biết model nào map vào table nào, query nào đang được dựng, và entity nào đang được theo dõi để save.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| ORM | công cụ ánh xạ object ↔ relational data |
+| entity | object đại diện dữ liệu có identity |
+| `DbContext` | phiên làm việc/data-access unit ngắn hạn |
+| `DbSet<T>` | entry point để query/attach entity loại T |
+| provider | adapter EF cho database cụ thể |
+| materialize | biến row thành object/DTO |
+| tracking | EF nhớ entity state để phát hiện thay đổi |
+
+EF Core **không thay database**. SQL Server vẫn chịu trách nhiệm lưu trữ, constraint, transaction, optimizer và execution plan.
+
 Module 08 có CommerceLab schema bằng SQL. Bây giờ Web/API C# cần đọc và ghi dữ liệu mà không muốn tự map `SqlDataReader` cho mọi query.
 
 EF Core cung cấp model, query provider, change tracker và persistence pipeline, nhưng vẫn dựa trên relational database bên dưới.
@@ -51,7 +71,67 @@ dotnet add package Microsoft.EntityFrameworkCore.SqlServer --version 10.0.12
 dotnet add package Microsoft.EntityFrameworkCore.Design --version 10.0.12
 ~~~
 
+### Walkthrough một read request
+
+~~~text
+1. App tạo DbContext với SQL Server options
+2. Code gọi db.Products.Where(...).Select(...)
+3. EF chưa nhất thiết query ngay
+4. ToListAsync() kích hoạt execution
+5. EF dịch expression → SQL
+6. Provider gửi SQL qua ADO.NET
+7. SQL Server execute
+8. rows trả về
+9. EF materialize anonymous/DTO result
+10. DbContext được dispose cuối scope
+~~~
+
+Với command/update, còn thêm change tracker và `SaveChanges`.
+
 ## 4. Cơ chế hoạt động
+
+### `DbContext` đang giữ state gì?
+
+- model metadata;
+- change tracker entries;
+- service/provider configuration;
+- transaction/connection abstractions;
+- identity resolution trong scope;
+- pending entity states như Added/Modified/Deleted.
+
+### Vì sao không singleton?
+
+Vì state tracking thuộc **một unit of work**, không phải toàn application. Nếu giữ context sống lâu:
+
+- tracker phình;
+- dữ liệu tracked stale;
+- nhiều request chạm cùng state;
+- thread-safety bị phá.
+
+### `DbSet<T>` không phải `List<T>`
+
+| `List<T>` | `DbSet<T>` |
+|---|---|
+| object đã nằm trong RAM | query entry point |
+| `Where` chạy LINQ to Objects | thường tạo `IQueryable` |
+| không có provider SQL | có EF provider |
+| không tự persist | liên quan context persistence |
+
+### Misconception check
+
+**Đúng hay sai?** `db.Products` nghĩa là toàn bộ Products đã được load.
+
+**Đáp án:** Sai. Nó là queryable entry point; rows chỉ được lấy khi query execute.
+
+**Đúng hay sai?** EF Core cho phép bỏ qua SQL/index kiến thức.
+
+**Đáp án:** Sai. ORM chỉ đổi cách bạn biểu diễn data access.
+
+### Mini-check
+
+Tại sao một context cho mỗi request thường hợp lý hơn một context cho toàn app?
+
+Đáp án: scope state/tracking theo unit of work, tránh stale/thread-safety/memory growth.
 
 `DbContext` giữ model metadata, database connection abstractions, query provider và change tracker.
 
@@ -62,6 +142,14 @@ EF Core translate expression tree sang SQL, execute qua provider, đọc rows r�
 `DbContext` không thread-safe. Một context không nên chạy nhiều operation song song.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** entity, DbSet, DbContext và lifetime.
+
+**Working developer:** scoped context, async query, projection, no hard-coded secrets.
+
+**Deep dive:** model cache, service provider internals, context pooling.
 
 Prerequisite trực tiếp: bài 07–10 của module này + transaction/index/query tuning Module 08.
 
