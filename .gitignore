@@ -5,3 +5,6 @@ fullstack-roadmap/.vitepress/cache/
 fullstack-roadmap/.vitepress/dist/
 *.log
 site/
+
+# Local Python verification cache
+__pycache__/

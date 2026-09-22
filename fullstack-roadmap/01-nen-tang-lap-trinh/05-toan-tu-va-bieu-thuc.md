@@ -1,5 +1,19 @@
 # Toán tử và biểu thức
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Biểu thức kết hợp giá trị qua toán tử để tạo kết quả hoặc cập nhật state.
+- Dùng để tính tiền, so điều kiện và bảo vệ phép tính cần tiền điều kiện.
+- Chia nguyên, overflow và thứ tự đánh giá có thể làm biểu thức nhìn đúng vẫn sai.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - tránh overflow và side effect khó đọc trong biểu thức.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Tính hóa đơn bằng các dòng trên giấy dễ kiểm tra hơn một chuỗi ký hiệu dài. Mỗi biến trung gian giữ kết quả một bước. Ngoặc cho biết cách nhóm phép toán, nhưng không tự làm kiểu số rộng hơn hoặc bảo đảm mọi hàm con chạy từ trái sang phải.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| toán tử | ký hiệu thực hiện phép tính | *, >=, && |
+| biểu thức | các giá trị và toán tử tạo kết quả | quantity * unit_price |
+| short-circuit | dừng xét logic khi đã biết kết quả | && bỏ vế phải nếu trái sai |
+| overflow | kết quả vượt miền type | nhân int quá lớn |
+| side effect | tác động ngoài giá trị kết quả | assignment hoặc tăng biến |
+
+### Ví dụ nhỏ — tính tay trước
+
+3 × 120 = 360; trừ 20 còn 340; 340 >= 300 đúng nên phí 15 không cộng. Nếu lượng bằng 0, quy tắc hợp lệ phải báo sai, dù tổng số học vẫn tính được.
 
 Một đơn hàng có:
 
@@ -31,7 +63,9 @@ Don hang hop le: 1
 
 Ta chưa dùng `if`; giá trị điều kiện được in trực tiếp dưới dạng `1` hoặc `0`.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `operators.c`:
 
@@ -98,7 +132,20 @@ Don hang hop le: 1
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. subtotal nhận 360000 từ phép nhân int.
+2. discounted_total nhận 340000; phép so sánh tạo điều kiện đúng.
+3. !has_free_shipping cho 0 nên phần phí bằng 0; payable nhận 340000.
+4. valid_order kiểm tra các ràng buộc; stdout nhận các kết quả. CPU và local trong process chịu chi phí, chưa có truy cập mạng hay lưu file.
+
+### Mini-check
+
+Vì sao điều kiện count != 0 phải đứng trước total / count trong một chuỗi &&?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Operator số học
 
@@ -152,7 +199,46 @@ Hai dòng trên có tác dụng tương đương trong tình huống đơn giả
 
 Ở code production cho người đọc mới, không ghép nhiều lần tăng/assignment vào cùng expression. Tách thành statement rõ thứ tự.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| = | gán giá trị | thay state; không dùng để so bằng |
+| == | so sánh bằng | không tự sửa state; dùng trong điều kiện |
+| && | logic và có short-circuit | bảo vệ vế phải; không thay bằng & để viết ngắn |
+| Ngoặc | nhóm phép tính | cải thiện đọc; không chữa overflow |
+
+### Misconception check
+
+**Đúng hay sai?** Cast kết quả phép nhân sang double luôn ngăn int overflow.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phép nhân int có thể đã overflow trước cast.
+
+</details>
+
+**Đúng hay sai?** Ngoặc buộc mọi toán hạng chạy trái sang phải.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cách nhóm không đồng nghĩa thứ tự đánh giá mọi toán hạng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** operator, type và ngoặc.
+
+- **Working Developer — dùng khi làm việc:** tách bước tính và test biên.
+
+- **Deep Dive — có thể quay lại sau:** sequencing và overflow.
 
 ### Precedence và associativity
 
@@ -223,7 +309,17 @@ Nhiều operator lồng nhau làm khó audit type, biên và logic. Đặt tên 
 
 Sai số biểu diễn có thể khiến kết quả tính toán không đúng bit với literal mong đợi. Khi so sánh số thực tính toán, thường dùng một tolerance phù hợp domain.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng phép nhân boolean cho luật tính tiền nhiều nhánh: if ở bài 07 rõ hơn. Không dồn nhiều cập nhật vào một expression. Với vài điều kiện cố định, tên biến trung gian đủ; chưa cần bộ máy quy tắc.
+
+## 8. Production notes & scale check
+
+Sample giới hạn con số nên phép nhân an toàn. Input thật cần kiểm tra giới hạn trước phép nhân, không đợi kết quả tràn. Team 2–3 người nên ưu tiên test tại ngưỡng miễn phí và kiểm tra tiền theo đơn vị nguyên. Chỉ tối ưu phép toán khi đo được đây là phần tốn thời gian.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Chẵn hay lẻ
 
@@ -255,7 +351,26 @@ Tách một expression thanh toán dài thành ít nhất ba biến mang tên ng
 
 **Gợi ý:** mỗi biến đại diện một bước trong pseudocode.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Một công thức sẽ dùng lại trong C# và SQL sau này: nên bàn giao một biểu thức khó đọc hay các bước kèm ví dụ tại 299999/300000? Chỉ ra quy tắc miễn phí và rủi ro type cần kiểm tra lại khi đổi ngôn ngữ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Phân biệt = với ==.
+2. Giải thích short-circuit bằng ca mẫu số 0.
+3. Vì sao cast sau phép tính có thể quá muộn?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi dùng được operator số học, so sánh và logic.
 - [ ] Tôi phân biệt `=` với `==`.
@@ -268,3 +383,6 @@ Tách một expression thanh toán dài thành ít nhất ba biến mang tên ng
 
 - Prerequisite: [Bộ nhớ, biến và phạm vi](./04-bo-nho-bien-va-pham-vi.md)
 - Bài tiếp theo: [Nhập xuất với stdio](./06-nhap-xuat-voi-stdio.md)
+
+- Spaced review: [Review 05](./reviews/review-01-du-lieu-va-bieu-thuc.md)
+- Failure Lab: [Điều tra lỗi](./failure-labs/01-tien-va-chia-nguyen.md)

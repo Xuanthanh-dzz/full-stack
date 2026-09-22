@@ -1,5 +1,19 @@
 # Biến, hằng số và kiểu dữ liệu
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Biến giữ dữ liệu có tên và type; const ngăn gán lại giá trị qua tên đó.
+- Dùng để tính từ dữ liệu thay vì sửa các chuỗi output bằng tay.
+- Type và thời điểm conversion quyết định mất phần lẻ, miền giá trị và cách in.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - nhận ra conversion có thể làm mất dữ liệu.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một ô có nhãn “tồn kho” giữ số hộp hiện tại; nhãn giúp ta dùng lại con số mà không chép tay khắp nơi. Type là quy tắc ô được chứa loại dữ liệu nào. Biến không tự tính lại chỉ vì dữ liệu đã dùng để khởi tạo nó thay đổi.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| biến | tên để đọc/ghi một giá trị được lưu | remaining |
+| type | quy định miền giá trị và phép toán | int cho số hộp |
+| khởi tạo | đặt giá trị đầu tiên | remaining nhận 17 |
+| const | không cho sửa object đã khai báo const | opening_stock |
+| cast | chuyển giá trị sang type khác trong biểu thức | (double)remaining |
+
+### Ví dụ nhỏ — tính tay trước
+
+Tồn 3, xuất 1 → còn 2. Chia nguyên 2 / 3 cho 0; đổi một toán hạng sang double trước khi chia cho khoảng 0.6667. Gán kết quả 0 đã tính sang double không khôi phục phần lẻ.
 
 Kho còn `24` hộp. Một đơn hàng lấy đi `7` hộp. Chương trình cần giữ lại cả dữ liệu ban đầu lẫn kết quả để in:
 
@@ -25,7 +57,9 @@ Con hang: 1
 
 Nếu ghi thẳng mọi con số vào `printf`, mỗi thay đổi phải sửa ở nhiều nơi. Ta cần đặt tên cho dữ liệu và để máy tính kết quả.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `inventory.c`:
 
@@ -76,7 +110,20 @@ Con hang: 1
 
 Theo quy ước của C, giá trị `bool` đúng in qua `%d` là `1`, sai là `0`. Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Các local của main giữ 24, 7 và mã A.
+2. Phép trừ khởi tạo remaining = 17; cast tạo giá trị tạm double, không đổi type của remaining.
+3. remaining_rate nhận khoảng 70.8333; printf chỉ định dạng thành 70.83, không sửa giá trị lưu.
+4. CPU thực hiện vài phép toán; bộ nhớ giữ số lượng local cố định; các giá trị hết vòng đời khi main kết thúc.
+
+### Mini-check
+
+remaining đang là 17; in %.2f cho remaining_rate có làm nó chỉ giữ đúng hai chữ số lẻ không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Khai báo và khởi tạo
 
@@ -138,7 +185,45 @@ thống hóa toàn bộ toán tử so sánh; ở đây quy tắc này đủ đ�
 
 Cast không thay type đã khai báo của `remaining`; biến đó vẫn là `int`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| int | số nguyên, miền hữu hạn | đếm hộp; không dùng nếu cần phần lẻ |
+| double | số thực xấp xỉ | tỷ lệ; không dùng để mong mọi số thập phân chính xác |
+| const int | object int không được sửa | giá trị cố định trong lần chạy; không dùng cho bộ đếm thay đổi |
+
+### Misconception check
+
+**Đúng hay sai?** Gán 17 / 24 vào double sẽ giữ phần lẻ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phép chia int đã cho 0 trước conversion.
+
+</details>
+
+**Đúng hay sai?** Cast remaining sang double làm remaining đổi type.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cast tạo giá trị cho expression; biến vẫn là int.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** khởi tạo và ghép type với format.
+
+- **Working Developer — dùng khi làm việc:** kiểm tra miền dữ liệu trước phép toán.
+
+- **Deep Dive — có thể quay lại sau:** giới hạn type và biểu diễn số thực.
 
 ### Identifier
 
@@ -203,7 +288,17 @@ Trong khai báo, `=` đưa giá trị vào biến. Operator so sánh bằng `==`
 
 `char` giữ một ký tự. Chuỗi ký tự cần một mảng `char`, sẽ học ở bài 13.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng double cho số hộp nguyên hoặc tiền cần chính xác theo đơn vị đồng. Không đặt const cho state cần cập nhật. Chọn int cho demo có biên nhỏ; khi miền nghiệp vụ lớn hơn, tính giới hạn trước khi đổi type.
+
+## 8. Production notes & scale check
+
+24 hộp là miền nhỏ đã biết. Công cụ kho thật phải từ chối xuất âm hoặc vượt tồn và xử lý tồn đầu 0 trước khi chia. Team nhỏ vẫn chỉ cần type rõ và kiểm tra biên; đo dữ liệu thực trước khi tối ưu bộ nhớ. Không khẳng định int luôn 32 bit; lấy giới hạn từ môi trường.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Hồ sơ sản phẩm
 
@@ -235,7 +330,26 @@ Include `<limits.h>` rồi in `INT_MIN` và `INT_MAX`.
 
 **Gợi ý:** hai macro này có type tương thích với `%d`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Khi chuyển bài sang C# ở Module 04, quy tắc “hộp phải nguyên” còn giữ không? Chọn sửa type hay kiểm tra input để xử lý 1.5 hộp; nêu quy tắc thuộc nghiệp vụ và phần thuộc ngôn ngữ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Tính tay 2 / 3 và (double)2 / 3.
+2. const bảo vệ điều gì?
+3. Vì sao làm tròn khi in khác làm tròn dữ liệu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi khai báo và khởi tạo được biến với tên có nghĩa.
 - [ ] Tôi biết khi nào dùng `const`.

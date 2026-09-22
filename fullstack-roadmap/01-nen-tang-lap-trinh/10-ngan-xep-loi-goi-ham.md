@@ -1,5 +1,19 @@
 # Ngăn xếp lời gọi hàm
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Call stack mô tả các lời gọi đang chờ nhau; mỗi lần gọi có state riêng.
+- Dùng khi trace hàm lồng nhau, đọc backtrace hoặc suy luận recursion.
+- Đệ quy có điểm dừng vẫn có thể quá sâu; C không bảo đảm tối ưu hết frame.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,11 +26,31 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn đang làm một việc thì giao một việc con và chờ kết quả. Việc con lại giao việc nhỏ hơn. Ghi lại ai đang chờ ai giúp quay về đúng chỗ. Mỗi tờ ghi riêng tương ứng một lần gọi, không phải một hàm duy nhất cho mọi lần gọi.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| frame | state của một lần gọi trong mô hình stack | calculate_total đang chờ subtotal |
+| caller / callee | hàm gọi / hàm được gọi | main / calculate_total |
+| recursion | hàm gọi lại chính nó | print_countdown |
+| base case | trường hợp dừng gọi tiếp | number == 0 |
+| backtrace | danh sách lời gọi đang hoạt động | dùng khi debug |
+
+### Ví dụ nhỏ — tính tay trước
+
+countdown(2) in 2 rồi gọi (1), in 1 rồi gọi (0), in Bat dau. Các lần gọi (0), (1), (2) lần lượt kết thúc theo chiều ngược.
+
 Một đơn hàng gọi `calculate_total`, hàm này lại gọi `calculate_subtotal`. Khi debugger dừng trong hàm sâu nhất, người mới thường thấy nhiều dòng cùng tên biến và không biết giá trị thuộc lần gọi nào.
 
 Ta sẽ đặt tên từng frame, theo dõi lúc push/pop và thêm một countdown recursive nhỏ để thấy mỗi lời gọi là độc lập.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `call_stack.c`:
 
@@ -95,7 +129,20 @@ Bat dau
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main chờ calculate_total; calculate_total chờ calculate_subtotal.
+2. Callee kiểm tra miền và overflow trước khi nhân 3*120, trả 360.
+3. Caller trừ 20 rồi trả 340 về main; return value không kéo dài vòng đời local của callee.
+4. countdown(3) có bốn invocation từ 3 tới 0. CPU và độ sâu lời gọi tăng theo number; frame vật lý có thể được compiler tối ưu khác mô hình.
+
+### Mini-check
+
+Trong calculate_subtotal, subtotal của calculate_total đã nhận giá trị chưa?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Frame được thêm khi gọi hàm
 
@@ -164,7 +211,45 @@ gần base case đúng một đơn vị.
 
 Nếu recursion không tiến về base case, số frame tăng đến khi môi trường không thể cấp thêm call stack; chương trình có thể kết thúc vì stack overflow. Không có cách portable để “bắt rồi tiếp tục an toàn” sau khi stack đã cạn. Thiết kế điểm dừng và giới hạn input từ trước.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Loop | giữ state trong một lời gọi | đếm ngược rõ, memory không tăng theo số bước |
+| Recursion | giữ chuỗi lời gọi đang chờ | tự nhiên cho bài toán chia nhỏ; tránh độ sâu không giới hạn |
+| Stack logic | mô hình ai chờ ai | dùng giải thích; không cam kết layout byte |
+
+### Misconception check
+
+**Đúng hay sai?** Hàm gọi hai lần chỉ có một bộ parameter chung.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: mỗi invocation có state riêng.
+
+</details>
+
+**Đúng hay sai?** Có base case thì input lớn tùy ý luôn an toàn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể cạn stack trước khi chạm base case.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** frame và đường return.
+
+- **Working Developer — dùng khi làm việc:** backtrace, guard, giới hạn độ sâu.
+
+- **Deep Dive — có thể quay lại sau:** inline và tail-call như chi tiết implementation.
 
 ### Call stack lưu điều gì?
 
@@ -237,7 +322,17 @@ Kiểm tra kết quả sau `quantity * unit_price` là quá muộn vì signed
 integer overflow đã tạo undefined behavior. So với `INT_MAX / quantity`
 trước, và chỉ chia sau khi đã chứng minh `quantity != 0`.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng recursion cho đếm ngược không giới hạn khi while rõ hơn. Không dựa vào tail-call optimization để bảo đảm an toàn trong C. Dùng recursion khi cấu trúc bài toán có lợi và đã xác định giới hạn độ sâu.
+
+## 8. Production notes & scale check
+
+Sample sâu 4 lời gọi đếm ngược. Với input do người dùng điều khiển, giới hạn độ sâu trước hoặc dùng loop. Team nhỏ cần backtrace và input tái hiện trước khi tăng stack size. Debug build dễ quan sát; release có thể inline, nên không coi frame biến mất là chứng cứ code không chạy.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Vẽ stack
 
@@ -269,7 +364,26 @@ Compile `-O0 -g`, đặt breakpoint trong `calculate_subtotal` và xem backtrace
 
 **Gợi ý:** với GDB, dùng `break calculate_subtotal`, `run`, `backtrace`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Trước Module 07 về đệ quy, chọn loop hay recursion cho countdown 1 triệu bước. Tách số thao tác CPU khỏi state các lời gọi; nêu bằng chứng cần đo nếu bài toán là cây thay vì đếm tuyến tính.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ stack tại number=0 cho input 2.
+2. Return value có giữ callee sống không?
+3. Vì sao base case chưa đủ bảo đảm an toàn?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi vẽ được stack của lời gọi lồng nhau.
 - [ ] Tôi phân biệt biến cùng tên ở hai frame.
@@ -282,3 +396,6 @@ Compile `-O0 -g`, đặt breakpoint trong `calculate_subtotal` và xem backtrace
 
 - Prerequisite: [Hàm, tham số và giá trị trả về](./09-ham-tham-so-gia-tri-tra-ve.md)
 - Bài tiếp theo: [Mảng một chiều](./11-mang-mot-chieu.md)
+
+- Spaced review: [Review 10](./reviews/review-02-control-flow-va-ham.md)
+- Failure Lab: [Điều tra lỗi](./failure-labs/02-sentinel-thanh-diem.md)

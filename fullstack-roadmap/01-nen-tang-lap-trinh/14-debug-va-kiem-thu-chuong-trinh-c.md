@@ -1,5 +1,19 @@
 # Debug và kiểm thử chương trình C
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Test đối chiếu behavior với kỳ vọng; debugger cho thấy state tại lúc chạy.
+- Dùng khi cần tái hiện và xác định nguyên nhân output sai.
+- Test xanh chỉ bao phủ ca đã kiểm tra; assert có thể bị tắt bởi NDEBUG.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,9 +26,28 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Thay vì đoán vì sao điểm 8 bị xếp sai, viết một ca nhỏ buộc lỗi xuất hiện. Test giống một câu hỏi có đáp án cố định. Debugger cho dừng chương trình để nhìn đúng giá trị đã dẫn tới đáp án sai; sửa ít nhất có thể rồi giữ ca hỏi đó.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| assertion | kiểm tra một điều phải đúng trong test | classify(8.0)==A |
+| breakpoint | điểm dừng execution để quan sát | đầu classify |
+| regression test | ca giữ lại để chặn lỗi tái xuất | đúng ngưỡng 8.0 |
+| sanitizer | công cụ phát hiện một số lỗi khi chạy | address/undefined sanitizer |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ngưỡng A là >=8: 7.9→B, 8.0→A, 8.1→A. Nếu đổi thành >8, chỉ ca giữa fail; hai ca ngoài không đủ bắt bug.
+
 Một hàm xếp loại từng sai đúng tại mốc `8.0` vì dùng `>` thay vì `>=`. Test “điểm 7” và “điểm 9” đều không lộ lỗi. Ta cần test boundary, không chỉ vài ví dụ thuận tiện.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `grade_tests.c`:
 
@@ -73,7 +106,20 @@ Tat ca test da qua.
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main gọi run_tests, mỗi assertion gọi classify với một input mới.
+2. classify thử các ngưỡng và trả grade; assertion so kết quả với kỳ vọng độc lập.
+3. Nếu sai, process dừng bất thường trước dòng thành công; nếu đúng hết, mới in Tat ca test da qua.
+4. State nằm trong lời gọi đang kiểm tra; số phép tính tăng theo số ca. Instrumentation/debug làm thêm việc nên không dùng thời gian sanitizer làm benchmark release.
+
+### Mini-check
+
+Nếu bỏ hết assert mà vẫn in “Tat ca test da qua”, dòng output còn chứng minh điều gì?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Test có arrange, act, assert
 
@@ -127,7 +173,45 @@ continue
 
 `-g` thêm thông tin để debugger ánh xạ machine code về source. `-O0` giảm optimization để bước chạy gần source hơn. Đây là cấu hình debug, không phải mặc định tối ưu cho production.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Test output | so behavior với contract | tự động lặp lại; không chỉ ra mọi nguyên nhân |
+| Debugger | quan sát state và đường gọi | tốn công điều tra; không thay regression test |
+| assert / validation | phát hiện lỗi lập trình / xử lý input ngoài | assert có thể bị tắt; validation phải hoạt động trong production |
+
+### Misconception check
+
+**Đúng hay sai?** Chạy không crash nghĩa là test đã kiểm tra mọi output.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần kỳ vọng và assertion cụ thể.
+
+</details>
+
+**Đúng hay sai?** Có thể dùng assert để từ chối input user ở mọi build.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: NDEBUG có thể loại bỏ kiểm tra.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** test biên và diagnostic.
+
+- **Working Developer — dùng khi làm việc:** quy trình tái hiện → sửa → regression.
+
+- **Deep Dive — có thể quay lại sau:** sanitizer và optimized debug.
 
 ### Test không chứng minh không còn bug
 
@@ -182,7 +266,17 @@ Variable có thể bị optimized out hoặc statement đổi thứ tự. Dùng 
 
 Bug dễ quay lại khi refactor. Giữ regression test.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không bật breakpoint để kiểm tra hàng nghìn ca có thể tự động so output. Không dùng assert cho lỗi input bình thường. Không thêm test lặp đúng công thức implementation mà thiếu kỳ vọng độc lập; chọn ca từ contract và bug đã tái hiện.
+
+## 8. Production notes & scale check
+
+Team 2–3 người nên giữ vài test biên chạy trong CI (kiểm tra tự động sau thay đổi) trước khi thêm framework lớn. Ghi input, compiler, output, status và backtrace trong bug report. Sanitizer bắt nhiều lỗi tại đường thực sự chạy, không chứng minh không còn lỗi ở đường chưa chạy.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Cố tình làm test fail
 
@@ -214,7 +308,26 @@ Tạo bản sao lab, cố tình truy cập quá biên rồi quan sát sanitizer;
 
 **Gợi ý:** không giữ undefined behavior trong source hoàn tất.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Module 02 có lỗi memory không thể phát hiện chỉ bằng output. Chọn kết hợp expected output, sanitizer hay chỉ một công cụ? Nêu loại bằng chứng từng công cụ cung cấp, không coi pass một ca là bảo đảm toàn bộ chương trình.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vì sao cần đúng ngưỡng, không chỉ hai phía?
+2. Một bug report tái hiện được cần gì?
+3. NDEBUG ảnh hưởng assert thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi viết test theo boundary.
 - [ ] Tôi dùng `assert` cho test/invariant, không thay validation.

@@ -1,5 +1,19 @@
 # Mảng một chiều
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Mảng giữ các phần tử cùng type liên tiếp, dùng index để chọn từng phần tử.
+- Dùng khi cần duyệt và xử lý một dãy có giới hạn rõ.
+- C không kiểm tra biên; count phải đúng và khác capacity.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,9 +27,29 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Thay vì năm hộp có năm tên, ta có một dãy hộp đánh số từ 0. Biết tên dãy và số thứ tự là chọn được một hộp. Dãy không tự biết có bao nhiêu hộp đã chứa dữ liệu nghiệp vụ; khi đưa dãy cho hàm, phải nói cả số phần tử được phép dùng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| array / mảng | dãy các object cùng type | scores |
+| index | vị trí bắt đầu từ 0 | scores[3] |
+| count | số phần tử đang dùng | 5 |
+| capacity | số slot thực có | kích thước mảng |
+| undefined behavior | chuẩn không còn bảo đảm hành vi | truy cập ngoài biên |
+
+### Ví dụ nhỏ — tính tay trước
+
+[5, 2, 8] có index 0, 1, 2. Tổng đi từ 0 → 5 → 7 → 15. Đọc index 3 không phải đọc số 0 mặc định; nó đã ngoài mảng.
+
 Ta cần xử lý 5 điểm: `8, 7, 9, 6, 10`. Năm biến rời làm loop và hàm tổng quát trở nên khó. Mảng gom các giá trị cùng type dưới một tên, còn index chọn từng phần tử.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `scores.c`:
 
@@ -100,7 +134,20 @@ Cao nhat: 10
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main tạo 5 phần tử; assignment scores[3]=7 thay đúng phần tử thứ tư.
+2. sum_scores nhận cách truy cập cùng mảng và count=5; total lần lượt 8,15,24,31,41.
+3. Caller kiểm tra count và sentinel trước chia; find_max chỉ được gọi với count>0.
+4. Mảng giữ 5 int; mỗi lượt tổng/max đọc số phần tử tỷ lệ count, local tổng chỉ một int. Dữ liệu không được copy toàn mảng vào hàm.
+
+### Mini-check
+
+Nếu count=5, tại sao index<=count thực hiện một lần truy cập không hợp lệ?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Index bắt đầu từ 0
 
@@ -147,7 +194,45 @@ Cơ chế địa chỉ khiến array parameter hoạt động như vậy đượ
 được. Hàm trả `-1` khi count âm, điểm sai hoặc tổng không an toàn.
 Caller kiểm tra sentinel trước phép chia và trước `find_max`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Array object | storage của toàn dãy | sizeof ở nơi có full array biết cả size |
+| Array parameter | cách truy cập các element của caller | không copy dãy; không dùng sizeof parameter để suy count |
+| Count / capacity | số đang dùng / số có chỗ chứa | duyệt count; ghi mới phải kiểm tra capacity |
+
+### Misconception check
+
+**Đúng hay sai?** Array và pointer là một thứ nên sizeof luôn giống nhau.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: array object có size toàn dãy; cơ chế chuyển đổi lúc gọi hàm sẽ học ở Module 02.
+
+</details>
+
+**Đúng hay sai?** Mảng capacity 10 thì luôn có 10 phần tử nghiệp vụ hợp lệ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: count có thể chỉ là 3.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** index, count, traversal.
+
+- **Working Developer — dùng khi làm việc:** contract của hàm và test biên.
+
+- **Deep Dive — có thể quay lại sau:** array-to-pointer conversion ở Module 02.
 
 ### Khởi tạo
 
@@ -194,7 +279,17 @@ Capacity là số slot đã cấp; count là số slot có dữ liệu hợp l�
 
 C không cho `destination = source` với hai mảng. Copy element bằng loop và bảo đảm capacity.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng mảng cố định rất lớn cho số phần tử chưa biết chỉ để tránh nghĩ về capacity. Với đúng 5 điểm, mảng là đủ; khi số lượng biến động vượt giới hạn, học cấp phát động ở Module 02. Không chọn linked list chỉ vì “linh hoạt” khi chỉ cần duyệt.
+
+## 8. Production notes & scale check
+
+Team nhỏ có thể dùng mảng giới hạn cho cấu hình hoặc buffer nhỏ. Khi tăng count, ghi rõ memory = capacity × sizeof element và số lượt duyệt. Caller phải bảo đảm vùng thực đủ count; kiểm tra count không thể tự chứng minh vùng nhớ đó tồn tại. Dùng sanitizer và ca count=0/1/max để điều tra lỗi.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tìm minimum
 
@@ -227,7 +322,26 @@ Test hàm tổng với 1 element, điểm âm, điểm lớn hơn 10 và nhiều
 **Gợi ý:** các điểm ngoài `0..10` phải trả sentinel; không gọi
 `find_max` với mảng rỗng nếu chưa đổi contract.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Chuẩn bị Module 02 và 07: danh sách tối đa 5 điểm cần mảng cố định hay cấu trúc cấp phát từng phần tử? Bảo vệ lựa chọn theo số lượt duyệt, memory và driver khiến capacity cố định không còn đủ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ index hợp lệ cho 3 phần tử.
+2. Vì sao hàm cần count?
+3. sum_scores và find_max có cùng contract cho count=0 không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi xác định đúng index đầu/cuối.
 - [ ] Tôi không truy cập khi `index == count`.
