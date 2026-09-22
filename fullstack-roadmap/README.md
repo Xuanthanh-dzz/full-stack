@@ -75,6 +75,25 @@ Mọi bài tuân theo hướng **problem-first**. Thuật ngữ, keyword, tên h
 
 ## Trạng thái và review
 
+## Chuẩn giải thích beginner-first
+
+Từ Module 09, mỗi bài không chỉ đúng kỹ thuật mà còn phải xây mental model theo flow:
+
+~~~text
+Trực giác 60 giây
+→ Từ vựng
+→ Ví dụ nhỏ
+→ Walkthrough / execution trace
+→ Cơ chế
+→ Bảng so sánh
+→ Misconception check
+→ Mini-check
+→ Beginner / Working Developer / Deep Dive
+→ Production / Judgment / Retrieval
+~~~
+
+Người học lượt đầu có thể tập trung `Beginner core`; phần `Deep Dive` dành cho lượt học sau.
+
 ## Hệ thống đánh giá
 
 Từ Module 09, roadmap dùng thêm bốn lớp đánh giá ngoài 24 bài chính:
