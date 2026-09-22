@@ -21,6 +21,35 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Performance trong EF Core có nhiều tầng. Nếu query chậm, bạn cần biết cost nằm ở đâu:
+
+~~~text
+C# query construction
+→ EF translation
+→ network roundtrip
+→ SQL execution
+→ rows transferred
+→ materialization
+→ change tracking
+~~~
+
+`AsNoTracking`, compiled query và `ExecuteUpdate` tối ưu **những tầng khác nhau**. Dùng sai tầng thì gần như không giải quyết bottleneck.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| no-tracking | không đưa entity vào change tracker |
+| compiled query | precompile query pipeline delegate |
+| set-based update | update nhiều row bằng một DB statement |
+| materialization cost | cost tạo object từ row |
+| query compilation | cost EF xử lý query shape |
+| hot path | đoạn chạy rất thường xuyên/quan trọng |
+
+Thứ tự tối ưu tốt thường là: query đúng shape và index trước, micro-optimization framework sau.
+
 Job expiry load 2 triệu rows rồi foreach set flag + SaveChanges. Một endpoint read-only lại track 50.000 entities. Cả hai đúng output nhưng chọn execution model sai.
 
 ## 3. Lời giải chạy được
@@ -46,7 +75,66 @@ var affected = await db.Orders
         cancellationToken);
 ~~~
 
+### Walkthrough: update 2 triệu rows
+
+Cách tracked loop:
+
+~~~text
+SELECT 2,000,000 rows
+→ materialize 2,000,000 entities
+→ track 2,000,000 entries
+→ foreach set IsExpired=true
+→ generate/execute many updates/batches
+~~~
+
+Set-based:
+
+~~~text
+UPDATE Orders
+SET IsExpired = 1
+WHERE ...
+~~~
+
+Database xử lý tập rows trực tiếp, không cần materialize từng entity.
+
+Nhưng đổi lại, domain behavior/change tracker/interceptor logic dựa trên entity có thể không chạy như flow tracked.
+
 ## 4. Cơ chế hoạt động
+
+### Ba kỹ thuật tối ưu khác nhau
+
+| Kỹ thuật | Tối ưu gì | Không giải quyết gì |
+|---|---|---|
+| `AsNoTracking` | tracker CPU/memory | SQL scan/index tệ |
+| compiled query | query compilation overhead | DB execution chậm |
+| `ExecuteUpdate` | row-by-row materialization/update | invariant cần per-entity behavior |
+
+### Thứ tự điều tra thực dụng
+
+~~~text
+1. Query trả đúng số row/column chưa?
+2. Filter/order có chạy ở DB không?
+3. SQL/index/plan có ổn không?
+4. Có tracking không cần thiết không?
+5. Có row-by-row operation không?
+6. Profiler có chỉ query compilation đáng kể không?
+~~~
+
+### Misconception check
+
+**Đúng hay sai?** Compiled query giúp mọi query nhanh đáng kể.
+
+**Đáp án:** Sai. Nó chỉ giảm một phần overhead EF và cần đo.
+
+**Đúng hay sai?** `ExecuteUpdate` tương đương load entity rồi save về mặt behavior.
+
+**Đáp án:** Sai. Nó bypass change tracker/entity lifecycle.
+
+### Mini-check
+
+Nếu SQL Server mất 900 ms để scan table, còn EF query compilation mất 0,2 ms, nên tối ưu gì trước?
+
+Đáp án: SQL/index/query shape.
 
 No-tracking bỏ entry khỏi change tracker; `AsNoTrackingWithIdentityResolution` deduplicate entity instance trong result mà không giữ tracking lâu dài.
 
@@ -55,6 +143,14 @@ Compiled query precompile query pipeline delegate cho query shape hot; lợi íc
 `ExecuteUpdate/Delete` dịch trực tiếp set-based DML, không load entity và không sync tracked instances đang tồn tại.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** hiểu no-tracking và set-based update.
+
+**Working developer:** đo bottleneck theo tầng, projection/index trước.
+
+**Deep dive:** compiled query benchmark, context pooling, allocation/materialization internals.
 
 Module 08 set-based SQL vs row-by-row và SARGability áp dụng nguyên vẹn.
 
