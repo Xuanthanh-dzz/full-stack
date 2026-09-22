@@ -130,3 +130,4 @@ Bạn có Product và Category many-to-many. Chọn navigation projection, manua
 
 - Bài trước: [Aggregate, GroupBy và ToLookup](./04-aggregate-groupby-va-tolookup.md)
 - Bài tiếp theo: [Deferred execution và materialization](./06-deferred-execution-va-materialization.md)
+- Spaced review: [Review 01 — LINQ core](./reviews/review-01-linq-core.md)
