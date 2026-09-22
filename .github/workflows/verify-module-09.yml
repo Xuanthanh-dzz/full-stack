@@ -1,0 +1,120 @@
+name: Verify Module 09
+
+on:
+  push:
+    paths:
+      - "fullstack-roadmap/09-linq-va-ef-core/**"
+      - "samples/module-09/**"
+      - "fullstack-roadmap/PROGRESS.md"
+      - "scripts/verify_module_09.py"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - ".github/workflows/verify-module-09.yml"
+  pull_request:
+    paths:
+      - "fullstack-roadmap/09-linq-va-ef-core/**"
+      - "samples/module-09/**"
+      - "fullstack-roadmap/PROGRESS.md"
+      - "scripts/verify_module_09.py"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - ".github/workflows/verify-module-09.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Verify lesson structure and compile LINQ samples
+        run: python scripts/verify_module_09.py --compile-linq
+
+      - name: Restore and build EF Core sample
+        run: |
+          dotnet restore samples/module-09/CommerceLab.Data.Demo/CommerceLab.Data.Demo.csproj
+          dotnet restore samples/module-09/CommerceLab.Data.Tests/CommerceLab.Data.Tests.csproj
+          dotnet build samples/module-09/CommerceLab.Data.Demo/CommerceLab.Data.Demo.csproj --no-restore --nologo -warnaserror
+          dotnet build samples/module-09/CommerceLab.Data.Tests/CommerceLab.Data.Tests.csproj --no-restore --nologo -warnaserror
+
+      - name: Run relational tests
+        run: dotnet test samples/module-09/CommerceLab.Data.Tests/CommerceLab.Data.Tests.csproj --no-build --nologo
+
+      - name: Create ephemeral SQL Server credentials
+        shell: bash
+        run: |
+          password="Ci$(openssl rand -hex 12)!Aa1"
+          echo "MODULE09_SQL_PASSWORD=$password" >> "$GITHUB_ENV"
+          echo "COMMERCE_DB=Server=localhost,1433;Database=CommerceLab09Ci;User Id=sa;Password=$password;TrustServerCertificate=True;Encrypt=False" >> "$GITHUB_ENV"
+
+      - name: Start SQL Server 2025
+        run: |
+          docker pull mcr.microsoft.com/mssql/server:2025-latest
+          docker run \
+            -e "ACCEPT_EULA=Y" \
+            -e "MSSQL_SA_PASSWORD=$MODULE09_SQL_PASSWORD" \
+            --name module09-sql \
+            -p 1433:1433 \
+            -d mcr.microsoft.com/mssql/server:2025-latest
+
+      - name: Wait for SQL Server
+        run: |
+          for i in $(seq 1 60); do
+            if docker exec module09-sql \
+              /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost \
+              -U sa \
+              -P "$MODULE09_SQL_PASSWORD" \
+              -C \
+              -b \
+              -Q "SELECT 1" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs module09-sql
+          exit 1
+
+      - name: Verify EF Core migration workflow
+        run: |
+          dotnet tool install dotnet-ef --version 10.0.12 --tool-path "$RUNNER_TEMP/ef-tools"
+          "$RUNNER_TEMP/ef-tools/dotnet-ef" migrations add CiInitial \
+            --project samples/module-09/CommerceLab.Data \
+            --output-dir MigrationsCi
+          "$RUNNER_TEMP/ef-tools/dotnet-ef" database update \
+            --project samples/module-09/CommerceLab.Data
+          "$RUNNER_TEMP/ef-tools/dotnet-ef" migrations script --idempotent \
+            --project samples/module-09/CommerceLab.Data \
+            --output "$RUNNER_TEMP/module09-migrations.sql"
+          test -s "$RUNNER_TEMP/module09-migrations.sql"
+
+      - name: Run SQL Server provider smoke demo
+        run: |
+          output=$(dotnet run --project samples/module-09/CommerceLab.Data.Demo --no-build)
+          echo "$output"
+          echo "$output" | grep -q "Orders=1"
+          echo "$output" | grep -q "Total=2400000"
+          echo "$output" | grep -q "RemainingStock=8"
+
+      - name: Install documentation dependencies
+        run: pip install -r requirements-docs.txt
+
+      - name: Build MkDocs
+        run: mkdocs build
+
+      - name: SQL Server logs on failure
+        if: failure()
+        run: docker logs module09-sql || true
