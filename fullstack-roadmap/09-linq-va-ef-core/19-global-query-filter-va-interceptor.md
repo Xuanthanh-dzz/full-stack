@@ -21,6 +21,27 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Global query filter là một **điều kiện mặc định được EF tự gắn vào query entity**.
+
+Ví dụ Product inactive thường không được hiện. Thay vì mọi query đều nhớ `.Where(p => p.IsActive)`, model có thể có filter mặc định.
+
+Interceptor lại khác: nó là **hook vào pipeline EF** để quan sát hoặc can thiệp ở những điểm như SaveChanges/DB command.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| global query filter | predicate mặc định của entity |
+| named filter | filter có tên để disable chọn lọc |
+| interceptor | callback/hook trong pipeline |
+| cross-cutting concern | concern cắt ngang nhiều use case |
+| soft delete | đánh dấu xóa thay vì xóa vật lý |
+| tenant filter | giới hạn row theo tenant |
+
+Filter giúp giảm việc quên predicate; nó **không tự biến thành security boundary hoàn chỉnh**.
+
 Product inactive không nên xuất hiện ở hầu hết query. Multi-tenant app còn cần TenantId filter. Nếu copy `Where` ở mọi query, một chỗ quên filter có thể gây bug/rò dữ liệu.
 
 ## 3. Lời giải chạy được
@@ -40,7 +61,72 @@ var includingInactive = await db.Products
 
 Sample CommerceLab dùng active-product filter trong `CommerceDbContext`.
 
+### Walkthrough query filter
+
+Model có:
+
+~~~text
+Product filter: IsActive == true
+~~~
+
+Code:
+
+~~~csharp
+db.Products.Where(p => p.Price > 1000)
+~~~
+
+Mental model:
+
+~~~text
+developer predicate:
+Price > 1000
+
++ model filter:
+IsActive = true
+
+→ effective query:
+WHERE IsActive = 1 AND Price > 1000
+~~~
+
+`IgnoreQueryFilters` thay đổi behavior này nên phải được review đặc biệt trong multi-tenant/soft-delete context.
+
 ## 4. Cơ chế hoạt động
+
+### Query filter vs authorization
+
+| | Query filter | Authorization |
+|---|---|---|
+| Giới hạn row mặc định | có | có thể |
+| Biết user có quyền business không | không đủ | có |
+| Có thể bị disable trong code | có | policy tùy app |
+| Thay DB security | không | không nhất thiết |
+
+### Interceptor nên làm gì?
+
+Phù hợp hơn với:
+
+- logging/metrics;
+- audit metadata kỹ thuật;
+- command observation;
+- policy infrastructure rất rõ.
+
+Không phù hợp để giấu một workflow business lớn như “sau SaveChanges thì charge card, gửi email, publish event” nếu consistency/retry chưa được thiết kế.
+
+### Misconception check
+
+**Đúng hay sai?** Có tenant filter thì application không cần authorization check nữa.
+
+**Đáp án:** Sai.
+
+**Đúng hay sai?** Interceptor là nơi tốt để nhét mọi logic lặp.
+
+**Đáp án:** Sai. Cross-cutting infrastructure khác business workflow.
+
+### Mini-check
+
+Nếu admin cần xem cả inactive product, bạn cần hành động gì có chủ đích?
+
+Đáp án: disable/ignore filter theo path được kiểm soát và vẫn áp authorization.
 
 Query filter trở thành một phần model metadata và provider inject predicate khi entity được query.
 
@@ -49,6 +135,14 @@ EF Core 10 cho nhiều named filter và disable theo tên thay vì buộc tắt 
 Interceptor nhận callback tại các điểm pipeline. Ví dụ `SaveChangesInterceptor` có thể ghi audit metadata; command interceptor có thể observe/modify command nhưng cần cực thận trọng.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** filter mặc định vs interceptor hook.
+
+**Working developer:** named filter, disable có chủ đích, test query behavior.
+
+**Deep dive:** multi-tenancy, required navigation interaction, interceptor ordering.
 
 Soft delete/multitenancy là use case phổ biến nhưng có semantics khác nhau.
 
