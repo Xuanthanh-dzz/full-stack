@@ -71,7 +71,7 @@ PLANNING_GROUPS = [
 
 def parse_progress(progress_path: Path) -> dict[int, dict[str, object]]:
     text = progress_path.read_text(encoding="utf-8")
-    headings = list(re.finditer(r"^##\\s+(\\d{2})-([^\\n]+)$", text, re.MULTILINE))
+    headings = list(re.finditer(r"^##\s+(\d{2})-([^\n]+)$", text, re.MULTILINE))
     result: dict[int, dict[str, object]] = {}
 
     for index, heading in enumerate(headings):
@@ -79,7 +79,7 @@ def parse_progress(progress_path: Path) -> dict[int, dict[str, object]]:
         start = heading.end()
         end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
         section = text[start:end]
-        pattern = rf"^- \\[([ xX])\\] `({number:02d}-[^/]+/[^`]+\\.md)`$"
+        pattern = rf"^- \[([ xX])\] `({number:02d}-[^/]+/[^`]+\.md)`$"
         lessons = list(re.finditer(pattern, section, re.MULTILINE))
         if not lessons:
             continue
