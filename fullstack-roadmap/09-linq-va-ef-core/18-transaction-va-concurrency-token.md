@@ -73,7 +73,7 @@ entity.Property(order => order.ConcurrencyToken)
     .IsConcurrencyToken();
 ~~~
 
-### Timeline hai admin
+### Walkthrough: timeline hai admin
 
 Ban đầu:
 
