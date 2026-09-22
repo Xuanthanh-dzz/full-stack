@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 01–06 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `06-oop-va-thiet-ke` đạt `14 / 14` bài; toàn bộ sample .NET 9 đã build/run với warnings-as-errors, output trong bài khớp với lần chạy thật, dự án refactor cuối module đối chiếu bản cũ và bản mới trên bốn bộ dữ liệu đều `same`.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `96 / 410` file hoàn thành (`23,4%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–07 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `07-cau-truc-du-lieu-giai-thuat` đạt `19 / 19` bài; toàn bộ sample .NET 9 đã build/run (target `net9.0`) với `Nullable` bật và warnings-as-errors, output trong bài khớp với lần chạy thật; dự án cuối module dựng engine tìm đường so sánh BFS/Dijkstra/A* trên cùng bản đồ.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `115 / 410` file hoàn thành (`28,0%`).
 
 ## Quy ước checkbox
 
@@ -16,6 +16,12 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - README, roadmap và PROGRESS là tài liệu quản trị nên không áp dụng template tám phần của bài học.
 - Chỉ cập nhật một bài sang `[x]` sau khi hoàn tất; hoàn thành trọn module hiện tại rồi mới viết module tiếp theo.
 - Khi thêm, đổi tên hoặc tách bài, phải cập nhật tổng số, prerequisite, roadmap và mọi cross-link liên quan.
+
+## Ghi chú kiểm chứng module 08 (SQL)
+
+- Baseline phương ngữ của module 08 là **SQL Server (T-SQL)** để nhất quán với module 09 (EF Core).
+- Môi trường biên soạn không tải/cài được SQL Server (bản cài bị chặn bởi egress policy), nên phần **SQL chuẩn/portable** (DDL, CRUD, filter/sort, hàm, aggregate, join, subquery, set operator, CTE, window function, transaction/ACID, chuẩn hóa...) được **chạy kiểm chứng logic trên PostgreSQL 16** với cùng schema/dữ liệu; output trong bài phản ánh kết quả thật đó (đầu cột trình bày theo casing T-SQL).
+- Phần **đặc thù SQL Server không portable** (cài đặt, cú pháp/thông báo lỗi T-SQL, stored procedure/trigger, execution plan & statistics, phân loại index clustered/nonclustered, isolation/lock nội bộ, backup/restore) được viết theo **tài liệu chính thức SQL Server** và **không chạy live** trong môi trường này — các bài liên quan sẽ ghi rõ khi output là doc-based.
 
 ## Baseline cần giữ nhất quán
 
@@ -171,34 +177,34 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 07-cau-truc-du-lieu-giai-thuat
 
-- [ ] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
 
 ## 08-sql-va-csdl
 
-- [ ] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
-- [ ] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
-- [ ] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
-- [ ] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
-- [ ] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
-- [ ] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
+- [x] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
+- [x] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
+- [x] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
+- [x] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
+- [x] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
+- [x] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
 - [ ] `08-sql-va-csdl/07-group-by-aggregate-va-having.md`
 - [ ] `08-sql-va-csdl/08-inner-left-right-full-cross-join.md`
 - [ ] `08-sql-va-csdl/09-subquery-va-correlated-subquery.md`
@@ -531,6 +537,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-08-22`: hoàn thành toàn bộ module `07-cau-truc-du-lieu-giai-thuat` (`19/19` bài); build/run 19 sample .NET 9 (target `net9.0`, `Nullable` bật, warnings-as-errors), đối chiếu từng dòng output với lần chạy thật cho Big-O, đệ quy, dynamic array, linked list, stack/queue, hash table, BST, heap, trie, graph, BFS/DFS, Dijkstra/Prim, sorting, searching, greedy, backtracking (N-Queens), DP và dự án engine tìm đường (BFS/Dijkstra/A*); audit chéo toàn bộ prerequisite/cross-link nội bộ module và trỏ về module 01/04/05/06.
 - `2026-07-31`: hoàn thành toàn bộ module `06-oop-va-thiet-ke` (`14/14` bài); build/run 14 sample .NET 9 với `Nullable` bật và warnings-as-errors, đối chiếu từng dòng output, kiểm tra failure path của các bài Liskov/contract, và dựng dự án refactor 10 file có characterization harness so sánh bản cũ với bản mới.
 - `2026-07-31`: hoàn thành toàn bộ module `01-nen-tang-lap-trinh` (`15/15` bài), `02-c-chuyen-sau` (`15/15` bài) và `03-cpp` (`14/14` bài); build/run 44 lời giải chính bằng C11/C++20 với warnings-as-errors, đối chiếu output, kiểm tra failure path, Makefile, ASan/UBSan, ownership/lifetime và audit chéo toàn bộ prerequisite/cross-link.
 - `2026-07-30`: hoàn thành toàn bộ module `05-csharp-nang-cao` (`19/19` bài); build/run 19 project .NET 9 với warnings-as-errors, đối chiếu output, audit tuyến prerequisite/memory model/cross-link và kiểm tra failure path của dự án batch JSON bất đồng bộ.

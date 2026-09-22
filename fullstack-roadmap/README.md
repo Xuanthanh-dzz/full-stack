@@ -2,13 +2,13 @@
 
 Đây là bộ tài liệu tự học bằng tiếng Việt, lấy C làm nền tảng tư duy và mô hình bộ nhớ, C#/.NET làm công nghệ đi làm chính, C++ ở mức đủ sâu để hiểu OOP, STL, RAII và ownership. Tuyến học đi tiếp qua SQL, LINQ, Entity Framework Core, web, React, kiểm thử, DevOps, kiến trúc phần mềm và thiết kế hệ thống.
 
-> Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ module `01`–`05`: 15 bài C nền tảng, 15 bài C chuyên sâu, 14 bài C++20, 16 bài C# cơ bản và 19 bài C# nâng cao. Module `00` hiện mới có roadmap; các bài hướng dẫn môi trường vẫn chờ biên soạn**.
+> Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ module `01`–`07`: 15 bài C nền tảng, 15 bài C chuyên sâu, 14 bài C++20, 16 bài C# cơ bản, 19 bài C# nâng cao, 14 bài OOP & thiết kế và 19 bài cấu trúc dữ liệu & giải thuật. Module `00` hiện mới có roadmap; các bài hướng dẫn môi trường vẫn chờ biên soạn**.
 
 ## Bắt đầu ở đâu?
 
 1. Đọc [roadmap 5 cấp](./00-huong-dan/roadmap.md) để hiểu thứ tự, prerequisite và checkpoint.
 2. Mở [PROGRESS.md](./PROGRESS.md) để xem toàn bộ mục lục dự kiến và trạng thái từng file.
-3. Học tuyến tính theo số module và số bài. Module `01–05` đã hoàn thành; trước khi bắt đầu module `01`, hãy tự bảo đảm đã có C compiler theo lệnh build ghi trong bài vì các bài cài môi trường chi tiết của module `00` chưa được viết.
+3. Học tuyến tính theo số module và số bài. Module `01–07` đã hoàn thành; trước khi bắt đầu module `01`, hãy tự bảo đảm đã có C compiler theo lệnh build ghi trong bài vì các bài cài môi trường chi tiết của module `00` chưa được viết.
 
 ## Phạm vi kỹ thuật
 
@@ -75,4 +75,4 @@ Mọi bài tuân theo hướng **problem-first**. Thuật ngữ, keyword, tên h
 
 ## Trạng thái và review
 
-`PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `01-nen-tang-lap-trinh` đến `05-csharp-nang-cao` hiện đã hoàn thành, kiểm tra code/output/failure path và cross-link; module `00` còn các bài hướng dẫn môi trường, còn checkbox của module `06` trở đi vẫn biểu thị kế hoạch chưa viết.
+`PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `01-nen-tang-lap-trinh` đến `07-cau-truc-du-lieu-giai-thuat` hiện đã hoàn thành, kiểm tra code/output/failure path và cross-link; module `00` còn các bài hướng dẫn môi trường, còn checkbox của module `08` trở đi vẫn biểu thị kế hoạch chưa viết.
