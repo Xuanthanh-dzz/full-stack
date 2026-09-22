@@ -21,6 +21,28 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Ba operator này trả lời ba câu hỏi khác nhau:
+
+- `Where`: **giữ phần tử nào?**
+- `Select`: **mỗi phần tử biến thành gì?**
+- `SelectMany`: **nếu mỗi phần tử chứa một danh sách con, làm sao trải phẳng chúng thành một luồng?**
+
+Hãy tưởng tượng `Order` là một hộp, bên trong có nhiều `OrderItem`. `Select` có thể biến mỗi hộp thành một nhãn tóm tắt. `SelectMany` thì mở tất cả hộp và đổ toàn bộ item ra một băng chuyền duy nhất.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Ví dụ |
+|---|---|---|
+| filter | loại phần tử không cần | chỉ order `Paid` |
+| projection | đổi shape | Order → OrderSummary |
+| nested collection | collection nằm trong phần tử | `Order.Items` |
+| flatten | trải nhiều collection con thành một sequence | Orders → all Items |
+| cardinality | số lượng phần tử/row | 10 order × 4 item ≈ 40 dòng |
+
+Cardinality là khái niệm cực quan trọng. `SelectMany` không chỉ “viết gọn”; nó có thể biến 1.000 parent thành 20.000 child. Sang database, đó có thể là 20.000 row phải xử lý hoặc truyền qua network.
+
 Một order có nhiều item. Báo cáo cần danh sách từng dòng hàng đã bán, không phải danh sách order chứa nested collection.
 
 Ta cần đi từ `IEnumerable<Order>` sang một stream phẳng của item kèm OrderId.
@@ -58,7 +80,72 @@ Expected:
 101:MS-01 x1
 ~~~
 
+### Walkthrough từng bước
+
+Dữ liệu mẫu:
+
+~~~text
+Order 101 (Paid)
+  - KB-01 x2
+  - MS-01 x1
+
+Order 102 (Pending)
+  - MN-01 x1
+~~~
+
+Pipeline:
+
+~~~text
+2 orders
+  ↓ Where(Status == Paid)
+1 order: 101
+  ↓ SelectMany(order.Items)
+2 item rows: KB-01, MS-01
+  ↓ result selector
+SoldLine(101, KB-01, 2)
+SoldLine(101, MS-01, 1)
+~~~
+
+Nếu thay `SelectMany` bằng `Select(order => order.Items)`, output sẽ là **sequence của sequence**: `IEnumerable<IReadOnlyList<OrderItem>>`. Đó là khác biệt cốt lõi.
+
 ## 4. Cơ chế hoạt động
+
+### So sánh `Where`, `Select`, `SelectMany`
+
+| Operator | Input 3 phần tử | Output cardinality điển hình | Đổi shape? |
+|---|---:|---:|---|
+| `Where` | 3 | 0..3 | không |
+| `Select` | 3 | 3 | có thể có |
+| `SelectMany` | 3 parent | tổng số child | có |
+
+### Vì sao `SelectMany` dễ gây lỗi performance?
+
+Vì nó thay đổi cardinality. Nếu mỗi customer có 100 orders và mỗi order có 20 items, flatten hai tầng có thể tạo:
+
+~~~text
+1,000 customers
+× 100 orders/customer
+× 20 items/order
+= 2,000,000 item-level records
+~~~
+
+LINQ syntax không làm con số này biến mất.
+
+### Misconception check
+
+**Đúng hay sai?** `SelectMany` chỉ là `Select` viết tắt.
+
+**Đáp án:** Sai. `Select` giữ một output cho mỗi input; `SelectMany` còn flatten collection con nên cardinality thay đổi.
+
+**Đúng hay sai?** Projection DTO luôn làm query nhanh hơn.
+
+**Đáp án:** Không luôn. Projection thường giảm dữ liệu/materialization, nhưng query shape và index vẫn quyết định rất nhiều. Bạn vẫn phải đo generated SQL/plan.
+
+### Mini-check
+
+Nếu có 50 orders, mỗi order trung bình 4 items, sau `SelectMany(order => order.Items)` bạn kỳ vọng khoảng bao nhiêu phần tử?
+
+Đáp án: khoảng 200.
 
 `Where` giữ nguyên type phần tử nhưng loại phần tử không đạt predicate.
 
@@ -67,6 +154,14 @@ Expected:
 `SelectMany` ánh xạ mỗi outer element sang một inner sequence rồi nối các sequence đó. Cardinality có thể tăng mạnh: 1.000 order × trung bình 20 item → khoảng 20.000 output row.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** phân biệt filter, projection và flatten.
+
+**Working developer:** dự đoán cardinality trước khi chạy và projection đúng response shape.
+
+**Deep dive:** SQL translation của nested navigation/`SelectMany` phụ thuộc provider và expression shape.
 
 Liên hệ Module 08: `Where` gần với SQL `WHERE`, projection gần với column list trong `SELECT`, còn `SelectMany` có thể tương ứng join/cross apply tùy provider và expression.
 
