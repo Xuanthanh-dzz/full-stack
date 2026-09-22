@@ -105,6 +105,21 @@ def check_lesson(path: Path, today: date) -> None:
         fail(f"{path}: missing cross-module judgment section")
     if "## 11. Retrieval practice" not in text:
         fail(f"{path}: missing retrieval practice")
+
+    clarity_sections = (
+        "### Trực giác 60 giây",
+        "### Từ vựng",
+        "### Walkthrough",
+        "### Misconception check",
+        "### Mini-check",
+        "### Ba tầng học",
+    )
+    for section in clarity_sections:
+        if section not in text:
+            fail(f"{path}: missing pedagogy clarity section {section}")
+
+    if "|---" not in text:
+        fail(f"{path}: expected at least one comparison/vocabulary table for clarity")
     check_tldr(path, text)
     check_freshness(path, text, today)
     check_links(path, text)
@@ -255,7 +270,7 @@ def main() -> None:
     if args.compile_linq:
         compile_linq_samples(paths)
 
-    print("Module 09 quality gate passed: 24/24 lessons + supplemental assessment artifacts.")
+    print("Module 09 quality gate v4 passed: 24/24 lessons + pedagogy clarity + supplemental assessment artifacts.")
 
 
 if __name__ == "__main__":
