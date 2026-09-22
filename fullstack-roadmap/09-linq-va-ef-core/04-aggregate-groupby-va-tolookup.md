@@ -21,6 +21,26 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Aggregate trả lời câu hỏi “từ nhiều phần tử, ta muốn **một số đo** gì?”. Ví dụ: count, sum, average.
+
+`GroupBy` thêm một bước: trước tiên chia dữ liệu thành các “rổ” theo key, rồi aggregate từng rổ.
+
+`ToLookup` giống một cuốn danh bạ in-memory: đưa một key vào và nhận **nhiều value** tương ứng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| aggregate | gộp nhiều giá trị thành summary |
+| grouping key | giá trị dùng để chia nhóm |
+| `IGrouping<TKey,T>` | một group có `Key` và các phần tử |
+| lookup | cấu trúc tra key → nhiều value |
+| materialize | thực sự đọc dữ liệu và tạo object/collection |
+
+Điểm quan trọng: `GroupBy` in-memory và `GROUP BY` trong SQL **có cùng ý tưởng nhưng khác engine**. Với database lớn, nơi thực thi quan trọng hơn syntax.
+
 Dashboard cần số order và tổng doanh thu theo status. Một màn hình khác cần tra nhanh danh sách order theo customer nhiều lần trong cùng request.
 
 ## 3. Lời giải chạy được
@@ -56,7 +76,74 @@ Console.WriteLine(byCustomer[10].Count());
 public sealed record Order(int Id, int CustomerId, string Status, decimal TotalAmount);
 ~~~
 
+### Walkthrough bằng tay
+
+Dữ liệu:
+
+~~~text
+1  Paid     1000
+2  Paid     2000
+3  Pending   500
+~~~
+
+Sau `GroupBy(Status)`:
+
+~~~text
+Paid    → [1000, 2000]
+Pending → [500]
+~~~
+
+Sau projection aggregate:
+
+~~~text
+Paid    Count=2 Revenue=3000
+Pending Count=1 Revenue=500
+~~~
+
+`ToLookup(CustomerId)` lại tạo mental model khác:
+
+~~~text
+10 → [Order1, Order2]
+20 → [Order3]
+~~~
+
 ## 4. Cơ chế hoạt động
+
+### `GroupBy` vs `ToLookup`
+
+| Tiêu chí | `GroupBy` | `ToLookup` |
+|---|---|---|
+| Deferred | thường có | không, materialize ngay |
+| Key có nhiều value | có | có |
+| Dùng để tiếp tục query pipeline | tự nhiên | ít hơn |
+| Dùng để tra cùng key nhiều lần in-memory | được nhưng không tối ưu intent | phù hợp |
+
+### Multiple enumeration ở aggregate
+
+Nếu source expensive và bạn viết:
+
+~~~csharp
+var count = source.Count();
+var sum = source.Sum(x => x.Amount);
+~~~
+
+thì source có thể bị enumerate hai lần. Với list nhỏ có thể không đáng kể; với stream/database, đó có thể là hai lượt I/O/query.
+
+### Misconception check
+
+**Đúng hay sai?** `GroupBy` luôn chạy ở database nếu source đến từ EF Core.
+
+**Đáp án:** Không nên giả định. Translation phụ thuộc query shape/provider. Hãy inspect SQL.
+
+**Đúng hay sai?** `ToLookup` giống `Dictionary<TKey,TValue>`.
+
+**Đáp án:** Không hoàn toàn. Lookup cho phép một key có nhiều value.
+
+### Mini-check
+
+Nếu report từ 100 triệu rows chỉ trả 12 tháng, nơi nào nên aggregate trước tiên?
+
+Đáp án mong đợi: database/data source, nếu query có thể được translate/tối ưu.
 
 `GroupBy` trên LINQ to Objects trả sequence các `IGrouping<TKey,TElement>`. Group được hình thành khi source được enumerate.
 
@@ -65,6 +152,14 @@ public sealed record Order(int Id, int CustomerId, string Status, decimal TotalA
 `Aggregate` tổng quát cho phép fold state, nhưng các operator chuyên dụng như `Sum`/`Count` thường dễ đọc và provider dễ dịch hơn.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** Count/Sum/GroupBy và shape của group.
+
+**Working developer:** biết tránh materialize/group in-memory quá sớm.
+
+**Deep dive:** translation của aggregate, plan, partial aggregation và index/statistics.
 
 Liên hệ Module 08: SQL aggregate có optimizer, index/statistics và có thể xử lý dữ liệu ngay gần storage. LINQ in-memory chỉ thấy object đã tải.
 
