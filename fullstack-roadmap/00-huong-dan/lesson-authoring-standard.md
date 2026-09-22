@@ -1,4 +1,4 @@
-# Lesson Authoring Standard v2
+# Lesson Authoring Standard v4
 
 > Áp dụng bắt buộc cho Module 09 trở đi. Module 01–08 sẽ được retrofit sau.
 >
@@ -413,7 +413,7 @@ Checkpoint **không xếp hạng con người**; nó chỉ chỉ ra gap kỹ nă
 
 Từ Module 09 trở đi, module chỉ hoàn thành khi:
 
-- lesson gate v2 pass;
+- lesson gate v4 pass;
 - Failure Labs đạt cadence;
 - Spaced Reviews đạt cadence;
 - PR Review Lab tồn tại;
