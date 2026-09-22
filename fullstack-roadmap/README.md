@@ -75,4 +75,15 @@ Mọi bài tuân theo hướng **problem-first**. Thuật ngữ, keyword, tên h
 
 ## Trạng thái và review
 
+## Hệ thống đánh giá
+
+Từ Module 09, roadmap dùng thêm bốn lớp đánh giá ngoài 24 bài chính:
+
+- **Failure Labs:** debug lỗi production-like;
+- **Spaced Reviews:** ôn giãn cách sau mỗi cụm 4–6 bài;
+- **PR Review Labs:** review diff như pull request thật;
+- **Career Checkpoints:** build + debug + review + judgment tại các mốc nghề nghiệp.
+
+Các artifact bổ trợ này không tính vào tổng 421 bài chính; chúng là quality gate bắt buộc cho module mới.
+
 `PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `01-nen-tang-lap-trinh` đến `08-sql-va-csdl` hiện đã hoàn thành và đã qua kiểm tra code/SQL/cross-link theo Definition of Done; module `00` còn các bài hướng dẫn môi trường, còn module `10` trở đi vẫn đang trong kế hoạch biên soạn.
