@@ -13,7 +13,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 - `[ ]`: mới nằm trong kế hoạch; file bài học chưa được tạo hoặc chưa đạt Definition of Done.
 - `[x]`: file tồn tại, đã đủ nội dung, code đã được chạy/kiểm tra và cross-link hợp lệ.
-- README, roadmap và PROGRESS là tài liệu quản trị nên không áp dụng template tám phần của bài học.
+- README, roadmap và PROGRESS là tài liệu quản trị nên không áp dụng lesson template. Các Failure Lab, Spaced Review, PR Review và Career Checkpoint là artifact bổ trợ, không tính vào 421 bài chính.
 - Chỉ cập nhật một bài sang `[x]` sau khi hoàn tất; hoàn thành trọn module hiện tại rồi mới viết module tiếp theo.
 - Khi thêm, đổi tên hoặc tách bài, phải cập nhật tổng số, prerequisite, roadmap và mọi cross-link liên quan.
 
@@ -23,16 +23,18 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 |---|---|
 | C | C11 |
 | C++ | C++20 |
-| .NET | Target framework `net9.0`; pin exact SDK trong bài môi trường |
+| .NET | Module 01–08 giữ baseline lịch sử đã verify; Module 09+ dùng .NET 10 LTS trừ khi bài ghi rõ khác; luôn pin major/patch cần thiết trong metadata/project |
 | C# | Dùng compiler đã pin và các tính năng ngôn ngữ mới tương thích với target; nêu rõ `LangVersion` khi không dùng mặc định |
-| ASP.NET Core / EF Core | Major version 9; pin package patch version trong project |
+| ASP.NET Core / EF Core | Module 09 dùng EF Core 10.0.12; các module mới dùng major LTS/current đã verify và pin patch; module cũ chỉ đổi baseline khi retrofit + chạy lại CI |
 | Database chính | SQL Server; Module 08 được chạy kiểm chứng trên SQL Server 2025; ghi chú khác biệt PostgreSQL khi điều đó giúp hiểu provider/dialect |
 | Frontend | Node.js LTS, TypeScript; người học chọn React hoặc Angular và pin version bằng lockfile khi viết project |
 | Hạ tầng | Docker làm môi trường tái tạo cục bộ; GitHub Actions và GitLab CI đều có pipeline mẫu |
 
 ## Definition of Done cho một bài học
 
-- Đủ tám phần: mục tiêu, bài toán, code chạy được, cơ chế, kiến thức nền, lỗi thường gặp, bài tập và checklist/link.
+- Module 01–08 hiện dùng gate legacy tám phần cho tới khi retrofit.
+- Module 09+ bắt buộc Lesson Authoring Standard v2: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment và retrieval practice.
+- Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.
 - Có lệnh build/run/test và version cần thiết; không phụ thuộc trạng thái riêng của IDE.
 - Có sơ đồ text mô tả stack/heap/reference/ownership khi liên quan.
@@ -553,6 +555,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-09-22`: nâng quality system Module 09 lên module gate v3: thêm 4 Failure Labs, 5 Spaced Reviews, 2 PR Review Labs và Career Checkpoint `Junior Data/Backend`; các artifact bổ trợ không làm thay đổi tiến độ manifest `164/421`.
 - `2026-09-22`: hoàn thành module `09-linq-va-ef-core` (`24/24` bài) theo Lesson Authoring Standard v2; baseline .NET 10/C# 14/EF Core 10.0.12/SQL Server 2025; thêm Entry/Exit test, rubric, TL;DR, mục `Khi nào KHÔNG dùng`, scale notes, bài judgment liên module, retrieval practice, sample CommerceLab Data Access và CI migration/provider-real smoke test.
 - `2026-09-22`: hoàn thành toàn bộ module `08-sql-va-csdl` (`25/25` bài); verifier chạy từng lab trên SQL Server 2025 trong Docker, kiểm tra cấu trúc tám phần/cross-link và build toàn bộ MkDocs; capstone cuối module là CSDL thương mại điện tử có schema, constraint, index, transaction, security, backup/migration và query tuning.
 - `2026-09-22`: mở rộng module `12-frontend` thành hai lựa chọn song song React/Angular sau 12 bài nền tảng HTML/CSS/JavaScript/TypeScript; Module 13 chấp nhận framework đã chọn. Tổng manifest tăng từ `410` lên `421` file.
