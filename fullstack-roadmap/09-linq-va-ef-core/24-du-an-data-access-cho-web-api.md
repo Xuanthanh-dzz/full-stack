@@ -139,3 +139,7 @@ Capstone phải giữ code đủ đơn giản để người khác debug.
 
 - Bài trước: [Repository Pattern có nên dùng?](./23-repository-pattern-co-nen-dung.md)
 - Bài tiếp theo: [Module 10 — Web nền tảng](../PROGRESS.md#10-web-nen-tang)
+- Spaced review: [Review 05 — Performance, testing & architecture](./reviews/review-05-performance-testing-and-architecture.md)
+- Failure Lab: [Concurrency và stale state](./failure-labs/04-concurrency-va-stale-state.md)
+- PR Review: [Order Search](./pr-review-labs/01-review-linq-search-service.md) · [EF Production Risks](./pr-review-labs/02-review-ef-production-risks.md)
+- Career checkpoint: [Junior Data/Backend](./career-checkpoint/index.md)
