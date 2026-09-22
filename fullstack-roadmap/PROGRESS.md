@@ -15,8 +15,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 |---|---:|---:|---:|---:|---|---|---|
 | 01 | 15/15 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35707360303](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35707360303) | PENDING |
 | 02 | 15/15 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35709456015](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35709456015) | PENDING |
-| 03 | 14/14 | 3 | 3 | 1 | PASS, 2026-09-22 | PENDING — chờ run của commit Module 03 | PENDING |
-| 04 | 0/16 | — | — | — | Chưa retrofit | — | — |
+| 03 | 14/14 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35711021739](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35711021739) | PENDING |
+| 04 | 16/16 | 3 | 3 | 1 | PASS, 2026-09-22 | PENDING — chờ run của commit Module 04 | PENDING |
 | 05 | 0/19 | — | — | — | Chưa retrofit; C# Foundation checkpoint chưa tạo | — | — |
 | 06 | 0/14 | — | — | — | Chưa retrofit | — | — |
 | 07 | 0/19 | — | — | — | Chưa retrofit | — | — |
@@ -48,7 +48,7 @@ Gate cấu trúc tự động không chứng nhận chất lượng giải thíc
 
 ## Definition of Done cho một bài học
 
-- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 03 đã retrofit v4 và chạy gate local; CI remote còn pending. Module 04–08 giữ trạng thái legacy cho đến lượt retrofit; không được coi là đã đạt v4.
+- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 03 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 04 đã retrofit v4 và chạy gate local; CI remote còn pending. Module 05–08 giữ trạng thái legacy cho đến lượt retrofit; không được coi là đã đạt v4.
 - Module 09+ bắt buộc Lesson Authoring Standard v4: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment/retrieval, cùng clarity blocks: trực giác, từ vựng, walkthrough, comparison/trace, misconception check, mini-check và Beginner/Working Developer/Deep Dive.
 - Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.

@@ -1,5 +1,16 @@
 # Toán tử, điều kiện và vòng lặp
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Điều kiện chọn nhánh, vòng lặp lặp công việc; continue và break cắt luồng khác nhau.
+- Dùng để lọc đơn hủy và tổng hợp một batch có điều kiện dừng rõ.
+- Kiểm tra ngân sách sau cộng cho phép tổng vượt ngưỡng; đó là policy của sample.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn duyệt từng phiếu: phiếu hủy thì bỏ qua; đủ điều kiện đóng lô thì ngừng xem phiếu sau. Bỏ một phiếu và đóng cả lô không cùng hành động.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| branch | nhánh được chọn theo điều kiện | if và switch |
+| iteration | một lượt của vòng lặp | một orderId |
+| continue | bỏ phần còn lại của lượt hiện tại | đơn 4 bị hủy |
+| break | thoát vòng lặp gần nhất | đóng batch sau đơn 7 |
+
+### Ví dụ nhỏ — tính tay trước
+
+Giả sử tổng đang 4.7 triệu, đơn mới 0.6 triệu và ngưỡng 5 triệu. Cộng rồi kiểm tra → 5.3 triệu có đơn mới; kiểm tra trước nhận → vẫn 4.7 triệu. Hai policy khác nhau.
+
 Kho hàng xử lý lần lượt tám đơn trong một đợt. Mỗi đơn có giá trị, vùng giao hàng và trạng thái VIP khác nhau. Quy tắc:
 
 - đơn số 4 đã hủy nên phải bỏ qua;
@@ -25,7 +53,9 @@ Kho hàng xử lý lần lượt tám đơn trong một đợt. Mỗi đơn có 
 
 Đây không phải bài toán “học `if`”. Ta cần biến một bộ quy tắc có thứ tự ưu tiên thành control flow đọc được và kiểm chứng được.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -184,9 +214,22 @@ Packed 2 package(s).
 Packed 1 package(s).
 ```
 
-Dấu phân cách số có thể khác theo locale. Project đã được kiểm tra với .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Dấu phân cách số có thể khác theo locale. Project đã được kiểm tra với .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. for xét đơn 1..8; đơn 4 đi continue nên không tăng count/tổng.
+2. Discount được chọn trước, shipping dựa trên subtotal sau discount.
+3. Sau đơn 7, count = 6 và tổng = 7425000; break ngăn xét đơn 8.
+4. Retry in nhãn dừng lần 2; do/while đóng gói 2,2,1. State là counters/tổng; cost tuyến tính theo số đơn đã xét, bộ nhớ phụ cố định.
+
+### Mini-check
+
+Nếu chuyển processedCount++ lên trước nhánh hủy, report còn phản ánh số đơn thực xử lý không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Một iteration xử lý theo thứ tự nào?
 
@@ -263,7 +306,45 @@ Ngoặc làm `1m - discountRate` chạy trước phép nhân. Không có ngoặc
 
 `amountToCollect += payable` tương đương về ý định với `amountToCollect = amountToCollect + payable`. `processedCount++` tăng một sau khi giá trị hiện tại được dùng; khi đứng thành statement riêng, khác biệt hậu tố/tiền tố không ảnh hưởng kết quả quan sát.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| continue | bỏ một lượt | dùng cho record không xử lý |
+| break | thoát vòng hiện tại | dùng khi điều kiện đóng lô thỏa |
+| return | thoát method | có thể bỏ cả phần in tổng phía sau |
+
+### Misconception check
+
+**Đúng hay sai?** break trong for cũng ngăn mọi code sau for chạy.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ thoát vòng lặp gần nhất.
+
+</details>
+
+**Đúng hay sai?** Ngưỡng 5 triệu bảo đảm tổng cuối không vượt 5 triệu.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample kiểm tra sau khi đã nhận đơn.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace từng nhánh.
+
+- **Working Developer — dùng khi làm việc:** policy dừng và test cận.
+
+- **Deep Dive — có thể quay lại sau:** tách rule khi số nhánh thực sự tăng.
 
 ### Các nhóm toán tử chính
 
@@ -345,7 +426,17 @@ Ví dụ gọi method thay đổi state ở vế phải của `||`; method có t
 
 Không dùng `value == 0.3` cho kết quả từ nhiều phép tính binary floating point. Dùng tolerance phù hợp hoặc `decimal` nếu domain là thập phân như tiền.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng nested conditional dài khi một switch nhỏ đã mô tả đủ các route. Không chuyển vòng lặp đơn giản thành framework xử lý workflow khi chưa có driver.
+
+## 8. Production notes & scale check
+
+Một batch tám đơn: cần quyết định ngân sách là ngưỡng đóng sau nhận hay trần cứng. Sample dùng ngưỡng đóng sau nhận. Gate đối chiếu toàn bộ thứ tự output, count và tổng; retry mô phỏng không phải cơ chế gửi nhãn mạng đáng tin cậy.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Phân loại điểm
 
@@ -377,7 +468,23 @@ Mô phỏng tối đa năm lần gọi dịch vụ, thành công ở lần thứ
 
 **Gợi ý:** dùng `while`, tăng attempt và nhân đôi delay; dừng ngay khi thành công bằng condition hoặc `break`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu vòng lặp Module 01: thay policy bằng trần cứng và nêu có bỏ đơn lớn để xét đơn nhỏ sau hay đóng luôn. Viết ví dụ phân biệt hai quyết định.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Đơn 4 ảnh hưởng count thế nào?
+2. Vì sao đơn 8 không được xét?
+3. do/while khác while khi số kiện ban đầu là 0?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt assignment, comparison và logical operators.
 - [ ] Tôi dự đoán được khi nào vế phải của `&&`/`||` không chạy.

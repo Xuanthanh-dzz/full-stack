@@ -4,7 +4,7 @@
 
 > Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ module `01`–`09`: 15 bài C nền tảng, 15 bài C chuyên sâu, 14 bài C++20, 16 bài C# cơ bản, 19 bài C# nâng cao, 14 bài OOP/thiết kế, 19 bài cấu trúc dữ liệu & giải thuật và 25 bài SQL/CSDL và 24 bài LINQ/EF Core. Module `00` hiện mới có roadmap; các bài hướng dẫn môi trường vẫn chờ biên soạn**.
 
-> **Ưu tiên biên tập hiện tại:** retrofit Module 01–08 lên v4 trước Module 10. Module 01 đã có kiểm chứng local; trạng thái CI/review từng module xem [PROGRESS](./PROGRESS.md#retrofit-module-0108-khong-tang-lesson-completed). Việc rewrite không tăng số bài hoàn thành.
+> **Ưu tiên biên tập hiện tại:** retrofit Module 01–08 lên v4 trước Module 10. Module 01–04 đã có kiểm chứng local; trạng thái CI/review từng module xem [PROGRESS](./PROGRESS.md#retrofit-module-0108-khong-tang-lesson-completed). Việc rewrite không tăng số bài hoàn thành.
 
 ## Bắt đầu ở đâu?
 

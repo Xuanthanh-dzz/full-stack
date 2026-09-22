@@ -1,5 +1,16 @@
 # Struct, enum và tuple trong C#
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Struct giữ value semantics; enum đặt tên giá trị; tuple gom kết quả nhỏ có quan hệ.
+- Dùng Money cho amount/currency và flags cho các tùy chọn độc lập.
+- default struct có thể bỏ qua constructor; enum nhận số ngoài tên đã khai báo.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một cặp tiền và đơn vị cần đi cùng nhau. Các lựa chọn ký nhận, dễ vỡ, cuối tuần có thể bật đồng thời nên mỗi lựa chọn cần một bit riêng, khác trạng thái chỉ chọn một.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| readonly struct | value type giới hạn mutation member | Money |
+| enum | kiểu số có các hằng đặt tên | OrderStatus |
+| flags | các bit biểu diễn lựa chọn kết hợp | DeliveryOptions |
+| tuple | nhóm value trả về cùng nhau | Fee/EstimatedDays |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ký nhận1 OR dễ vỡ2 =3; kiểm tra3 AND2 →2 nên có dễ vỡ. 1200g:20000+12000+5000+15000=52000,3 ngày.
+
 Một hệ thống giao hàng cần tính phí và số ngày dự kiến. Dữ liệu có ba đặc điểm:
 
 1. Tiền gồm số tiền và mã tiền tệ, phải được truyền như **một giá trị**.
@@ -22,7 +50,9 @@ Một hệ thống giao hàng cần tính phí và số ngày dự kiến. Dữ 
 
 Nếu dùng `decimal`, `int` và các `bool` rời rạc, lời gọi hàm rất dễ bị đảo tham số hoặc tạo tổ hợp trạng thái vô nghĩa. Ta sẽ mô hình hóa bằng `struct`, `enum`, flags và trả về kết quả bằng tuple.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project target `.NET 9`:
 
@@ -94,6 +124,11 @@ public static class ShippingCalculator
         if (weightGrams <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(weightGrams));
+        }
+
+        if ((options & ~DeliveryOptions.All) != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options));
         }
 
         decimal amount = 20_000m + (weightGrams * 10m);
@@ -170,7 +205,20 @@ Has fragile option: True
 Unboxed fee: 52,000 VND
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main tạo tổ hợp flags rồi gọi Calculate kiểm tra weight và bit lạ.
+2. Calculator cộng phụ phí cho từng bit; tuple trả Money và số ngày.
+3. Money.Add tạo value mới62000, giá trị gốc52000 không đổi.
+4. Box giữ bản sao Money khi chuyển object. Tính phí kiểm tra số bit cố định; Money chứa decimal inline và reference tới currency string.
+
+### Mini-check
+
+Vì sao options=8 bị từ chối trong khi options=3 được chấp nhận?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### `struct` được sao chép theo giá trị
 
@@ -230,7 +278,45 @@ Cú pháp `(Money Fee, int EstimatedDays)` là `System.ValueTuple<Money, int>`. 
 
 sao chép hai phần tử vào hai biến local. Tên `Fee` và `EstimatedDays` giúp code dễ đọc, nhưng tuple không chứa invariant hoặc behavior như một type chuyên biệt.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| enum trạng thái | một giá trị trong quy trình | cần validate giá trị cast từ bên ngoài |
+| flags enum | nhiều lựa chọn độc lập | dùng bit không chồng, kiểm tra unknown bits |
+| tuple / named struct | nhóm tạm / domain value có contract | tuple đủ cho kết quả nhỏ; struct khi cần invariant |
+
+### Misconception check
+
+**Đúng hay sai?** readonly struct ngăn default(Money) có Currency null.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: default không chạy constructor có tham số.
+
+</details>
+
+**Đúng hay sai?** Enum.IsDefined luôn phù hợp kiểm tra flags kết hợp.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tổ hợp hợp lệ có thể không có tên riêng; kiểm tra bit ngoài All.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** struct/enum/tuple.
+
+- **Working Developer — dùng khi làm việc:** default và bit validation.
+
+- **Deep Dive — có thể quay lại sau:** boxing/copy khi cần đo.
 
 ### Khi nào chọn `struct`
 
@@ -324,7 +410,17 @@ Sai: `Read = 1, Write = 2, Delete = 3`. `Delete` không có bit riêng. Đúng: 
 
 Cast từ `int`, deserialization hoặc dữ liệu cũ có thể tạo giá trị không được khai báo. Validate ở boundary và quyết định rõ cách xử lý unknown value.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng flags cho trạng thái Draft→Confirmed nếu hai trạng thái không được đồng thời đúng. Không tạo struct lớn chỉ để có value semantics mà chưa xem cost copy.
+
+## 8. Production notes & scale check
+
+Demo shipping nhỏ, gate thử tổ hợp, bit lạ, weight0, default Money và copy độc lập. Constructor Money chưa loại trừ mọi trạng thái default; consumer cần quy định cách xử lý trước khi dùng value trong domain thật.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Trạng thái thanh toán
 
@@ -356,7 +452,23 @@ So sánh allocation của vòng lặp cộng số qua `List<int>` và một coll
 
 Gợi ý: warm up trước khi đo; giữ cùng số phần tử và tránh in console trong vùng đo.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với bitmask trong C Module01 và struct C++ Module03, compiler C# giúp gì, còn validation nào vẫn runtime? Chọn enum trạng thái hay flags cho trạng thái đơn hàng.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. OR và AND dùng cho mục đích nào?
+2. default có gọi constructor này không?
+3. Tuple trả về có làm hai biến thành reference alias không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được vì sao gán một `struct` tạo value độc lập.
 - [ ] Tôi vẽ được nơi chứa field của struct và reference bên trong struct.

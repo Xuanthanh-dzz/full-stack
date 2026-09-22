@@ -1,5 +1,16 @@
 # Method, parameter và return
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Method đóng gói một thao tác; value, ref và out quy định cách dữ liệu đi qua lời gọi.
+- Dùng TryReserveItem để kiểm tra trước rồi cập nhật tồn kho có kiểm soát.
+- ref cho quyền sửa caller; cần giữ nguyên state khi từ chối yêu cầu.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn giao bản sao phiếu cho quầy thì quầy sửa bản sao; giao quyền sửa sổ kho thì thay đổi nằm lại sau khi quay về. out giống ô kết quả mà quầy phải điền trước khi trả lời.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| parameter | tên nhận input trong khai báo hàm | requestedQuantity |
+| argument | giá trị hoặc biến truyền tại lời gọi | 3 và ref stock |
+| ref | truy cập trực tiếp biến của caller | availableStock |
+| out | biến kết quả phải được gán trước return | lineTotal/message |
+| params | cho phép truyền nhiều đối số theo một nhóm | CalculateAverage |
+
+### Ví dụ nhỏ — tính tay trước
+
+stock = 2, yêu cầu 3 → false, stock vẫn 2, lineTotal = 0. Yêu cầu 2 món giá 5 → true, stock = 0, lineTotal = 10.
+
 Một quầy thanh toán cần đặt hàng từ tồn kho, tính tiền từng dòng, cộng tổng, giảm giá, tính giá trị trung bình và tạo biên nhận. Nếu viết tất cả trong `Main`, validation tồn kho và công thức tiền sẽ bị lặp lại cho từng sản phẩm.
 
 Ta cần chia quy trình sao cho:
@@ -26,7 +55,9 @@ Ta cần chia quy trình sao cho:
 
 Mục tiêu không phải tạo nhiều method nhất có thể. Mỗi method phải có hợp đồng dễ gọi và dễ kiểm tra.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -128,9 +159,16 @@ internal static class Program
             return false;
         }
 
-        availableStock -= requestedQuantity;
+        if (unitPrice > decimal.MaxValue / requestedQuantity)
+        {
+            message = $"{productName}: line total exceeds decimal range.";
+            return false;
+        }
+
+        // Tính và format xong trước khi sửa tồn kho của caller.
         lineTotal = unitPrice * requestedQuantity;
         message = $"{productName}: reserved, line total {lineTotal:N0} VND.";
+        availableStock -= requestedQuantity;
         return true;
     }
 
@@ -193,9 +231,22 @@ Customer: Lan
 Total: 900,000 VND
 ```
 
-Dấu phân cách số phụ thuộc locale. Project đã được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Dấu phân cách số phụ thuộc locale. Project đã được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Caller tạo stock = 10; cả hai lời gọi mượn chính biến này qua ref.
+2. Hàm kiểm tra quantity/price/stock và cận decimal, tính rồi format trước khi trừ kho.
+3. Hai dòng hợp lệ làm stock 10→7→5; tổng 1000000 giảm 10% thành 900000.
+4. Method có local riêng nhưng ref/out ghi về caller. params tạo nhóm giá trị cho lời gọi; average duyệt số phần tử, không cost cố định với mọi số argument.
+
+### Mini-check
+
+Giá decimal.MaxValue, quantity = 2, stock = 10: guard nào giữ stock và output đúng trước phép nhân?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Method declaration và lời gọi ghép với nhau
 
@@ -298,7 +349,45 @@ CalculateAverage(new decimal[] { 10m, 20m, 30m });
 
 Named arguments (`total:`, `customerName:`) ánh xạ theo tên thay vì vị trí, giúp lời gọi có nhiều `bool`/số dễ đọc.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| value | copy giá trị parameter | số nhỏ dễ hiểu; reference copy vẫn cùng object |
+| ref | alias tới biến caller | dùng khi thay biến là contract rõ |
+| out | output bắt buộc gán | hợp Try API; không thay validation |
+
+### Misconception check
+
+**Đúng hay sai?** Mọi giá trị truyền value đều clone object sâu.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: với class, bản sao reference vẫn trỏ cùng object.
+
+</details>
+
+**Đúng hay sai?** Hàm trả false phải giữ out chưa gán.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: out phải gán trên mọi đường return; sample đặt lineTotal = 0.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace value/ref/out.
+
+- **Working Developer — dùng khi làm việc:** failure state và trách nhiệm hàm.
+
+- **Deep Dive — có thể quay lại sau:** allocation của params và thiết kế API.
 
 ### Một method tốt có hợp đồng rõ
 
@@ -388,7 +477,17 @@ Lời gọi nhiều `bool` như `FormatReceipt("Lan", total, "VND", true)` khó 
 
 Method vừa validate, tính tiền, ghi file, gửi email và mutate global state sẽ khó test. Tách theo trách nhiệm và data flow, không tách máy móc mỗi ba dòng.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng ref cho mọi số để tránh copy. Không gom nhiều output không liên quan vào một method chỉ vì out cho phép. Hai sản phẩm dùng chung stock ở đây chỉ minh họa parameter, chưa phải kho theo SKU.
+
+## 8. Production notes & scale check
+
+Test từ chối quantity 0, thiếu hàng và overflow trước commit. Average và discount chỉ phục vụ miền nhỏ của hóa đơn demo; tính tổng một dãy decimal bất kỳ vẫn có thể overflow. Lỗi allocation/process bị kết thúc không nằm trong cam kết nghiệp vụ này.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Method tính VAT thuần
 
@@ -420,7 +519,23 @@ Viết `Main → CalculateInvoice → CalculateTax`, đặt local ở mỗi meth
 
 **Gợi ý:** ghi rõ parameter nào là copy, local nào thuộc frame nào, frame nào pop trước; sau đó bật debugger kiểm tra call stack.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh output pointer trong C Module 02 với ref/out: compiler kiểm tra thêm điều gì? Thiết kế reserve theo SKU cần thay contract dữ liệu nào trước khi thêm database?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Parameter khác argument ở đâu?
+2. Caller thấy state nào khi Try trả false?
+3. Named argument có đổi signature của method không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi đọc được access modifier, `static`, return type, tên và parameter list.
 - [ ] Tôi phân biệt parameter với argument và pass-by-value với `ref/out`.

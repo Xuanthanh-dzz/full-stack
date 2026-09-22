@@ -1,0 +1,10 @@
+Register first: True
+Register second: True
+Register duplicate ID: False
+Unique products: 3
+Found: ORD-002
+Processed FIFO: ORD-001, ORD-002
+Order report:
+- ORD-001: Processed
+- ORD-002: Pending
+Pending after undo: 1

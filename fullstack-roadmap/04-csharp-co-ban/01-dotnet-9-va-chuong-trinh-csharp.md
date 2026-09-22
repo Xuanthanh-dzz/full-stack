@@ -1,5 +1,16 @@
 # .NET 9 và chương trình C# đầu tiên
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- SDK biến source C# thành chương trình .NET; runtime thực thi chương trình đã build.
+- Dùng CLI để tạo, build và chạy một hóa đơn nhỏ có kết quả kiểm tra được.
+- Có SDK mới trên máy không có nghĩa project tự đổi target framework.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,11 +24,31 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn viết công thức trên giấy; compiler kiểm tra cách viết rồi tạo bản để máy chạy. Bộ công cụ phát triển và bộ thực thi là hai vai trò khác nhau, dù bản cài SDK thường đem theo cả hai.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| SDK | bộ công cụ tạo và build ứng dụng | dotnet build |
+| runtime | bộ thực thi ứng dụng đã build | chạy SalesQuote |
+| target framework | hợp đồng API/runtime mà project nhắm tới | net9.0 |
+| IL | mã trung gian compiler tạo trong assembly | đầu vào của runtime |
+| JIT | dịch phần mã cần chạy thành mã máy lúc thực thi | luồng chạy thông thường của demo |
+
+### Ví dụ nhỏ — tính tay trước
+
+2 món × 100 đồng = 200; VAT 8% = 16; tổng 216. Đổi source thành 3 món nhưng chạy --no-build sẽ vẫn dùng bản cũ nếu chưa build lại.
+
 Một cửa hàng cần báo nhanh tổng tiền của đơn hàng gồm 3 bàn phím, đơn giá `250000` VND, VAT `8%`. Nhân viên hiện phải bấm máy tính và dễ quên VAT. Ta cần một chương trình console in tên hàng, tiền trước thuế, tiền thuế và tổng thanh toán.
 
 Trước khi học nhiều cú pháp, ta sẽ tạo đúng một project, chạy được nó, rồi theo dõi cách .NET biến file C# thành chương trình thực thi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ### 3.1. Tạo project
 
@@ -96,9 +127,22 @@ Grand total: 810,000 VND
 
 Dấu phân cách hàng nghìn phụ thuộc locale hệ điều hành; giá trị số vẫn là `750000`, `60000`, `810000`.
 
-Project đã được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng NuGet package bên ngoài.
+Project đã được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng NuGet package bên ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. CLI chọn SDK theo global.json nếu có; compiler đọc source và project net9.0.
+2. Build tạo assembly; runtime gọi Main, khởi tạo quantity = 3 và unitPrice = 250000m.
+3. Tính subtotal 750000, VAT 60000, tổng 810000 rồi format ra terminal.
+4. Số và reference cục bộ thuộc lần gọi; format tạo text. Cost nhỏ, chủ yếu startup/runtime và I/O, không phải năm phép tính.
+
+### Mini-check
+
+Chỉ sửa VAT trong editor rồi chạy binary cũ: compiler hay runtime biết source đã thay đổi?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Điểm bắt đầu của chương trình
 
@@ -174,7 +218,45 @@ SalesQuote/
 
 `bin/` và `obj/` là build artifacts, có thể tạo lại. Không viết source code vào đó và thông thường không commit chúng vào Git.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| dotnet build | biên dịch, không chạy Main | dùng để phát hiện lỗi source |
+| dotnet run | build khi cần rồi chạy | thuận tiện khi học; có thêm công build |
+| run --no-build | chạy output hiện có | nhanh nhưng phải bảo đảm output mới |
+
+### Misconception check
+
+**Đúng hay sai?** Target net9.0 nghĩa SDK 10 không thể build project.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể build khi có targeting pack phù hợp; verifier vẫn pin SDK 9 để tái lập.
+
+</details>
+
+**Đúng hay sai?** Main trả void thì process không có exit code.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: process vẫn có mã thoát, thường 0 khi kết thúc bình thường; void chỉ là kiểu trả của method.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** build và đối chiếu hóa đơn.
+
+- **Working Developer — dùng khi làm việc:** pin môi trường, phân biệt build/run.
+
+- **Deep Dive — có thể quay lại sau:** IL/JIT và deployment khi có nhu cầu.
 
 ### C#, .NET và CLR
 
@@ -245,7 +327,17 @@ Một lỗi cú pháp có thể kéo theo nhiều lỗi phụ. Đọc diagnostic
 
 `--no-build` chạy assembly cũ. Sau khi sửa, dùng `dotnet run` hoặc `dotnet build` rồi `dotnet run --no-build`.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm web server hoặc database cho một phép tính hóa đơn. Không tự đổi major framework vì máy vừa cài SDK mới; đổi baseline cần kiểm chứng riêng.
+
+## 8. Production notes & scale check
+
+Một process, một hóa đơn cố định: kiểm tra build sạch, output và culture đủ cho scope. Verifier dùng SDK 9.0.121, C# 13, net9.0, en-US; thay bản vá 9.0.121 trong cùng nhánh sau khi chạy lại. Không diễn giải timing startup demo thành benchmark.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Đổi dữ liệu đơn hàng
 
@@ -277,7 +369,23 @@ Lần lượt xóa một dấu `;`, đổi `decimal vatRate` thành `int vatRate
 
 **Gợi ý:** mọi đường đi của method trả `int` phải có `return`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với compiler C/C++ ở Module 01–03, vẽ source → output → execution của hai bên. Bộ nào cần trên máy build, bộ nào cần trên máy chạy bản framework-dependent?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. SDK khác runtime thế nào?
+2. --no-build đọc source mới không?
+3. VAT trong ví dụ được tính và giữ ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt được C#, SDK, Runtime và CLR.
 - [ ] Tôi tự tạo, build và chạy được console project target `net9.0` từ terminal.

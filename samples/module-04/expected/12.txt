@@ -1,0 +1,8 @@
+Created order: <id>
+Attempt took <ms> ms.
+Invalid quantity: 'not-a-number'.
+Invalid order input: customerId.
+Attempt took <ms> ms.
+Reduce quantity to at most 8 and retry.
+Attempt took <ms> ms.
+Remaining inventory: 8

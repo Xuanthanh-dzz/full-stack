@@ -1,5 +1,16 @@
 # Abstract class, interface và composition
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Abstract class chia sẻ state/luồng nền; interface mô tả khả năng mà nhiều kiểu có thể cung cấp.
+- Dùng gateway chung cho Charge và contract riêng cho refund/receipt/health.
+- Implementation demo chỉ in log; receipt không chứng minh tiền thật đã giao dịch.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Các máy thanh toán cùng cần kiểm tra mã đơn và số tiền trước khi xử lý. Một số máy hoàn tiền được, một số không. Khả năng phụ nên được hỏi bằng contract riêng thay vì ép mọi máy giả vờ hỗ trợ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| abstract class | kiểu nền không tạo instance trực tiếp | PaymentGateway |
+| abstract method | operation derived phải cung cấp | ExecuteCharge |
+| interface | hợp đồng khả năng | IRefundable/IReceiptSender |
+| dependency | object một component cần để làm việc | CheckoutService nhận gateway/sender |
+
+### Ví dụ nhỏ — tính tay trước
+
+Card và bank đều Charge100; chỉ card được xem qua IRefundable để Refund20. Không kiểm tra tên class bằng chuỗi để quyết định khả năng.
+
 Một chức năng checkout cần:
 
 - Thu tiền bằng card hoặc bank transfer.
@@ -24,7 +52,9 @@ Một chức năng checkout cần:
 
 Nếu `CheckoutService` tự chứa mọi nhánh `if (paymentType == ...)`, mỗi gateway mới làm class phình to. Nếu tạo một base class chứa mọi khả năng tùy chọn, derived class sẽ phải có các method vô nghĩa như `Refund()` dù provider không hỗ trợ. Ta cần chọn abstraction theo từng loại quan hệ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project .NET 9:
 
@@ -272,7 +302,7 @@ internal sealed class PaymentReceipt
 }
 ```
 
-Kết quả có dạng sau (transaction reference thay đổi mỗi lần chạy):
+Kết quả console sau là cố định; transaction reference bên trong receipt thay đổi nhưng không được in ở đây:
 
 ```text
 Charging card via DemoPay: 1,250,000 VND for ORD-1001
@@ -284,7 +314,20 @@ Creating transfer via VCB: 800,000 VND for ORD-1002
 Receipt sent to binh@example.com: ORD-1002, 800,000 VND, provider VCB
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. CheckoutService nhận gateway/sender đã tạo; PlaceOrder gọi Charge trước Send.
+2. Charge kiểm tra input rồi gọi ExecuteCharge của derived.
+3. Card tạo receipt với ID/time và ghi console; refund kiểm tra amount của một lần gọi.
+4. State receipt sống trong managed object, service giữ reference dependency. Demo không có mạng; các phép in mới là side effect thực, không có transaction/payment backend.
+
+### Mini-check
+
+Nếu địa chỉ nhận receipt sai và Send ném lỗi sau Charge, có được báo rằng chưa thu tiền không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Abstract class là base class chưa hoàn chỉnh
 
@@ -412,7 +455,45 @@ Nhờ đó:
 
 Đây là constructor injection ở dạng cơ bản. ASP.NET Core sau này có DI container tự xây object graph, nhưng cơ chế cốt lõi vẫn là truyền reference qua constructor.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Abstract base | chia sẻ state và skeleton thực thi | chỉ một base class; hợp policy chung |
+| Interface | mô tả khả năng độc lập | nhiều interface; không tự có backend |
+| Concrete class trực tiếp | ít lớp hơn | đủ khi chỉ có một implementation không cần seam |
+
+### Misconception check
+
+**Đúng hay sai?** Default interface method khiến mọi method đều gọi được qua biến concrete.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: member mặc định thuộc interface; dùng reference interface phù hợp.
+
+</details>
+
+**Đúng hay sai?** Refund mỗi lần <= receipt.Amount đảm bảo tổng refund không vượt tiền trả.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: demo chưa theo dõi tổng đã refund.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** contract và implementation.
+
+- **Working Developer — dùng khi làm việc:** dependency boundary và failure order.
+
+- **Deep Dive — có thể quay lại sau:** idempotency khi có side effect thật.
 
 ### 5.1 Khi nào chọn abstract class?
 
@@ -516,7 +597,17 @@ Testability là lợi ích, nhưng abstraction nên đại diện boundary/capab
 
 Nếu consumer chỉ cần `IReceiptSender`, nhận/trả abstraction đó giúp giảm coupling. Nhưng đừng trả interface quá hẹp nếu caller hợp lệ cần concrete behavior; contract phải xuất phát từ use case thực.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo interface cho mọi class để trông có kiến trúc. Không dùng demo làm tích hợp thanh toán thật: thiếu idempotency, refund ledger và xử lý trạng thái không chắc chắn.
+
+## 8. Production notes & scale check
+
+Một process, hai gateway giả lập. Charge trước Send nghĩa lỗi gửi không rollback charge; production phải định nghĩa kết quả thanh toán và gửi lại theo yêu cầu. Kiểm thử chỉ xác nhận dispatch/validation/log demo, không xác nhận provider thật.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Kênh thông báo
 
@@ -548,7 +639,23 @@ Thiết kế hệ thống lưu file có local disk và cloud storage. Quyết đ
 
 Gợi ý: xác định state/implementation thật sự dùng chung trước khi chọn abstract class; đừng tạo base chỉ vì tên type giống nhau.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh function pointer C Module02 và virtual C++ Module03 với interface C#: cùng contract gửi receipt, chọn cách đơn giản đủ test hai implementation.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Abstract class có new trực tiếp được không?
+2. Interface khả năng tránh nhánh kiểm tra type như thế nào?
+3. Receipt có bảo đảm refund tổng không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 
@@ -565,3 +672,5 @@ Bạn hoàn thành bài khi có thể tự trả lời:
 
 - Bài tiên quyết: [Inheritance và polymorphism](./09-inheritance-polymorphism.md)
 - Bài tiếp theo: [`struct`, `enum` và tuple](./11-struct-enum-va-tuple.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/02-virtual-va-member-hiding.md) · [Review](./reviews/review-02.md).

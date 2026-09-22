@@ -1,5 +1,16 @@
 # Property, encapsulation và access modifier
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Property cung cấp cách đọc/ghi có kiểm soát; access modifier giới hạn nơi gọi.
+- Dùng operation Sell/Restock/ChangePrice thay public setter cho tồn kho.
+- required, init và private giải quyết các việc khác nhau; không tự validate mọi giá trị.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,23 @@ Sau bài này, bạn có thể:
 - Hiểu giới hạn của encapsulation: `init` không tạo deep immutability, và access modifier không thay thế validation nghiệp vụ.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Có thông tin chỉ cần điền lúc lập phiếu, có thông tin chỉ đọc, có thông tin phải đổi qua quầy có kiểm tra. Property giúp biểu diễn từng cửa này mà không mở toàn bộ field.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| property | member có accessor đọc/ghi | Price và Stock |
+| init | cho gán trong ngữ cảnh khởi tạo phù hợp | Sku |
+| required | yêu cầu caller khởi tạo member | required Sku |
+| access modifier | phạm vi code được phép truy cập | public/private/internal |
+
+### Ví dụ nhỏ — tính tay trước
+
+Stock3, Sell2 → còn1. Sell2 lần nữa bị từ chối giữ1. Đổi giá5→7 làm InventoryValue đổi5→7 khi đọc, không phải kho tự thêm hàng.
 
 Một kho hàng quản lý sản phẩm. Nếu khai báo mọi dữ liệu là public field:
 
@@ -30,7 +58,9 @@ bất kỳ caller nào cũng có thể gán `Price = -100` hoặc `Stock = -20`.
 
 Đây là bài toán bảo vệ invariant của object, không đơn thuần là đổi cú pháp field thành property.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project .NET 9:
 
@@ -215,7 +245,20 @@ Rejected: Cannot sell 100; only 7 item(s) available.
 Stock remains valid: 7
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Object initializer điền Sku, init accessor chuẩn hóa mã.
+2. Restock10 rồi Sell3 giữ Stock7; ChangePrice cập nhật giá1.4M.
+3. InventoryValue tính lại Price×Stock khi đọc; Sell100 ném lỗi trước mutation.
+4. State nằm trong một item; required được compiler kiểm tra, validation runtime vẫn cần. Getter tính toán có cost, không nhất thiết chỉ đọc một field.
+
+### Mini-check
+
+Price và Stock riêng lẻ hợp lệ nhưng Price×Stock quá miền decimal: getter có thể ném lỗi không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Property là API, không nhất thiết là một ô nhớ riêng
 
@@ -328,7 +371,45 @@ Stack frame Main                       Managed heap
 
 Gọi `keyboard.Sell(3)` truyền reference của object làm receiver (`this`), rồi method cập nhật backing field `Stock` của chính object đó.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| public set | caller có quyền gán | chỉ hợp data không cần invariant riêng |
+| private set + operation | chỉ type tự cập nhật | hợp stock có kiểm tra |
+| required init | phải điền lúc khởi tạo | không đảm bảo nonempty hoặc đúng nghiệp vụ |
+
+### Misconception check
+
+**Đúng hay sai?** required tự kiểm tra Sku không rỗng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: accessor mới thực hiện validation.
+
+</details>
+
+**Đúng hay sai?** get-only hoặc private set làm toàn object immutable.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: Sell vẫn có thể thay Stock theo contract.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** accessor và quyền gọi.
+
+- **Working Developer — dùng khi làm việc:** domain validation và checked arithmetic.
+
+- **Deep Dive — có thể quay lại sau:** invariant liên field khi có nhu cầu.
 
 ### 5.1 Bảng access modifier
 
@@ -432,7 +513,17 @@ Lưu đồng thời `Price`, `Stock`, `InventoryValue` tạo ba nguồn state. N
 
 `private` là ràng buộc thiết kế/ngôn ngữ, không phải authorization. Dữ liệu bí mật vẫn cần kiểm soát truy cập, mã hóa, quản lý secret và không ghi log sai cách.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không viết property setter tùy ý chỉ để có đủ getter/setter. Không dùng required thay constructor khi invariant cần nhiều field phải hợp lệ cùng nhau.
+
+## 8. Production notes & scale check
+
+Demo một item, test vượt kho, giá âm, checked overflow Restock và lỗi compile khi thiếu required/sửa init/private setter. InventoryValue vẫn có thể overflow với dữ liệu cực lớn; muốn đảm bảo luôn đọc được cần cận domain kết hợp.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — `Temperature`
 
@@ -464,7 +555,23 @@ Cho một assembly thư viện có `Invoice`, helper tính thuế, method tạo 
 
 Gợi ý: lập bảng “member — consumer — lý do”; đừng chọn `public` nếu consumer chỉ ở cùng assembly.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu public struct C và encapsulation C++: những quyền sửa nào compiler C# ngăn, những dữ liệu sai nào vẫn phải kiểm tra runtime?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. init khác private set thế nào?
+2. InventoryValue lưu sẵn hay tính lúc đọc?
+3. required có thay validation không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 

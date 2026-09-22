@@ -1,0 +1,16 @@
+Order 1: route=Suburban, vip=False, discount=0%, payable=445,000
+Order 2: route=Remote, vip=True, discount=10%, payable=1,080,000
+Order 3: route=Urban, vip=False, discount=0%, payable=830,000
+Order 4: canceled, skipped.
+Order 5: route=Remote, vip=False, discount=10%, payable=1,800,000
+Order 6: route=Urban, vip=True, discount=5%, payable=570,000
+Order 7: route=Suburban, vip=False, discount=10%, payable=2,700,000
+Processing budget reached; closing this batch.
+Processed: 6
+Amount to collect: 7,425,000 VND
+Printing label, attempt 1...
+Printing label, attempt 2...
+Label ready.
+Packed 2 package(s).
+Packed 2 package(s).
+Packed 1 package(s).

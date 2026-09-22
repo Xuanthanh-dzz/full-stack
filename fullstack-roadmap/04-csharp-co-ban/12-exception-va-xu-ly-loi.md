@@ -1,5 +1,16 @@
 # Exception và xử lý lỗi trong C#
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Exception chuyển luồng lỗi; catch xử lý điều đã hiểu, finally chạy cleanup theo đường thoát thông thường.
+- Giữ nguyên nguyên nhân bằng inner exception và throw khi chuyển hoặc phát lại lỗi.
+- Bù tồn kho sau lỗi lưu không tạo transaction bền cho file và memory.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn giữ hai món trước khi ghi đơn. Nếu ghi không được, cần trả lại hai món; đồng thời giữ bằng chứng vì sao việc ghi thất bại để người vận hành tìm nguyên nhân.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| exception | object mô tả lỗi và làm đổi luồng thực thi | InventoryUnavailableException |
+| catch | điểm bắt loại lỗi có cách xử lý | thông báo giảm quantity |
+| finally | đoạn chạy khi thoát try theo luồng quản lý | dừng stopwatch |
+| inner exception | nguyên nhân gốc được giữ trong lỗi bọc | IOException bên trong persistence error |
+
+### Ví dụ nhỏ — tính tay trước
+
+Kho10,reserve2→8; ghi đường dẫn không có thư mục thất bại; release2→10. Nếu kho chỉ8 mà yêu cầu99, reserve phải từ chối trước khi sửa.
+
 Ứng dụng nhập đơn hàng từ console nhận `customerId` và số lượng ở dạng text. Bốn tình huống phải được phân biệt:
 
 - text số lượng sai định dạng là lỗi nhập liệu thường gặp, người dùng có thể sửa;
@@ -23,7 +51,9 @@ Sau bài này, bạn có thể:
 
 Nếu đặt một `catch (Exception)` rỗng quanh toàn bộ chương trình, ta mất nguyên nhân lỗi và có thể báo “thành công” dù dữ liệu chưa được lưu. Lời giải dưới đây xử lý lỗi ở tầng có đủ thông tin để quyết định.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -268,7 +298,20 @@ dotnet run --no-build
 
 Chương trình tạo `orders.log` cho đơn hợp lệ. `orderId` và thời gian thay đổi theo mỗi lần chạy; các nhánh còn lại báo sai định dạng, input rỗng và thiếu tồn kho mà không làm process bị crash.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main parse quantity; chuỗi không phải số không gọi service.
+2. Service validate customer rồi reserve; repository append một dòng order.
+3. Nếu repository ném lỗi đã phân loại, catch release đúng quantity rồi throw giữ nguyên lỗi.
+4. finally in thời gian cho các lần thực sự thử order. Inventory sống trong process; file sống qua restart. I/O và độ dài file/record khác cost cộng trừ stock.
+
+### Mini-check
+
+Input not-a-number có dòng Attempt took không? Phân biệt vòng lặp parse với try/finally của ProcessOne.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Luồng điều khiển của `try/catch/finally`
 
@@ -330,7 +373,45 @@ ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
 Lỗi xuất hiện gần nguồn nhất, `ParamName` rõ ràng và phần thân method không bị lồng nhiều `if`. Guard không thay thế validation nghiệp vụ tổng hợp ở UI/API; nó bảo vệ contract của code.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| TryParse | input sai là nhánh dự kiến | không cần exception cho mỗi lỗi gõ |
+| throw; | phát lại exception đang bắt | giữ dấu vết gốc |
+| bọc + inner | thêm nghĩa ở boundary | giữ nguyên nhân, tránh nuốt chi tiết chẩn đoán |
+
+### Misconception check
+
+**Đúng hay sai?** finally là transaction rollback tự động.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ chạy code bạn viết; process crash có thể ngăn nó chạy.
+
+</details>
+
+**Đúng hay sai?** Release stock khi Append thất bại chứng minh file chưa ghi gì.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: I/O có thể ghi một phần rồi thất bại; demo không có giao dịch bền.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** try/catch/finally.
+
+- **Working Developer — dùng khi làm việc:** preserve cause và bù state.
+
+- **Deep Dive — có thể quay lại sau:** durability theo driver.
 
 ### Chọn cơ chế báo kết quả
 
@@ -416,7 +497,17 @@ Nếu repository, service và boundary đều log cùng một exception, hệ th
 
 Exception từ `finally` có thể che exception gốc. Cleanup nên nhỏ, an toàn; nếu có thể thất bại, thiết kế cách ghi nhận mà không phá causal information.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không catch Exception rồi trả thành công. Không dùng exception thay nhánh kiểm tra input thông thường. Không suy ra file log là database đơn hàng an toàn nhiều process.
+
+## 8. Production notes & scale check
+
+Gate giữ nguyên stock khi thiếu hàng và khi đường dẫn lưu lỗi, kiểm tra inner exception và file thành công. Partial write, crash và nhiều writer nằm ngoài demo; cần driver persistence thực trước khi chọn database/transaction.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Parse ngày giao
 
@@ -448,7 +539,23 @@ Tạo một class implement `IDisposable`, dùng cả `try/finally` và `using` 
 
 Gợi ý: đặt breakpoint trong `Dispose`; so sánh code sau khi compiler hạ cú pháp `using` về ý tưởng `try/finally`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với error code C Module02 và RAII C++ Module03, đánh dấu ai cleanup, ai khôi phục nghiệp vụ, ai quyết định exit code. Cleanup có tự phục hồi state không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. throw khác throw exception ở trace thế nào?
+2. Lỗi parse có đi vào service không?
+3. Compensation bảo đảm điều gì trong test này?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi biết khi nào dùng `TryParse` thay vì exception.
 - [ ] Tôi mô tả được đường đi qua `try`, `catch`, filter và `finally`.

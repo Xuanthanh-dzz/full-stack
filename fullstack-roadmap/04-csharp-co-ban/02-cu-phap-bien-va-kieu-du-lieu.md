@@ -1,5 +1,16 @@
 # Cú pháp, biến và kiểu dữ liệu
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Kiểu dữ liệu quyết định miền giá trị và phép tính; parse input phải đi cùng kiểm tra nghiệp vụ.
+- Dùng decimal cho phép tính tiền trong demo, TryParse cho input có thể sai.
+- Parse thành công chưa chứng minh số lượng còn trong kho hoặc phép nhân không tràn.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một ô trên phiếu có thể viết được số 100 nhưng kho chỉ có 12 món. Kiểm tra cách đọc số và kiểm tra số có được phép bán là hai bước riêng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| type | quy định giá trị và thao tác | int quantity |
+| decimal | kiểu số thập phân hữu hạn | unitPrice |
+| TryParse | thử đổi text thành số, trả thành công hay thất bại | đọc args |
+| culture | quy tắc dấu số và định dạng | InvariantCulture khi parse |
+
+### Ví dụ nhỏ — tính tay trước
+
+Có 12 món, khách mua 3 → còn 9. Với giá 249900.50, tổng 749701.50, giảm 10% là 74970.15, còn 674731.35; làm tròn tới đồng thành 674731.
+
 Một quầy hàng nhận số lượng và đơn giá dưới dạng text từ command line. Hệ thống phải:
 
 - từ chối text không phải số, số lượng ngoài tồn kho hoặc giá không hợp lệ;
@@ -23,7 +51,9 @@ Một quầy hàng nhận số lượng và đơn giá dưới dạng text từ 
 
 Nếu chọn type hoặc conversion tùy tiện, `"abc"` có thể làm chương trình dừng, `double` có thể tạo sai số không phù hợp với tiền, còn phép nhân hai `int` có thể overflow trước khi được gán sang `long`.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -125,9 +155,22 @@ Remaining stock: 9
 Order size: S
 ```
 
-Project đã được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project đã được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main đọc argument hoặc giá trị mặc định; TryParse dùng quy tắc số invariant.
+2. Kiểm tra quantity 1..12 và price 0..100000000 trước tính.
+3. decimal giữ subtotal/discount; points dùng long để chứa 4500000000.
+4. Biến giữ state trong lần chạy, không lưu đơn qua restart. Parse theo độ dài text; tính số cố định; format phụ thuộc culture nếu không chỉ định.
+
+### Mini-check
+
+Nếu bỏ hậu tố L ở phép tính reward points, phép nhân diễn ra theo kiểu nào trước khi gán sang long?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Biến giữ một giá trị có type xác định
 
@@ -203,7 +246,45 @@ Type quyết định **ngữ nghĩa value/reference**, không tự quyết đị
 
 Ở giai đoạn này, hãy tập trung vào type và phép gán; không suy ra vị trí vật lý chỉ từ keyword `int`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| int / long | số nguyên miền khác nhau | chọn theo cận dữ liệu, không theo tên nghiệp vụ |
+| decimal | số thập phân, vẫn có giới hạn | hợp tiền khi có quy tắc làm tròn rõ |
+| string | text chưa được kiểm tra | cần parse rồi validate trước tính |
+
+### Misconception check
+
+**Đúng hay sai?** TryParse thành công cho quantity = 13 nghĩa đơn hợp lệ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vượt tồn kho 12.
+
+</details>
+
+**Đúng hay sai?** decimal có thể biểu diễn mọi số với độ chính xác vô hạn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vẫn có miền, độ chính xác và rounding hữu hạn.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đọc kiểu và input.
+
+- **Working Developer — dùng khi làm việc:** biên số, culture và rounding.
+
+- **Deep Dive — có thể quay lại sau:** conversion và precision khi bài toán đòi hỏi.
 
 ### Nhóm type dựng sẵn
 
@@ -312,7 +393,17 @@ Integral overflow runtime thường wrap trong unchecked context. Dùng `checked
 
 Đó là shortcut sai. Storage phụ thuộc local, field, array, boxing, capture và tối ưu JIT. Bài 05 sẽ vẽ từng trường hợp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng byte cho mọi số nhỏ chỉ để tiết kiệm một vài byte trong local. Không dùng double cho tiền rồi sửa sai bằng format N0; format không thay quy tắc tính.
+
+## 8. Production notes & scale check
+
+Demo giới hạn input trước phép nhân nên tổng nằm trong miền decimal. Giữ culture parse ổn định, còn UI format cần policy riêng. Gate thử chữ, số 0, vượt kho, giá âm và vượt trần; chưa phải parser tiền cho mọi quốc gia.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tính hóa đơn có VAT
 
@@ -344,7 +435,23 @@ Nhận tuổi dưới dạng `string`; text rỗng được ánh xạ thành `in
 
 **Gợi ý:** tách ba trạng thái: không có dữ liệu, dữ liệu hợp lệ, dữ liệu sai; không dùng `0` thay `null`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu kiểm tra overflow C ở Module 01 với long/decimal tại đây. Viết ba cận nghiệp vụ và chỉ ra cận nào do kiểu kiểm soát, cận nào do ứng dụng.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Parse khác validate thế nào?
+2. Vì sao points cần long trước phép nhân?
+3. Rounding khác định dạng in ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi chọn được `int`, `long`, `double` hoặc `decimal` và giải thích lý do.
 - [ ] Tôi phân biệt `var`, explicit type và `const`.

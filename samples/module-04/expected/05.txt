@@ -1,0 +1,12 @@
+Value assignment: first=(10, 20), second=(99, 20)
+Reference assignment: primary=70, alias=70
+Two new objects are identical references: False
+After value parameter: first=(10, 20)
+After object mutation: primary=60
+After local reassignment: primary=60
+Inline field: first=(10, 20), basket.DropOff=(30, 20)
+Value array: first=(10, 20), points[0]=(42, 20)
+Reference array aliases H1: primary=55
+After boxing: first=(777, 20)
+Value in box: (10, 20)
+Unboxed copy: (888, 20)
