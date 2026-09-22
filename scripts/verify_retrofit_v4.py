@@ -14,7 +14,8 @@ from urllib.parse import unquote
 ROOT=Path(__file__).resolve().parents[1]
 ROADMAP=ROOT/'fullstack-roadmap'
 ACTIVE={'01': ('01-nen-tang-lap-trinh',15,[(1,5),(6,10),(11,15)]),
-        '02': ('02-c-chuyen-sau',15,[(1,5),(6,10),(11,15)])}
+        '02': ('02-c-chuyen-sau',15,[(1,5),(6,10),(11,15)]),
+        '03': ('03-cpp',14,[(1,5),(6,10),(11,14)])}
 FENCE=re.compile(r'^(```|~~~)[^\n]*\n.*?^\1\s*$',re.M|re.S)
 SECTIONS=['Mục tiêu','Bài toán mở đầu','Lời giải chạy được','Cơ chế hoạt động','Kiến thức nền và prerequisites','Lỗi thường gặp','Khi nào KHÔNG dùng','Production notes & scale check','Bài tập kỹ thuật','Bài tập tích hợp liên module — Judgment','Retrieval practice','Checklist tự đánh giá & điều hướng']
 
@@ -43,6 +44,8 @@ def slug(value):
 
 def check_links(path,text):
     clean=FENCE.sub('',text)
+    # Inline code can contain lambda syntax [capture](parameters), not a link.
+    clean=re.sub(r'(`+)(?!`).*?(?<!`)\1(?!`)', '', clean)
     for raw in re.findall(r'\[[^\]]+\]\(([^)]+)\)',clean):
         if re.match(r'^(https?:|mailto:)',raw):
             continue

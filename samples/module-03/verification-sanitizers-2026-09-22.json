@@ -1,0 +1,136 @@
+{
+  "date": "2026-09-22",
+  "compiler": "c++ (GCC) 16.2.1 20260810",
+  "sanitize": true,
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/03-cpp/01-tu-c-sang-cpp20.md",
+      "source_sha256": "5e74a8253e00c7932705d6062b4db1a06b22915ffa42d23178291a5cc4de7c4f",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "invalid invoice domain, parse and EOF reject with exit 1"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/02-reference-const-va-vong-doi-doi-tuong.md",
+      "source_sha256": "8433d8a9b29a781a3079ae4e4b69b18a42c94adac09716a94e7ee19755dc25d5",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/03-class-object-encapsulation.md",
+      "source_sha256": "1a5e761bcc02a1c732bda256e83b1a3ce531af1a916da00b751b33234504b2a2",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/04-constructor-destructor-va-bo-nho.md",
+      "source_sha256": "4a02504a4b77a65d716c7f4992777bd061e5dd18fc81aede468034aeee1f0721",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/05-copy-move-rule-of-zero-five.md",
+      "source_sha256": "77ced07501477d1e4dbece715e3dc89ce53e77237b0cd29fb67c85b95599d95e",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/06-ke-thua-va-da-hinh.md",
+      "source_sha256": "07c1cec9c2762f0f3d352b059b151a8ad223fbffc0b29818d57200835cb11f0d",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/07-abstract-class-va-interface-trong-cpp.md",
+      "source_sha256": "67c1e059c9ed6b8738b3da43b9821359774492a1e3486f5826a8182d7b947d4d",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/08-template-va-generic-programming.md",
+      "source_sha256": "920ee4da4f85282210b35c1ae99b112b7fb2e8e37841614395867183acb4afc7",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts",
+        "compile rejection: zero capacity and nonnumeric clamp"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/09-stl-container.md",
+      "source_sha256": "70db907a46eedc1eec13e3f142f2e8900b8434602476b48b00012078a9415636",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/10-iterator-algorithm-va-lambda.md",
+      "source_sha256": "d5b8d45b52f003773ef20851abb804a63d00d37fc032744c402e30cef9ca0b8e",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/11-exception-va-raii.md",
+      "source_sha256": "5db1833c24e735c4eb64ed1595f21b8b231307b23718f07048f7f5edb77fc17a",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "exact report file content after cleanup/close",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/12-smart-pointer-va-quyen-so-huu.md",
+      "source_sha256": "a522f82cb1a3e46adc64a1718be99ea942c5d7a5ffd089ce0efe6e2081d7345d",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/13-move-semantics-va-perfect-forwarding.md",
+      "source_sha256": "7e7f6238564a94766e28c8be7e182bb3f0b07f769c8a9dbdd84532eaead297ef",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "boundary, ownership and failure-state contracts"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/03-cpp/14-du-an-cpp-quan-ly-thu-vien.md",
+      "source_sha256": "9ef0a467c80abeea9acb47f043205bfc614a185bbdcc688b6832e96665aa3ffa",
+      "checks": [
+        "published primary program exact stdout, empty stderr, exit 0",
+        "exact report file content after cleanup/close",
+        "boundary, ownership and failure-state contracts"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/03-cpp/failure-labs/01-copy-raw-owner.md",
+      "source_sha256": "2955d8a550dc8eb267f25f4b15df16346458eca5e3ebd5187054c8b94a634406",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/03-cpp/failure-labs/02-vector-invalidation.md",
+      "source_sha256": "a3527d1f5f85c1e92bc88e9eec89915b56efa7b74a27e1418e6bb37dbca9933f",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/03-cpp/failure-labs/03-raii-khong-rollback.md",
+      "source_sha256": "3f414fca2fcccedd488e81cdcef33e2f742e6ff3376d0f0ad9e9e0c6c10eca39",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

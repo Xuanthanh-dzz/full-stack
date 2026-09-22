@@ -1,5 +1,19 @@
 # Kế thừa và đa hình
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Kế thừa public cho phép dùng derived qua contract base; virtual chọn hành vi theo object thật.
+- Dùng khi caller cần thay thế các implementation cùng contract lúc chạy.
+- Truyền base theo value có thể slicing; kế thừa không chỉ để dùng lại vài dòng.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,16 +26,36 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Cùng yêu cầu “tính phí”, giao thường và giao nhanh có câu trả lời khác. Caller đưa yêu cầu qua một contract chung, còn object thật chọn quy tắc. Không cần biến mọi khác biệt thành một cây kế thừa.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| base/derived | kiểu nền và kiểu mở rộng giữ contract nền | Delivery/ExpressDelivery |
+| virtual dispatch | chọn implementation theo object lúc chạy | fee qua Delivery& |
+| static type | kiểu compiler thấy ở declaration | const Delivery& |
+| dynamic type | kiểu object thật đang được truy cập | ExpressDelivery |
+| slicing | copy chỉ phần base vào object base mới | Delivery sliced = express |
+
+### Ví dụ nhỏ — tính tay trước
+
+Subtotal 600000: Delivery thường trả 0, Express trả 60000. Cùng hàm print_quote nhận base reference nhưng gọi đúng fee của object được đưa vào.
+
 Hệ thống giao hàng có hai cách tính phí:
 
 - giao tiêu chuẩn: `30000` VND, miễn phí từ `500000` VND;
 - giao hỏa tốc: luôn `60000` VND.
 
-Code in hóa đơn không nên có chuỗi `if` kiểm tra từng loại giao hàng. Nó chỉ cần yêu cầu “hãy tính phí cho subtotal này”, còn mỗi loại tự thực hiện quy tắc của mình.
+Để học cách thay implementation qua một contract chung, phiên bản này tách việc chọn loại giao hàng khỏi code in hóa đơn. Với chỉ hai quy tắc ổn định, một `if` đơn giản vẫn có thể đủ. Nó chỉ cần yêu cầu “hãy tính phí cho subtotal này”, còn mỗi loại tự thực hiện quy tắc của mình.
 
 Ta sẽ bắt đầu bằng một base class có implementation mặc định. Pure virtual function và interface được dành cho bài tiếp theo.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```cpp
 #include <iostream>
@@ -104,7 +138,20 @@ Express for 600000: 60000 VND
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main dựng standard và express; express chứa một Delivery base subobject.
+2. print_quote mượn const Delivery&; name dùng state base, fee là virtual.
+3. Hai lời gọi standard cho 30000 rồi 0; express cho 60000 dù parameter là base reference.
+4. Object sống trong main; không có allocation bắt buộc riêng cho đa hình trong sample. Dispatch thường có gián tiếp nhưng có thể được tối ưu; phép tính phí cost cố định.
+
+### Mini-check
+
+Thay const Delivery& thành Delivery ở print_quote làm output express đổi thế nào? Đây là đổi performance hay đổi semantics?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Public inheritance biểu diễn quan hệ “là một”
 
@@ -170,7 +217,45 @@ delivery trỏ base part của Express   -> ExpressDelivery::fee
 
 Các object trong primary sample có automatic storage duration, nhưng `Delivery` là polymorphic base. Nếu sau này một `Delivery*` sở hữu địa chỉ của derived object cấp phát động và code gọi `delete delivery`, base destructor phải virtual để destructor derived chạy đúng. Quy tắc an toàn: base class dùng đa hình và cho phép xóa qua base phải có public virtual destructor, hoặc phải cấm việc xóa đó bằng thiết kế khác. [Bài 12](./12-smart-pointer-va-quyen-so-huu.md) sẽ thay owning raw pointer bằng smart pointer; đoạn này chỉ giải thích contract destructor.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| if/switch | caller chọn nhánh đã biết | đủ vài quy tắc ổn định; dễ thấy toàn bộ logic |
+| virtual qua reference | object thật cung cấp hành vi | hợp thay thế runtime; thêm contract/lifetime |
+| composition | object chứa hoặc mượn bộ phận để ủy quyền | hợp quan hệ có-một; không ép quan hệ là-một |
+
+### Misconception check
+
+**Đúng hay sai?** Truyền express vào Delivery theo value vẫn giữ dynamic type Express.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tạo object Delivery mới chỉ từ phần base.
+
+</details>
+
+**Đúng hay sai?** Compiler buộc mọi virtual dùng vtable có layout cố định.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chuẩn quy định hành vi; representation và tối ưu là chi tiết implementation.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace static/dynamic type.
+
+- **Working Developer — dùng khi làm việc:** giữ contract và virtual destructor.
+
+- **Deep Dive — có thể quay lại sau:** dispatch implementation và devirtualization.
 
 ### Static type và dynamic type
 
@@ -228,7 +313,17 @@ Nếu derived không thay thế base đúng nghĩa, hierarchy sẽ vi phạm con
 
 Trong quá trình base constructor/destructor chạy, phần derived chưa tồn tại hoặc đã bị hủy. Virtual call không dispatch như khi object hoàn chỉnh. Tránh thiết kế dựa vào virtual call ở đây.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm inheritance cho hai công thức nếu một if đơn giản đã đủ và không cần thay implementation độc lập. Không kế thừa để lấy state khi derived không thể giữ contract base; chọn member và ủy quyền.
+
+## 8. Production notes & scale check
+
+Demo hai object chỉ để thấy dispatch. Nếu cho phép delete qua base, destructor phải có contract phù hợp, ở đây public virtual. Test ngưỡng 499999/500000, lời gọi qua base và slicing có chủ đích; không suy chi phí từ số keyword virtual.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Giao trong ngày
 
@@ -254,7 +349,23 @@ Thiết kế `Checkout` chứa reference đến `Delivery` và dùng nó để t
 
 **Gợi ý:** account lifetime: `Delivery` phải sống lâu hơn `Checkout` nếu lưu reference.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu callback C Module 02 với virtual fee: nơi giữ policy/state và cách gọi khác nhau thế nào? Chọn cho hai policy không state, nêu driver cần object có state trước khi thêm hierarchy.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Base subobject có phải object hoàn chỉnh thứ hai không?
+2. override bắt lỗi gì khi quên const?
+3. Slicing khác borrow base reference thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

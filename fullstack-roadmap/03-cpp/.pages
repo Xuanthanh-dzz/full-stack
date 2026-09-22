@@ -1,1 +1,4 @@
-title: C++20
+title: C++
+nav:
+  - index.md
+  - ...
