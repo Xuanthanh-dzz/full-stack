@@ -21,6 +21,27 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Ba nhóm thao tác trong bài giải ba vấn đề độc lập:
+
+- ordering: **thứ tự nào trước?**
+- partitioning: **lấy đoạn nào của sequence?**
+- distinct: **phần tử nào được coi là trùng?**
+
+Với pagination, thứ tự không chỉ để đẹp. Nó là một phần của correctness. Nếu hai row có cùng `OrderedAt` mà bạn không có tiebreaker, page 1 và page 2 có thể chồng/lọt row.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| primary sort key | khóa sort chính |
+| tiebreaker | khóa phụ để phá hòa |
+| deterministic order | cùng dữ liệu → thứ tự ổn định |
+| offset pagination | bỏ N row rồi lấy M row |
+| keyset/cursor pagination | lấy tiếp từ khóa cuối của page trước |
+| duplicate | hai phần tử được coi là bằng theo equality/key |
+
 API order list cần sort theo `OrderedAt DESC` và phân trang. Nhiều order có cùng timestamp đến giây, nên chỉ sort theo thời gian chưa đủ ổn định.
 
 ## 3. Lời giải chạy được
@@ -60,7 +81,60 @@ Expected:
 Paid,Pending
 ~~~
 
+### Walkthrough pagination
+
+Giả sử order theo `(OrderedAt DESC, Id DESC)` là:
+
+~~~text
+(10:00, 4)
+(10:00, 3)
+(10:00, 2)
+(10:00, 1)
+(09:00, 8)
+(09:00, 7)
+...
+~~~
+
+`Skip(2).Take(3)` nghĩa là:
+
+~~~text
+bỏ 4,3
+→ lấy 2,1,8
+~~~
+
+Nếu chỉ sort theo `OrderedAt`, bốn row 10:00 không có thứ tự đảm bảo. Vì vậy `Id` được dùng làm tiebreaker.
+
 ## 4. Cơ chế hoạt động
+
+### Offset và keyset khác nhau thế nào?
+
+| Tiêu chí | Offset (`Skip/Take`) | Keyset/cursor |
+|---|---|---|
+| API đơn giản | rất dễ | phức tạp hơn |
+| Nhảy tới page bất kỳ | tốt | không tự nhiên |
+| Page rất sâu | thường đắt hơn | thường ổn định hơn |
+| Dữ liệu thay đổi giữa page | dễ trượt/duplicate | thường ổn hơn nếu cursor đúng |
+| Index cần | vẫn cần | cực kỳ quan trọng |
+
+### Vì sao `Distinct` không nên là băng dính?
+
+Nếu join condition sai làm mỗi order lặp 5 lần, thêm `Distinct()` có thể làm output “đẹp lại” nhưng root cause vẫn còn. Database vẫn tạo/di chuyển các row dư trước khi distinct.
+
+### Misconception check
+
+**Đúng hay sai?** Có `Take(20)` thì không cần `OrderBy`.
+
+**Đáp án:** Sai nếu bạn cần page có ý nghĩa/ổn định. Không order, “20 row đầu” không có business ordering đáng tin.
+
+**Đúng hay sai?** Hai `OrderBy` liên tiếp tương đương `OrderBy(...).ThenBy(...)`.
+
+**Đáp án:** Sai. `OrderBy` thứ hai bắt đầu ordering mới.
+
+### Mini-check
+
+Nếu sort key chính không unique, bạn cần thêm gì để pagination deterministic?
+
+Đáp án: một tiebreaker ổn định, thường là unique key.
 
 `OrderBy` tạo primary ordering; `ThenBy` nối secondary key. Gọi `OrderBy` lần nữa sẽ bắt đầu ordering mới và bỏ ý nghĩa key trước.
 
@@ -69,6 +143,14 @@ Paid,Pending
 `Distinct` dùng equality của phần tử; `DistinctBy(keySelector)` dùng key. Trên provider database, support/translation phụ thuộc provider và version.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** `OrderBy/ThenBy`, `Skip/Take`, `Distinct`.
+
+**Working developer:** deterministic pagination, page-size limit, chọn offset vs keyset.
+
+**Deep dive:** execution plan, seek predicate và composite index sẽ quyết định cost thật.
 
 Module 08 đã giới thiệu deterministic order và keyset pagination. Ở đây bạn cần nhận ra LINQ chỉ là expression layer; cost cuối cùng vẫn nằm ở data source.
 
