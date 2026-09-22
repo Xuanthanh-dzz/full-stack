@@ -1,6 +1,6 @@
 # Full-stack Roadmap: từ số 0 đến Software Architect
 
-Đây là bộ tài liệu tự học bằng tiếng Việt, lấy C làm nền tảng tư duy và mô hình bộ nhớ, C#/.NET làm công nghệ đi làm chính, C++ ở mức đủ sâu để hiểu OOP, STL, RAII và ownership. Tuyến học đi tiếp qua SQL, LINQ, Entity Framework Core, web, React, kiểm thử, DevOps, kiến trúc phần mềm và thiết kế hệ thống.
+Đây là bộ tài liệu tự học bằng tiếng Việt, lấy C làm nền tảng tư duy và mô hình bộ nhớ, C#/.NET làm công nghệ đi làm chính, C++ ở mức đủ sâu để hiểu OOP, STL, RAII và ownership. Tuyến học đi tiếp qua SQL, LINQ, Entity Framework Core, web, React hoặc Angular, kiểm thử, DevOps, kiến trúc phần mềm và thiết kế hệ thống.
 
 > Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ module `01`–`07`: 15 bài C nền tảng, 15 bài C chuyên sâu, 14 bài C++20, 16 bài C# cơ bản, 19 bài C# nâng cao, 14 bài OOP/thiết kế và 19 bài cấu trúc dữ liệu & giải thuật. Module `00` hiện mới có roadmap; các bài hướng dẫn môi trường vẫn chờ biên soạn**.
 
@@ -17,7 +17,7 @@
 - .NET: project target `net9.0`; bài học sẽ pin rõ SDK, compiler và package để code có thể tái tạo được.
 - C#: từ cú pháp cơ bản đến generics, async/await, reflection, nullable, `Span<T>` và các tính năng ngôn ngữ mới phù hợp với target.
 - Dữ liệu: SQL chuyên sâu, thiết kế cơ sở dữ liệu, LINQ và Entity Framework Core.
-- Full-stack: ASP.NET Core, HTTP/API/security, HTML/CSS, JavaScript, TypeScript và React.
+- Full-stack: ASP.NET Core, HTTP/API/security, HTML/CSS, JavaScript, TypeScript; frontend có hai nhánh lựa chọn **React hoặc Angular**.
 - Production: testing, Docker, CI/CD, Redis, gRPC, SignalR, message broker, cloud, Kubernetes và observability.
 - Senior/Architect: design pattern, DDD, CQRS, event-driven architecture, microservices, system design, ADR, C4/UML và phân tích trade-off.
 
@@ -39,7 +39,7 @@ Phiên bản patch/minor và dependency cụ thể sẽ được khóa trong bà
 | `09-linq-va-ef-core` | LINQ và Entity Framework Core chuyên sâu |
 | `10-web-nen-tang` | HTTP, REST, identity và web security |
 | `11-aspnet-core-backend` | Backend với ASP.NET Core |
-| `12-frontend` | HTML/CSS, JavaScript, TypeScript và React |
+| `12-frontend` | HTML/CSS, JavaScript, TypeScript; chọn React hoặc Angular |
 | `13-fullstack-tich-hop` | Tích hợp frontend–backend end-to-end |
 | `14-testing-chat-luong` | Testing, TDD và quality engineering |
 | `15-devops-trien-khai` | Git nâng cao, Docker, CI/CD và vận hành |
