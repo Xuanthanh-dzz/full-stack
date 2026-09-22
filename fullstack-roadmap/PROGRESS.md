@@ -4,10 +4,10 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 01–08 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `08-sql-va-csdl` đạt `25 / 25` bài; GitHub Actions đã kiểm tra đủ tám phần, cross-link nội bộ, chạy toàn bộ SQL sample trên SQL Server 2025 và build MkDocs thành công.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `140 / 421` file hoàn thành (`33,3%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–09 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `09-linq-va-ef-core` đạt `24 / 24` bài; GitHub Actions đã kiểm tra Lesson Authoring Standard v2, compile 10 sample LINQ độc lập, build/test EF Core 10, generate/apply migration, chạy SQL Server 2025 smoke test và build MkDocs thành công.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `10-web-nen-tang/01-internet-dns-tcp-tls-va-trinh-duyet.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `164 / 421` file hoàn thành (`39,0%`).
 
 ## Quy ước checkbox
 
@@ -221,30 +221,30 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 09-linq-va-ef-core
 
-- [ ] `09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md`
-- [ ] `09-linq-va-ef-core/02-where-select-va-selectmany.md`
-- [ ] `09-linq-va-ef-core/03-ordering-partitioning-va-distinct.md`
-- [ ] `09-linq-va-ef-core/04-aggregate-groupby-va-tolookup.md`
-- [ ] `09-linq-va-ef-core/05-join-va-groupjoin.md`
-- [ ] `09-linq-va-ef-core/06-deferred-execution-va-materialization.md`
-- [ ] `09-linq-va-ef-core/07-ienumerable-va-iqueryable.md`
-- [ ] `09-linq-va-ef-core/08-expression-tree-query-provider-va-sql-translation.md`
-- [ ] `09-linq-va-ef-core/09-composition-va-dynamic-query.md`
-- [ ] `09-linq-va-ef-core/10-loi-linq-va-toi-uu.md`
-- [ ] `09-linq-va-ef-core/11-ef-core-10-dbcontext-va-entity.md`
-- [ ] `09-linq-va-ef-core/12-convention-data-annotation-va-fluent-api.md`
-- [ ] `09-linq-va-ef-core/13-migration-code-first-va-seeding.md`
-- [ ] `09-linq-va-ef-core/14-crud-change-tracking-va-unit-of-work.md`
-- [ ] `09-linq-va-ef-core/15-quan-he-one-to-one-one-to-many-many-to-many.md`
-- [ ] `09-linq-va-ef-core/16-eager-explicit-va-lazy-loading.md`
-- [ ] `09-linq-va-ef-core/17-n-plus-one-projection-va-split-query.md`
-- [ ] `09-linq-va-ef-core/18-transaction-va-concurrency-token.md`
-- [ ] `09-linq-va-ef-core/19-global-query-filter-va-interceptor.md`
-- [ ] `09-linq-va-ef-core/20-raw-sql-va-stored-procedure.md`
-- [ ] `09-linq-va-ef-core/21-performance-no-tracking-compiled-query-bulk-update.md`
-- [ ] `09-linq-va-ef-core/22-testing-ef-core-voi-sqlite-va-testcontainers.md`
-- [ ] `09-linq-va-ef-core/23-repository-pattern-co-nen-dung.md`
-- [ ] `09-linq-va-ef-core/24-du-an-data-access-cho-web-api.md`
+- [x] `09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md`
+- [x] `09-linq-va-ef-core/02-where-select-va-selectmany.md`
+- [x] `09-linq-va-ef-core/03-ordering-partitioning-va-distinct.md`
+- [x] `09-linq-va-ef-core/04-aggregate-groupby-va-tolookup.md`
+- [x] `09-linq-va-ef-core/05-join-va-groupjoin.md`
+- [x] `09-linq-va-ef-core/06-deferred-execution-va-materialization.md`
+- [x] `09-linq-va-ef-core/07-ienumerable-va-iqueryable.md`
+- [x] `09-linq-va-ef-core/08-expression-tree-query-provider-va-sql-translation.md`
+- [x] `09-linq-va-ef-core/09-composition-va-dynamic-query.md`
+- [x] `09-linq-va-ef-core/10-loi-linq-va-toi-uu.md`
+- [x] `09-linq-va-ef-core/11-ef-core-10-dbcontext-va-entity.md`
+- [x] `09-linq-va-ef-core/12-convention-data-annotation-va-fluent-api.md`
+- [x] `09-linq-va-ef-core/13-migration-code-first-va-seeding.md`
+- [x] `09-linq-va-ef-core/14-crud-change-tracking-va-unit-of-work.md`
+- [x] `09-linq-va-ef-core/15-quan-he-one-to-one-one-to-many-many-to-many.md`
+- [x] `09-linq-va-ef-core/16-eager-explicit-va-lazy-loading.md`
+- [x] `09-linq-va-ef-core/17-n-plus-one-projection-va-split-query.md`
+- [x] `09-linq-va-ef-core/18-transaction-va-concurrency-token.md`
+- [x] `09-linq-va-ef-core/19-global-query-filter-va-interceptor.md`
+- [x] `09-linq-va-ef-core/20-raw-sql-va-stored-procedure.md`
+- [x] `09-linq-va-ef-core/21-performance-no-tracking-compiled-query-bulk-update.md`
+- [x] `09-linq-va-ef-core/22-testing-ef-core-voi-sqlite-va-testcontainers.md`
+- [x] `09-linq-va-ef-core/23-repository-pattern-co-nen-dung.md`
+- [x] `09-linq-va-ef-core/24-du-an-data-access-cho-web-api.md`
 
 ## 10-web-nen-tang
 
@@ -553,6 +553,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-09-22`: hoàn thành module `09-linq-va-ef-core` (`24/24` bài) theo Lesson Authoring Standard v2; baseline .NET 10/C# 14/EF Core 10.0.12/SQL Server 2025; thêm Entry/Exit test, rubric, TL;DR, mục `Khi nào KHÔNG dùng`, scale notes, bài judgment liên module, retrieval practice, sample CommerceLab Data Access và CI migration/provider-real smoke test.
 - `2026-09-22`: hoàn thành toàn bộ module `08-sql-va-csdl` (`25/25` bài); verifier chạy từng lab trên SQL Server 2025 trong Docker, kiểm tra cấu trúc tám phần/cross-link và build toàn bộ MkDocs; capstone cuối module là CSDL thương mại điện tử có schema, constraint, index, transaction, security, backup/migration và query tuning.
 - `2026-09-22`: mở rộng module `12-frontend` thành hai lựa chọn song song React/Angular sau 12 bài nền tảng HTML/CSS/JavaScript/TypeScript; Module 13 chấp nhận framework đã chọn. Tổng manifest tăng từ `410` lên `421` file.
 - `2026-09-21`: hoàn thành toàn bộ module `07-cau-truc-du-lieu-giai-thuat` (`19/19` bài); bổ sung CI kiểm tra cấu trúc tám phần, cross-link, build warnings-as-errors và run toàn bộ sample .NET 9; project cuối module là Route Engine dùng weighted graph, priority queue và Dijkstra.
