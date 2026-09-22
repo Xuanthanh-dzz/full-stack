@@ -128,9 +128,9 @@ graph LR
 
 ### 📦 Các Module Đang Biên Soạn
 
+<!-- AUTO_PLANNING_ROWS_START -->
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
-<!-- AUTO_PLANNING_ROWS_START -->
 | **07** | Cấu trúc dữ liệu & Giải thuật | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |

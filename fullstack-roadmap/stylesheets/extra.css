@@ -151,43 +151,43 @@ html {
   border: 1px solid var(--fs-card-border);
 }
 
-/* --- Typography & Reading Experience --- */
+/* --- Typography & Reading Experience (Giảm 15% theo yêu cầu để vừa vặn, tinh tế) --- */
 .md-typeset {
-  font-size: 1.05rem;
-  line-height: 1.8;
+  font-size: 0.925rem;
+  line-height: 1.72;
   color: var(--fs-text);
 }
 
 .md-typeset h1 {
-  font-size: 2.5rem;
+  font-size: 2.15rem;
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.025em;
   color: var(--fs-heading);
   margin-top: 0.5rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.15rem;
 }
 
 .md-typeset h2 {
-  font-size: 1.65rem;
+  font-size: 1.4rem;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.015em;
   color: var(--fs-heading);
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-top: 2.2rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--fs-border);
 }
 
 .md-typeset h3 {
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: -0.01em;
   color: var(--fs-heading);
-  margin-top: 1.8rem;
-  margin-bottom: 0.6rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.55rem;
 }
 
 .md-typeset p,
@@ -247,9 +247,9 @@ html {
 /* --- Inline Code & Code Blocks --- */
 .md-typeset :not(pre) > code {
   font-family: var(--md-font-code);
-  font-size: 0.95em;
+  font-size: 0.875em;
   font-weight: 600;
-  padding: 0.22em 0.55em;
+  padding: 0.18em 0.48em;
   border-radius: 6px;
   background: #f1f5f9;
   color: #0f172a;
@@ -264,28 +264,28 @@ html {
 }
 
 .md-typeset pre {
-  margin: 1.75rem 0;
+  margin: 1.5rem 0;
 }
 
 .highlight {
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid #cbd5e1;
   background-color: #f8fafc;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
 [data-md-color-scheme="slate"] .highlight {
   border: 1px solid rgba(51, 65, 85, 0.7);
   background-color: #0f172a;
-  box-shadow: 0 6px 22px -2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
 }
 
 .md-typeset pre > code {
   font-family: var(--md-font-code);
-  font-size: 1.05rem;
-  line-height: 1.75;
-  padding: 1.35rem 4.5rem 1.35rem 1.5rem;
+  font-size: 0.925rem;
+  line-height: 1.65;
+  padding: 1.15rem 4.5rem 1.15rem 1.25rem;
   background-color: transparent !important;
   border: none !important;
 }
@@ -674,8 +674,14 @@ html {
    Zen Reading Mode & Hamburger Module Navigator (Top-Left Hover Menu)
    ========================================================================== */
 
-/* Full width layout across entire screen - tận dụng 100% không gian màn hình */
+/* Trang chủ giữ nguyên kích thước chuẩn như cũ (centered container cân đối) */
 .md-grid {
+  max-width: 1220px;
+  margin: 0 auto;
+}
+
+/* Full màn hình 100% CHỈ kích hoạt khi vào học bài (Zen Mode) */
+body.zen-mode .md-grid {
   max-width: 100% !important;
   width: 100% !important;
   margin: 0 !important;
@@ -683,7 +689,7 @@ html {
   padding-right: 2rem !important;
 }
 
-.md-main__inner {
+body.zen-mode .md-main__inner {
   max-width: 100% !important;
   margin-left: 0 !important;
   margin-right: 0 !important;

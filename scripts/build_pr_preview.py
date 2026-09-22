@@ -139,7 +139,10 @@ def render_homepage(index_path: Path, progress_path: Path) -> None:
             f"    [:octicons-arrow-right-24: Học Module {number:02d}]({first})\n"
         )
 
-    planning_rows: list[str] = []
+    planning_rows: list[str] = [
+        "| Module | Chủ đề chính | Trạng thái |",
+        "|---|---|---|",
+    ]
     for numbers, label, topic in PLANNING_GROUPS:
         known = [modules[number] for number in numbers if number in modules]
         if known and len(known) == len(numbers) and all(bool(module["done"]) for module in known):
