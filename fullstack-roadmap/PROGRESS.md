@@ -231,7 +231,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [ ] `09-linq-va-ef-core/08-expression-tree-query-provider-va-sql-translation.md`
 - [ ] `09-linq-va-ef-core/09-composition-va-dynamic-query.md`
 - [ ] `09-linq-va-ef-core/10-loi-linq-va-toi-uu.md`
-- [ ] `09-linq-va-ef-core/11-ef-core-9-dbcontext-va-entity.md`
+- [ ] `09-linq-va-ef-core/11-ef-core-10-dbcontext-va-entity.md`
 - [ ] `09-linq-va-ef-core/12-convention-data-annotation-va-fluent-api.md`
 - [ ] `09-linq-va-ef-core/13-migration-code-first-va-seeding.md`
 - [ ] `09-linq-va-ef-core/14-crud-change-tracking-va-unit-of-work.md`
