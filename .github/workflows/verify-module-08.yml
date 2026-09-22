@@ -1,0 +1,85 @@
+name: Verify Module 08
+
+on:
+  push:
+    paths:
+      - "fullstack-roadmap/08-sql-va-csdl/**"
+      - "fullstack-roadmap/PROGRESS.md"
+      - "fullstack-roadmap/README.md"
+      - "fullstack-roadmap/index.md"
+      - "scripts/verify_module_08.py"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - ".github/workflows/verify-module-08.yml"
+  pull_request:
+    paths:
+      - "fullstack-roadmap/08-sql-va-csdl/**"
+      - "fullstack-roadmap/PROGRESS.md"
+      - "fullstack-roadmap/README.md"
+      - "fullstack-roadmap/index.md"
+      - "scripts/verify_module_08.py"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - ".github/workflows/verify-module-08.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      MODULE08_SA_PASSWORD: "SqlLab!2026Strong"
+      MODULE08_SQL_CONTAINER: "module08-sql"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Start SQL Server 2025
+        run: |
+          docker pull mcr.microsoft.com/mssql/server:2025-latest
+          docker run \
+            -e "ACCEPT_EULA=Y" \
+            -e "MSSQL_SA_PASSWORD=$MODULE08_SA_PASSWORD" \
+            --name "$MODULE08_SQL_CONTAINER" \
+            -p 1433:1433 \
+            -d mcr.microsoft.com/mssql/server:2025-latest
+
+      - name: Wait for SQL Server
+        run: |
+          for i in $(seq 1 60); do
+            if docker exec "$MODULE08_SQL_CONTAINER" \
+              /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost \
+              -U sa \
+              -P "$MODULE08_SA_PASSWORD" \
+              -C \
+              -b \
+              -Q "SELECT 1" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs "$MODULE08_SQL_CONTAINER"
+          exit 1
+
+      - name: Verify all SQL lessons
+        run: python scripts/verify_module_08.py
+
+      - name: Install documentation dependencies
+        run: pip install -r requirements-docs.txt
+
+      - name: Build MkDocs site
+        run: mkdocs build
+
+      - name: Show SQL Server logs on failure
+        if: failure()
+        run: docker logs "$MODULE08_SQL_CONTAINER"
