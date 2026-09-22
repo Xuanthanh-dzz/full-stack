@@ -153,13 +153,13 @@ html {
 
 /* --- Typography & Reading Experience --- */
 .md-typeset {
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-size: 1.05rem;
+  line-height: 1.8;
   color: var(--fs-text);
 }
 
 .md-typeset h1 {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.025em;
@@ -169,7 +169,7 @@ html {
 }
 
 .md-typeset h2 {
-  font-size: 1.45rem;
+  font-size: 1.65rem;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.015em;
@@ -181,7 +181,7 @@ html {
 }
 
 .md-typeset h3 {
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: -0.01em;
@@ -247,9 +247,9 @@ html {
 /* --- Inline Code & Code Blocks --- */
 .md-typeset :not(pre) > code {
   font-family: var(--md-font-code);
-  font-size: 0.9em;
+  font-size: 0.95em;
   font-weight: 600;
-  padding: 0.2em 0.5em;
+  padding: 0.22em 0.55em;
   border-radius: 6px;
   background: #f1f5f9;
   color: #0f172a;
@@ -264,28 +264,28 @@ html {
 }
 
 .md-typeset pre {
-  margin: 1.5rem 0;
+  margin: 1.75rem 0;
 }
 
 .highlight {
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid #cbd5e1;
   background-color: #f8fafc;
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.07);
   overflow: hidden;
 }
 
 [data-md-color-scheme="slate"] .highlight {
   border: 1px solid rgba(51, 65, 85, 0.7);
   background-color: #0f172a;
-  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 22px -2px rgba(0, 0, 0, 0.45);
 }
 
 .md-typeset pre > code {
   font-family: var(--md-font-code);
-  font-size: 0.925rem;
-  line-height: 1.7;
-  padding: 1.15rem 4.5rem 1.15rem 1.25rem;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  padding: 1.35rem 4.5rem 1.35rem 1.5rem;
   background-color: transparent !important;
   border: none !important;
 }
@@ -674,14 +674,21 @@ html {
    Zen Reading Mode & Hamburger Module Navigator (Top-Left Hover Menu)
    ========================================================================== */
 
-/* Expand layout width to fully utilize widescreen and eliminate excessive margins */
+/* Full width layout across entire screen - tận dụng 100% không gian màn hình */
 .md-grid {
-  max-width: 1560px !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
 }
 
 .md-main__inner {
-  margin-left: auto !important;
-  margin-right: auto !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
 }
 
 /* Hide bulky header & tabs during lesson reading */
