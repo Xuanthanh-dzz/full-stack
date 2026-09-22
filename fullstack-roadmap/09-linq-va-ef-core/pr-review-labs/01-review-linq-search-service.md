@@ -4,7 +4,7 @@ Bạn là reviewer. Không sửa code trước; hãy review như PR thật.
 
 ## Diff
 
-Source diff: [`samples/module-09/pr-review-labs/01-order-search-service.diff`](../../../samples/module-09/pr-review-labs/01-order-search-service.diff).
+Source diff: [`01-order-search-service.diff`](./diffs/01-order-search-service.diff).
 
 ~~~diff
 diff --git a/OrderSearchService.cs b/OrderSearchService.cs
