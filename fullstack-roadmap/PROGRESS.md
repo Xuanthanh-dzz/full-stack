@@ -27,7 +27,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 | C# | Dùng compiler đã pin và các tính năng ngôn ngữ mới tương thích với target; nêu rõ `LangVersion` khi không dùng mặc định |
 | ASP.NET Core / EF Core | Major version 9; pin package patch version trong project |
 | Database chính | SQL Server; ghi chú khác biệt PostgreSQL khi điều đó giúp hiểu provider/dialect |
-| Frontend | Node.js LTS, TypeScript và React; pin version bằng lockfile khi viết project |
+| Frontend | Node.js LTS, TypeScript; người học chọn React hoặc Angular và pin version bằng lockfile khi viết project |
 | Hạ tầng | Docker làm môi trường tái tạo cục bộ; GitHub Actions và GitLab CI đều có pipeline mẫu |
 
 ## Definition of Done cho một bài học
@@ -546,7 +546,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 |---|---|---|---|
 | A — Người mới | Sau module `03` | `21/02–03` | C nhiều file, file I/O, memory sạch; C++ dùng RAII/STL |
 | B — Data/.NET | Sau module `09` | `04/16`, `08/25`, `09/24`, rồi `21/04` | SQL, migration, transaction, query plan và EF performance |
-| C — Junior | Sau module `14` | `11/23`, `12/25`, `13/12`, rồi `21/05–07` | API + React + auth + validation + test end-to-end |
+| C — Junior | Sau module `14` | `11/23`, `12/22` hoặc `12/32`, `13/12`, rồi `21/05–07` | API + React/Angular + auth + validation + test end-to-end |
 | D — Middle | Sau module `16` | `15/19`, `16/27`, rồi `21/08` | Container, CI/CD, monitoring, rollback và refactor có lý do |
 | E — Senior | Sau module `19` | `17/22`, `19/22`, rồi `21/09` | Broker, Redis, gRPC, idempotency, resilience, tracing và Kubernetes |
 | F — Architect | Sau module `20` | `21/10–11` | Requirement, C4, ADR, threat model, PoC, cost và migration plan |
