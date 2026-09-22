@@ -21,6 +21,28 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Transaction và concurrency token giải **hai bài toán khác nhau**.
+
+- transaction hỏi: “một nhóm thao tác có cùng thành công/thất bại không?”
+- concurrency token hỏi: “dữ liệu có bị người khác sửa kể từ lúc tôi đọc không?”
+
+Hai admin cùng thấy `Pending`. Nếu A đổi thành `Paid` trước, B vẫn cầm bản cũ `Pending`. Token giúp B biết rằng mình đang update trên dữ liệu đã lỗi thời.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| transaction | nhóm thao tác atomic |
+| isolation | mức độ transaction nhìn thấy thay đổi khác |
+| optimistic concurrency | cho phép cùng đọc, phát hiện conflict lúc ghi |
+| concurrency token | version dùng để phát hiện stale write |
+| lost update | update sau ghi đè update trước ngoài ý muốn |
+| affected rows | số row database thực sự update/delete |
+
+Optimistic concurrency không khóa row từ lúc đọc; nó kiểm tra điều kiện khi ghi.
+
 Hai admin cùng mở một Order. A chuyển `Pending → Paid`; B trên màn hình cũ chuyển `Pending → Cancelled`. Nếu blind last-write-wins, thay đổi A có thể bị ghi đè.
 
 ## 3. Lời giải chạy được
@@ -51,7 +73,74 @@ entity.Property(order => order.ConcurrencyToken)
     .IsConcurrencyToken();
 ~~~
 
+### Timeline hai admin
+
+Ban đầu:
+
+~~~text
+Order 42: Status=Pending, Token=T1
+~~~
+
+Admin A:
+
+~~~text
+read → Pending, T1
+UPDATE ...
+WHERE OrderId=42 AND Token=T1
+SET Status=Paid, Token=T2
+→ affected rows = 1
+~~~
+
+Admin B vẫn giữ bản cũ:
+
+~~~text
+read trước đó → Pending, T1
+UPDATE ...
+WHERE OrderId=42 AND Token=T1
+SET Status=Cancelled, Token=T3
+→ affected rows = 0
+~~~
+
+EF thấy 0 row và ném `DbUpdateConcurrencyException`.
+
+Điểm quan trọng: conflict được phát hiện **vì token cũ không còn match**, không phải vì EF biết ý định business của A/B.
+
 ## 4. Cơ chế hoạt động
+
+### Transaction vs concurrency token
+
+| | Transaction | Concurrency token |
+|---|---|---|
+| Mục tiêu | atomicity/consistency trong operation | phát hiện stale write |
+| Thời điểm | trong phạm vi DB work | lúc update/delete |
+| Có ngăn người khác đọc/sửa? | tùy isolation/lock | thường không |
+| Business conflict policy | không giải quyết hết | cần quyết định sau exception |
+
+### Conflict xong thì làm gì?
+
+Không có đáp án chung:
+
+- reload và yêu cầu user xác nhận lại;
+- store-wins;
+- client-wins có kiểm soát;
+- merge field độc lập;
+- retry nếu operation idempotent và business cho phép.
+
+### Misconception check
+
+**Đúng hay sai?** Bắt `DbUpdateConcurrencyException` rồi retry vô hạn là an toàn.
+
+**Đáp án:** Sai. Bạn có thể ghi đè intent mới hoặc loop vô hạn.
+
+**Đúng hay sai?** Có transaction thì không cần concurrency token.
+
+**Đáp án:** Sai. Transaction scope ngắn không ngăn stale UI data giữa hai request.
+
+### Mini-check
+
+Nếu user mở form 10 phút rồi save, transaction có thể giữ từ lúc mở form không?
+
+Đáp án: không hợp lý; optimistic token phù hợp hơn để phát hiện stale write khi save.
 
 EF nhớ original token. UPDATE sinh predicate gồm key + original token. Nếu affected rows = 0, EF coi là concurrency conflict.
 
@@ -60,6 +149,14 @@ SQL Server `rowversion` là lựa chọn provider-specific phổ biến; applica
 Transaction isolation ngăn/cho phép anomaly ở database level; optimistic token phát hiện lost-update theo entity/version. Hai khái niệm bổ sung nhau.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** atomicity khác stale-write detection.
+
+**Working developer:** token, 409/conflict flow, retry policy.
+
+**Deep dive:** `rowversion`, isolation anomalies, conditional update và contention strategy.
 
 Module 08 đã học ACID/isolation/deadlock. Đừng nhầm optimistic concurrency là thay thế transaction.
 
