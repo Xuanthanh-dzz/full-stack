@@ -22,6 +22,26 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Code model thay đổi không tự làm database schema thay đổi. Migration là **bản ghi có version về cách đưa schema từ trạng thái cũ sang trạng thái mới**.
+
+Ví dụ bạn thêm `OrderNumber` vào C#. Database hiện tại chưa có column này. Migration sẽ chứa operation tương ứng như `AddColumn`, tạo index, constraint...
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| migration | một bước thay đổi schema có version |
+| model snapshot | ảnh chụp model EF dùng để so thay đổi |
+| `Up` | cách đi từ schema cũ → mới |
+| `Down` | cách rollback migration khi khả thi |
+| idempotent script | script biết migration nào đã apply |
+| seeding | đưa dữ liệu khởi tạo/reference vào DB |
+| backfill | điền dữ liệu cho column/structure mới |
+
+Migration không phải magic backup hay zero-downtime mechanism. Nó chỉ là cách **mô tả và apply schema evolution**.
+
 Đổi property `Product.Name` hoặc relationship có thể làm EF generate migration destructive. Nếu CI/app tự apply mà không review, một rename có thể bị hiểu thành drop + add và mất dữ liệu.
 
 ## 3. Lời giải chạy được
@@ -41,7 +61,73 @@ export COMMERCE_DB='Server=localhost;Database=CommerceLab09;...'
 
 General-purpose seed có thể đặt trong `UseSeeding`/`UseAsyncSeeding`; project sample giữ `SeedData.SeedAsync` để demo/test explicit và dễ kiểm soát.
 
+### Walkthrough: thêm `OrderNumber`
+
+~~~text
+Bước 1: sửa C# model
+Order.OrderNumber
+
+Bước 2: dotnet ef migrations add AddOrderNumber
+
+Bước 3: EF so
+current model
+vs
+previous model snapshot
+
+Bước 4: sinh migration operations
+AddColumn(OrderNumber)
+CreateIndex(...) nếu cấu hình
+
+Bước 5: review migration
+
+Bước 6: generate SQL/apply
+
+Bước 7: __EFMigrationsHistory ghi migration đã chạy
+~~~
+
+Điểm nguy hiểm: EF thấy property cũ biến mất và property mới xuất hiện có thể hiểu là **drop + add**, dù ý định thật của bạn là rename. Vì vậy generated migration luôn phải review.
+
 ## 4. Cơ chế hoạt động
+
+### `EnsureCreated` vs Migrations
+
+| | `EnsureCreated` | Migrations |
+|---|---|---|
+| Mục tiêu | tạo schema nhanh | evolve schema qua version |
+| Model history | không | có |
+| Production evolution | không phù hợp | phù hợp |
+| Test/demo DB tạm | tiện | được nhưng nặng hơn |
+
+### Local dev vs production
+
+~~~text
+Local:
+model → migration → database update
+
+Production:
+model → reviewed migration
+      → tested SQL/bundle
+      → backup/rollback plan
+      → deployment identity apply
+~~~
+
+Runtime app account không nhất thiết nên có quyền `ALTER TABLE`/`DROP`.
+
+### Misconception check
+
+**Đúng hay sai?** Migration được EF generate thì mặc định an toàn.
+
+**Đáp án:** Sai. Tool không hiểu toàn bộ data semantics/zero-downtime requirement.
+
+**Đúng hay sai?** `EnsureCreated` là cách nhanh hơn để production bỏ qua migration.
+
+**Đáp án:** Sai. Nó không phải workflow schema evolution dài hạn.
+
+### Mini-check
+
+Nếu migration đổi nullable → NOT NULL trên 500GB data, câu hỏi đầu tiên nên là “command nào chạy?” hay “data/backfill/lock/downtime plan là gì?”
+
+Đáp án: câu thứ hai.
 
 Migration snapshot lưu model state; EF diff model hiện tại với snapshot để sinh operations.
 
@@ -52,6 +138,14 @@ Migration snapshot lưu model state; EF diff model hiện tại với snapshot �
 `EnsureCreated` tạo schema trực tiếp và không tương thích workflow Migrations lâu dài cho relational production.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** model change ≠ schema change; migration là versioned schema operation.
+
+**Working developer:** review generated migration, script/bundle, seeding idempotent.
+
+**Deep dive:** expand-contract, online schema change, long-running backfill và deployment permissions.
 
 Module 08 đã học expand-contract, backup/restore và data migration. EF migration không thay các nguyên tắc đó.
 
