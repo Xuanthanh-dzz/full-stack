@@ -21,6 +21,33 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+N+1 không phải “query nhiều là xấu”. Nó là pattern: **1 query lấy danh sách parent, rồi mỗi parent lại kích thêm query riêng**.
+
+Ví dụ 100 orders:
+
+~~~text
+1 query lấy 100 orders
++ 100 query lấy items của từng order
+= 101 query
+~~~
+
+Sửa N+1 bằng `Include` có thể lại tạo lỗi ngược: một query join quá nhiều collection và nhân số row. Vì vậy phải nhìn cả **query count** lẫn **row count**.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| N+1 | một query parent + N query relation |
+| cartesian explosion | join nhiều collection làm số row nhân lên |
+| split query | tách graph load thành nhiều query có kiểm soát |
+| projection | lấy đúng shape cần trả |
+| fix-up | EF nối entity related vào object graph |
+| roundtrip | một lượt request DB |
+
+Điều quan trọng: giảm từ 101 query xuống 1 chưa chắc tốt nếu query 1 trả hàng trăm nghìn row lặp.
+
 Endpoint list 100 orders. Lazy/explicit loading Customer và Items trong loop tạo 201 query. Refactor Include hai collection có thể lại tạo row multiplication rất lớn.
 
 ## 3. Lời giải chạy được
@@ -53,7 +80,67 @@ var orders = await db.Orders
     .ToListAsync(cancellationToken);
 ~~~
 
+### Walkthrough hai failure mode
+
+Giả sử 1 Order có 20 Items và 5 Payments.
+
+**N+1:**
+
+~~~text
+SELECT Orders (100 rows)
+for each order:
+  SELECT Items WHERE OrderId = ...
+  SELECT Payments WHERE OrderId = ...
+~~~
+
+≈ 201 query.
+
+**Một query Include hai collection:**
+
+~~~text
+Order JOIN Items JOIN Payments
+~~~
+
+Cho một order:
+
+~~~text
+20 Items × 5 Payments = 100 joined rows
+~~~
+
+Cho 100 orders, lý thuyết có thể ~10.000 rows trước khi EF reconstruct graph.
+
+**Projection:** nếu chỉ cần `ItemCount` và payment status cuối, database có thể trả ít dữ liệu hơn nhiều.
+
 ## 4. Cơ chế hoạt động
+
+### Ba chiến lược
+
+| Strategy | Query count | Row multiplication | Phù hợp khi |
+|---|---:|---:|---|
+| lazy/explicit trong loop | cao | thấp mỗi query | hiếm khi tốt cho list |
+| single query Include | thấp | có thể cao | graph nhỏ |
+| split query | vài query | thấp hơn | nhiều collections graph |
+| projection | thường thấp | theo result shape | read API/report |
+
+### Vì sao split query có trade-off consistency?
+
+Nó chạy nhiều query. Giữa query Orders và query Items, dữ liệu có thể thay đổi nếu isolation/snapshot không giữ cùng view. Đây không phải lý do tránh split query, mà là lý do hiểu requirement.
+
+### Misconception check
+
+**Đúng hay sai?** N+1 nghĩa là cứ có hơn một query là bug.
+
+**Đáp án:** Sai. Vấn đề là query count tăng theo N một cách không chủ đích.
+
+**Đúng hay sai?** `AsSplitQuery()` luôn nhanh hơn single query.
+
+**Đáp án:** Sai. Nó đổi row multiplication lấy thêm roundtrip.
+
+### Mini-check
+
+Endpoint list 100 orders chỉ cần `Items.Count`. Bạn có cần load toàn Items collection không?
+
+Đáp án: thường không; projection aggregate phù hợp hơn.
 
 N+1 xuất hiện khi access từng navigation kích query riêng hoặc loop explicit query.
 
@@ -62,6 +149,14 @@ Single query nhiều collection JOIN có thể nhân rows: `Order × Items × Pa
 Split query chạy query riêng cho collection include rồi stitch graph; giảm row multiplication nhưng tăng roundtrip và có consistency considerations nếu dữ liệu đổi giữa queries.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** nhận diện N+1 và cartesian explosion.
+
+**Working developer:** projection vs Include vs split query dựa trên shape.
+
+**Deep dive:** query plan, identity resolution/fix-up và consistency giữa split queries.
 
 Module 08 join cardinality là nền tảng để dự đoán cartesian explosion.
 
