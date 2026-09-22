@@ -21,6 +21,27 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+EF LINQ rất tiện, nhưng không phải mọi query nên hoặc có thể biểu diễn tốt bằng LINQ. Raw SQL là **lối thoát có kiểm soát** để bạn nói trực tiếp với database.
+
+Stored procedure là chương trình/query được đặt phía database và gọi theo contract.
+
+Điểm quan trọng: dùng raw SQL không có nghĩa “bỏ ORM” hay “khỏi lo security”. Bạn vẫn cần parameter, mapping, permission và execution plan.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| raw SQL | SQL do developer viết trực tiếp |
+| parameterization | tách value khỏi SQL text |
+| SQL injection | input làm thay đổi cấu trúc SQL ngoài ý muốn |
+| stored procedure | routine lưu trong database |
+| result shape | các column/type query trả về |
+| escape hatch | lựa chọn thoát khỏi abstraction khi cần |
+
+Default tốt là LINQ nếu rõ và plan tốt; raw SQL khi có driver cụ thể.
+
 Report dùng window function/provider-specific hint hoặc stored procedure legacy đã được DBA tune. Viết lại thành LINQ có thể khó đọc hoặc SQL generated không đạt plan mong muốn.
 
 ## 3. Lời giải chạy được
@@ -47,7 +68,65 @@ BAD: "... WHERE Name = '" + userInput + "'"
 GOOD: parameter/interpolated API that parameterizes values
 ~~~
 
+### Walkthrough parameterization
+
+Nguy hiểm:
+
+~~~text
+input = "x' OR 1=1 --"
+
+SQL string concatenate:
+WHERE Name = 'x' OR 1=1 --'
+~~~
+
+Input đã chui vào **cấu trúc SQL**.
+
+Parameterized approach:
+
+~~~text
+SQL:
+WHERE Name = @p0
+
+parameter @p0:
+"x' OR 1=1 --"
+~~~
+
+Database coi input là **giá trị**, không phải một phần syntax SQL.
+
 ## 4. Cơ chế hoạt động
+
+### EF LINQ vs raw SQL vs stored procedure
+
+| Tiêu chí | EF LINQ | Raw SQL | Stored procedure |
+|---|---|---|---|
+| Type-safe/refactor | tốt | thấp hơn | contract riêng |
+| Provider abstraction | tốt hơn | provider-specific | rất provider-specific |
+| Kiểm soát SQL | gián tiếp | trực tiếp | trực tiếp |
+| Query đặc thù | có thể khó | tốt | tốt |
+| Deploy ownership | app | app | thường app/DBA phối hợp |
+
+### Khi nào raw SQL đáng dùng?
+
+- query provider không translate tốt;
+- cần SQL feature/hint/provider-specific capability;
+- legacy stored procedure đã có contract/tuning;
+- hot query cần shape/plan kiểm soát rõ.
+
+### Misconception check
+
+**Đúng hay sai?** Dùng interpolation trong mọi raw SQL đều an toàn.
+
+**Đáp án:** Chỉ khi API cụ thể parameterize interpolation. Phải biết method đang dùng (`FromSqlInterpolated`/safe overload) thay vì đoán.
+
+**Đúng hay sai?** Stored procedure luôn nhanh hơn EF query.
+
+**Đáp án:** Sai. Performance phụ thuộc SQL/plan/index/data, không phải nhãn stored procedure.
+
+### Mini-check
+
+Nếu LINQ tạo SQL đơn giản, readable và plan tốt, raw SQL thêm giá trị gì?
+
+Đáp án: thường không nhiều; nó chỉ tăng maintenance/provider coupling.
 
 Raw SQL API tạo command text + parameter. Interpolated safe API tách value thành parameter thay vì chèn literal trực tiếp.
 
@@ -56,6 +135,14 @@ Entity raw query phải trả shape cần cho materialization hoặc dùng API p
 Stored procedure có thể nằm trong cùng transaction nhưng contract/result shape cần versioning/documentation.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** parameterized raw SQL và injection mental model.
+
+**Working developer:** chọn LINQ/raw/proc theo driver và test result shape.
+
+**Deep dive:** command interception, TVP, provider-specific SQL, plan forcing.
 
 Module 08 SQL injection, stored procedure và execution plan là prerequisite.
 
