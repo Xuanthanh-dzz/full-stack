@@ -10,7 +10,7 @@ Before authoring or editing curriculum content, read in order:
 Mandatory rules:
 
 - Treat the glossary/style guide as canonical.
-- Module 09+ must follow Lesson Authoring Standard v2.
+- Module 09+ must follow Lesson Authoring Standard v4.
 - Do not mark a lesson complete until its verifier/CI passes.
 - Use the version baseline declared in lesson metadata.
 - Separate “Lỗi thường gặp” from “Khi nào KHÔNG dùng”.
@@ -23,3 +23,8 @@ Mandatory rules:
 - Add spaced review checkpoints after each 4–6 lesson cluster.
 - Add at least one PR/code-review lab per technical module.
 - Add the career checkpoint artifact when the module is a defined career milestone.
+
+- Explain new concepts beginner-first: intuition → vocabulary → tiny example → execution trace → mechanism → production.
+- Do not use a new technical term before defining it in plain language.
+- For difficult concepts, include a comparison table, misconception check, and a step-by-step walkthrough.
+- A lesson is not complete if a learner cannot explain where code runs, what state is kept, and where cost lives.
