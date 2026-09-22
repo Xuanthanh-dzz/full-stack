@@ -1,5 +1,19 @@
 # Điều kiện với if và switch
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- if chọn theo điều kiện, switch chọn theo một giá trị rời rạc.
+- Dùng để từ chối input sai và chạy đúng nhánh nghiệp vụ.
+- Thứ tự ngưỡng và break quyết định nhánh thực sự chạy.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một nhân viên đọc lựa chọn rồi đi đến đúng quầy. Trước khi báo giá, họ phải loại mã không có trong menu. if diễn đạt “có thỏa điều kiện không?”, switch diễn đạt “đây là mã nào?”. Máy chỉ chạy phần được chọn, không chạy tất cả nhánh.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| branch | nhánh được chọn theo điều kiện | mức giá |
+| guard clause | kiểm tra rồi thoát sớm khi không hợp lệ | từ chối x |
+| case | một nhãn giá trị trong switch | case '2' |
+| fallthrough | chạy tiếp vào case sau | quên break |
+
+### Ví dụ nhỏ — tính tay trước
+
+Chọn '2' → qua guard → giá 30000 → không đạt 50000 → đạt 30000 → nhóm trung bình. Chọn 'x' → guard từ chối → không được tính giá.
+
 Máy bán vé nhận một ký tự:
 
 - `1`: vé thường, `50000` VND;
@@ -20,7 +51,9 @@ Máy bán vé nhận một ký tự:
 
 Input khác phải bị từ chối, không được âm thầm tạo giá. Với input `2`, chương trình phải in đúng loại vé và giá.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `ticket.c`:
 
@@ -88,7 +121,20 @@ Gia: 30000 VND
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`; input `x` trả exit status `1` và ghi lỗi vào `stderr`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. choice giữ mã ký tự, không phải số lượng.
+2. switch chọn case '2', đặt price=30000; break chỉ thoát switch.
+3. Chuỗi if thử ngưỡng cao trước; chỉ một nhóm được in.
+4. price và choice nằm trong lần chạy main. Số điều kiện nhỏ, cố định; chi phí đọc/ghi thường lớn hơn chọn nhánh.
+
+### Mini-check
+
+Nếu bỏ break của vé sinh viên, price cuối cùng có thể nhận giá từ case nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. `if` chỉ chạy block khi điều kiện đúng
 
@@ -112,7 +158,45 @@ Thứ tự quan trọng: kiểm tra `>= 50000` trước `>= 30000`. Đảo lại
 
 `default` là hàng rào phòng thủ. Guard phía trên đã giới hạn `choice`, nên nhánh này không dự kiến xảy ra; giữ nó giúp code rõ invariant và an toàn khi được sửa về sau.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| if/else | kiểm tra range hoặc nhiều biểu thức | hợp ngưỡng giá; thứ tự dễ sai nếu điều kiện chồng nhau |
+| switch | so một giá trị với các nhãn integer | hợp menu; không dùng trực tiếp cho khoảng giá |
+| break / return | thoát switch / kết thúc hàm | không thay lẫn nhau khi còn code sau switch |
+
+### Misconception check
+
+**Đúng hay sai?** break trong switch kết thúc main.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: execution tiếp tục sau switch.
+
+</details>
+
+**Đúng hay sai?** Đặt >=30000 trước >=50000 vẫn phân loại giống nhau.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: giá 50000 đã khớp nhánh đầu và không tới nhánh sau.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** guard, if, switch.
+
+- **Working Developer — dùng khi làm việc:** test ngưỡng và thông báo lỗi.
+
+- **Deep Dive — có thể quay lại sau:** code sinh cho switch nếu đo cho thấy cần.
 
 ### Truth trong C
 
@@ -164,7 +248,17 @@ In lỗi nhưng vẫn `return 0` khiến automation hiểu nhầm thành công. 
 
 Validate và return sớm; tách hàm sau khi học bài 09.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng switch để giả lập hàng loạt khoảng liên tục; if rõ hơn. Không lồng nhánh nhiều tầng chỉ để báo lỗi; guard rồi xử lý đường hợp lệ. Chưa cần bảng luật động cho ba loại vé.
+
+## 8. Production notes & scale check
+
+Ba loại vé đủ dùng switch. Khi chính sách được sửa thường xuyên, giữ test tại mỗi ngưỡng trước khi đổi cách biểu diễn. Team nhỏ cần thống nhất exit status và stderr để script nhận lỗi. Việc compiler tối ưu switch thế nào không quyết định nghiệp vụ đúng; quan sát output và status trước.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Chẵn/lẻ
 
@@ -190,7 +284,26 @@ Chạy sample với `1`, `3`, `x` và input rỗng; ghi output cùng exit status
 
 **Gợi ý:** dùng `echo $?` ngay sau mỗi lần chạy.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Khi menu trở thành hàm ở bài 09 và được chuyển sang C# Module 04, chọn nơi từ chối mã sai: hàm tính giá hay chỉ giao diện? Nêu điều kiện để mọi caller được bảo vệ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Trace lựa chọn 3 qua từng nhánh.
+2. Vì sao default vẫn khác input validation?
+3. break khác return thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi viết được guard clause bằng `if`.
 - [ ] Tôi sắp xếp đúng chuỗi `else if`.

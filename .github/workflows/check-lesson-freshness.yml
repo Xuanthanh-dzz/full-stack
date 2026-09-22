@@ -7,6 +7,8 @@ on:
   push:
     branches: [main]
     paths:
+      - "fullstack-roadmap/01-nen-tang-lap-trinh/**"
+      - "fullstack-roadmap/02-c-chuyen-sau/**"
       - "fullstack-roadmap/09-linq-va-ef-core/**"
       - "fullstack-roadmap/10-web-nen-tang/**"
       - "fullstack-roadmap/11-aspnet-core-backend/**"
@@ -21,6 +23,7 @@ on:
       - "fullstack-roadmap/20-ky-nang-architect/**"
       - "fullstack-roadmap/21-du-an/**"
       - "scripts/check_lesson_freshness.py"
+      - "scripts/verify_retrofit_v4.py"
       - ".github/workflows/check-lesson-freshness.yml"
 
 permissions:
@@ -38,3 +41,8 @@ jobs:
 
       - name: Check last-verified metadata
         run: python scripts/check_lesson_freshness.py --start-module 9
+
+      - name: Check activated retrofit freshness and clarity
+        run: |
+          python scripts/verify_retrofit_v4.py 01
+          python scripts/verify_retrofit_v4.py 02

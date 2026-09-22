@@ -1,5 +1,19 @@
 # Chương trình C đầu tiên
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Quy trình build biến file C thành executable; chạy executable mới thực hiện phép tính.
+- Dùng khi tạo, sửa hoặc debug bất kỳ chương trình C nào.
+- Build thành công và exit status 0 chưa chứng minh output đúng yêu cầu.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - đọc diagnostic theo file, dòng và cột.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Bản công thức và món ăn là hai thứ khác nhau: file C giống công thức, executable là thứ máy có thể chạy. Sửa công thức chưa làm executable cũ thay đổi. Cần dịch lại thành công rồi mới chạy bản mới.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| compiler | công cụ dịch và kiểm tra source | cc điều phối build |
+| executable | file chương trình có thể chạy | ./temperature |
+| linker | công cụ nối các phần mã đã dịch | nối lời gọi thư viện |
+| diagnostic | thông báo lỗi hoặc cảnh báo | file, dòng, cột |
+| exit status | mã kết thúc gửi cho chương trình gọi | 0 báo thành công |
+
+### Ví dụ nhỏ — tính tay trước
+
+Tính tay với 25 độ C: 25 × 9 / 5 + 32 = 77. Nếu executable vẫn in 86 sau khi sửa source, hãy kiểm tra bước build và đường dẫn file vừa chạy.
 
 Bài trước đã in một phiếu cố định. Bây giờ một trạm thời tiết cần hiển thị nhiệt độ `30` độ C dưới cả hai đơn vị:
 
@@ -27,7 +59,9 @@ F = C * 9 / 5 + 32
 
 Trước khi học biến, ta dùng trực tiếp giá trị `30.0` để tập trung vào quy trình source → compiler → executable.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `temperature.c`:
 
@@ -66,7 +100,20 @@ Nhiet do F: 86.0
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. cc đọc temperature.c; lỗi cú pháp dừng bước build, chưa chạy main.
+2. Sau build thành công, ./temperature được nạp; môi trường chạy C gọi main.
+3. Biểu thức số thực tạo 86.0, printf ghi kết quả; giá trị tạm không được lưu qua lần chạy sau.
+4. return 0 trả trạng thái; thời gian build thuộc công cụ phát triển, thời gian chạy thuộc process của sample.
+
+### Mini-check
+
+Build mới thất bại nhưng ./temperature vẫn chạy: bạn đang kiểm tra phiên bản nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Từng dòng source làm gì?
 
@@ -127,7 +174,45 @@ echo $?
 
 Kết quả `0` nghĩa là chương trình tự báo thành công. Output đúng hay sai về nghiệp vụ vẫn phải được kiểm tra riêng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Compile error | source không dịch được | sửa diagnostic đầu tiên; chạy lại không chữa được |
+| Link error | thiếu phần định nghĩa cần nối | kiểm tra file/thư viện trong lệnh build |
+| Logic error | chương trình chạy nhưng kết quả sai | so với kết quả tính tay; compiler không biết nghiệp vụ |
+
+### Misconception check
+
+**Đúng hay sai?** Sửa source sẽ thay executable đang có.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phải build lại thành công.
+
+</details>
+
+**Đúng hay sai?** return 0 đảm bảo công thức đổi nhiệt độ đúng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: đó là thông báo của chính chương trình, cần kiểm tra output độc lập.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** build/run và đọc lỗi đầu tiên.
+
+- **Working Developer — dùng khi làm việc:** ghi compiler, command, output trong bug report.
+
+- **Deep Dive — có thể quay lại sau:** phân biệt các giai đoạn dịch khi chương trình nhiều file.
 
 ### C11 là gì?
 
@@ -194,7 +279,17 @@ Ví dụ `printf("%d", 30.0)` là sai vì `%d` không khớp số thực. Warnin
 
 Nếu lần compile mới thất bại, executable từ lần trước có thể vẫn còn. Chỉ tin kết quả chạy sau một lệnh compile thành công.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không rebuild chỉ để đổi input khi chương trình đã hỗ trợ nhập dữ liệu. Không dùng chạy executable cũ như bằng chứng cho source mới. Với một file, lệnh cc rõ ràng là đủ; hệ thống build nhiều tầng chỉ đáng thêm khi có nhiều file/phụ thuộc.
+
+## 8. Production notes & scale check
+
+Sample chạy cục bộ, không có network. Team nhỏ nên lưu đúng lệnh build và phiên bản compiler; máy khác phải tái tạo được kết quả. Với nhiều file, chuyển sang Makefile ở Module 02 để theo dõi file cần build. Đo riêng thời gian build và runtime trước khi gọi chương trình “chậm”.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Lời chào hai dòng
 
@@ -226,7 +321,26 @@ Mỗi lần chỉ xóa một ký tự: dấu `;`, dấu `"` hoặc dấu `}`. Gh
 
 **Gợi ý:** exit status không tự in ra bởi chương trình.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Một bạn sẽ học Makefile ở Module 02 đề xuất thêm hệ thống build cho temperature.c. Với một file và một lệnh, chọn giữ cc hay thêm công cụ? Nêu thay đổi quy mô nào khiến quyết định khác đi.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ source → executable → output.
+2. Build lỗi nhưng file executable còn thì có thể kết luận gì?
+3. Đặt một test phát hiện công thức sai dù status bằng 0.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi mô tả được source → preprocess/compile → link → executable.
 - [ ] Tôi biết vai trò tối thiểu của `#include`, `main`, `printf` và `return`.

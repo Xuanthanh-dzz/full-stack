@@ -1,0 +1,47 @@
+name: Verify Module 01 clarity v4
+on:
+  push:
+    paths:
+      - 'fullstack-roadmap/01-nen-tang-lap-trinh/**'
+      - 'fullstack-roadmap/00-huong-dan/**'
+      - 'fullstack-roadmap/PROGRESS.md'
+      - 'scripts/verify_module_01.py'
+      - 'scripts/verify_retrofit_v4.py'
+      - 'scripts/tests/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - '.github/workflows/verify-module-01.yml'
+  pull_request:
+    paths:
+      - 'fullstack-roadmap/**'
+      - 'scripts/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - '.github/workflows/verify-module-01.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-docs.txt
+      - name: Gate regression tests
+        run: python -m unittest discover -s scripts/tests -v
+      - name: Published C11 programs, contracts and Failure Labs
+        run: python scripts/verify_module_01.py --report artifacts/module01.json
+      - name: AddressSanitizer and UndefinedBehaviorSanitizer
+        run: python scripts/verify_module_01.py --sanitize --report artifacts/module01-sanitizers.json
+      - name: Strict documentation build
+        run: python -m mkdocs build --strict
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module01-verification
+          path: artifacts/*.json
+          if-no-files-found: warn

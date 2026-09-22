@@ -1,0 +1,32 @@
+diff --git a/inventory.c b/inventory.c
+--- a/inventory.c
++++ b/inventory.c
+@@ -1,8 +1,7 @@
+ int reserve(Inventory *inventory, size_t capacity)
+ {
+-    Product *next = realloc(inventory->items, capacity * sizeof *next);
+-    if (next == NULL) return 0;
+-    inventory->items = next;
++    inventory->items = realloc(inventory->items, capacity * sizeof *inventory->items);
++    if (inventory->items == NULL) return 0;
+     inventory->capacity = capacity;
+     return 1;
+ }
+@@ -11,15 +10,11 @@
+ {
+     free(product->code);
+     free(product->name);
+-    *product = (Product){0};
++    free(product);
+ }
+
+ InventoryStatus load(Inventory *destination, const char *path)
+ {
+-    Inventory temporary = {0};
+-    InventoryStatus status = parse_all(path, &temporary);
+-    if (status != INV_OK) { inventory_dispose(&temporary); return status; }
+     inventory_dispose(destination);
+-    *destination = temporary;
+-    return INV_OK;
++    return parse_all(path, destination);
+ }

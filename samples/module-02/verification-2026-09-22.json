@@ -1,0 +1,182 @@
+{
+  "date": "2026-09-22",
+  "compiler": "cc (GCC) 16.2.1 20260810",
+  "sanitize": false,
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/01-dia-chi-bo-nho-va-con-tro.md",
+      "sources": {
+        "main.c": "fc02581c7bb09279ca3f97e9738df1f36d2ed524565ba10e953bbb2217d68393"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/02-con-tro-va-bien.md",
+      "sources": {
+        "main.c": "79134cb50f97990eba359349574c853140e58ba4339fcc98eb6bd59aa0afdd40"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions",
+        "supplemental try_divide: zero/overflow/NULL preserve output, integer division"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/03-con-tro-voi-mang-va-chuoi.md",
+      "sources": {
+        "main.c": "47865094620a6733679ba4120a502290e538e2f005a2bff16b6d50b4759d5e58"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/04-con-tro-cap-hai.md",
+      "sources": {
+        "main.c": "ef023fbd2e45230b2f9c9eb1c2c0046fad2e08b154dbfa700cceb30eb6c8fac8"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/05-con-tro-ham-va-callback.md",
+      "sources": {
+        "main.c": "408b1dd0ca8ce14b2b53b51b74926da31d63d96fc690b10c7e2288756b4069ab"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/06-stack-heap-va-vong-doi-bo-nho.md",
+      "sources": {
+        "main.c": "30054ab05fb98bafbe26159cdc8a802f8434164c0581b23a7d53f436ca4eb401"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/07-cap-phat-dong-malloc-calloc-realloc-free.md",
+      "sources": {
+        "main.c": "4721770ddad5d391b7fb0ff43ba42fc145b3314ac9f4ced5769eea4204f4af74"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/08-loi-bo-nho-va-undefined-behavior.md",
+      "sources": {
+        "main.c": "7ff7a37325755a71fe2ea81ed847e5a7fd6a9bd7c9941231cbf68d7b39220384"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/09-struct-enum-typedef.md",
+      "sources": {
+        "main.c": "18fed9f7dd7ff4449896905c9f77a32c9c41349b4d220b8d4d30d7b8e15456ec"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/10-union-bit-field-va-bo-nho.md",
+      "sources": {
+        "main.c": "0b5ff8b1ff06044124db50e45c08062fe88346bce1d774a15606f54380c98e11"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/11-file-io.md",
+      "sources": {
+        "main.c": "765b2a2d553c4ea774053bb2e0441bc69a4dc1a28fb4b8a8828bfe234cfaf464"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/12-preprocessor-header-va-macro.md",
+      "sources": {
+        "inventory_limits.h": "5d45522082183164576b2d064075afc8120b90e93f8f9766b4c02912d915f09c",
+        "main.c": "5f8f85d97ae5a8248094a553d6b93fa48544e4f1fd52e4cfbcf76dd80edfd9d7"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "TRACE_ENABLED=0/1 have identical stdout and documented stderr"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/13-qua-trinh-bien-dich-linking-makefile.md",
+      "sources": {
+        "inventory.h": "2b96f99adb116ed89817abe5bc88a305702395ad72da00640b65058997c3275a",
+        "inventory.c": "c456746b87a2a4c83afa72aecf984b17275acbb4b0856abd85a7c9922a5ae89a",
+        "main.c": "aa148c1f62c634353394e39a64fe9ac60ba481794a0b3474893cc93fb0150a3e"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "published Makefile builds, second make is up-to-date, header rebuilds callers"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/14-xu-ly-loi-va-lap-trinh-phong-thu.md",
+      "sources": {
+        "main.c": "d9c70d2ea203dd26d934125a387fcb094010bc610d6651e575a1e53a8ae9500c"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "invalid-domain/boundary contracts and unchanged-output assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/02-c-chuyen-sau/15-du-an-c-quan-ly-kho.md",
+      "sources": {
+        "inventory.h": "932d51a1a1d06a21df77827216709f37e8b285713b9ace14155279eaf4ade83b",
+        "inventory.c": "a172266e718f8af25674acb3fe4d1ff8a29759aa5ce7c5893c927712fbf9f495",
+        "storage.h": "266c8d2657ef58820f308536de7566292fbaacd51e06d6efc1646bd876957462",
+        "storage.c": "5fee1c75ffbc6e112662d2fc35c7603d55050ebede77f4bd83bf27d436d14704",
+        "main.c": "a93e7478ae36184a31638e60f38141baeaa48d640b99a712c20fe04214c06f28"
+      },
+      "checks": [
+        "published exact stdout, empty stderr, exit 0",
+        "published Makefile builds, second make is up-to-date, header rebuilds callers",
+        "allocator failure injection, growth/removal/dispose, malformed load preserves destination, roundtrip"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/02-c-chuyen-sau/failure-labs/01-doi-pointer-khong-doi-caller.md",
+      "source_sha256": "e54addd3019f556e62cf6338cbcae6290a093f9381e9ae2e2bc05866dd9fa27f",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/02-c-chuyen-sau/failure-labs/02-alias-sau-free.md",
+      "source_sha256": "a4033292dd289fa4e93806dabeab31e818a4f592aeaea2c1186e08ed9039941e",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/02-c-chuyen-sau/failure-labs/03-load-lam-mat-state.md",
+      "source_sha256": "231a0f1e9d9d8513c3f5863cb66012afab1f02ec8d48c44c2b4e25f6146c514b",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

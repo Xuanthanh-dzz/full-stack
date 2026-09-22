@@ -1,5 +1,19 @@
 # Con trỏ và biến
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- C truyền đối số bằng giá trị, kể cả khi giá trị được truyền là một con trỏ.
+- Dùng tham số con trỏ để hàm sửa dữ liệu caller hoặc trả thêm kết quả.
+- Đổi bản sao con trỏ không đổi con trỏ caller; dereference sai vẫn gây lỗi bộ nhớ.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -11,6 +25,24 @@ Học xong bài này, bạn có thể:
 - phân biệt việc đổi giá trị object đích với việc đổi địa chỉ chứa trong pointer.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Bạn đưa cho người khác bản sao tờ giấy ghi địa chỉ nhà. Họ có thể đến nhà sửa cửa, nhưng viết địa chỉ khác lên bản giấy của họ không đổi bản bạn giữ. Hàm nhận pointer cũng vậy.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| caller | hàm đang gọi hàm khác | main gọi order_ascending |
+| callee | hàm được gọi | order_ascending |
+| output parameter | tham số chỉ vùng nhận kết quả | low và high |
+| const int * | con trỏ chỉ cho phép đọc int qua đường truy cập này | hàm in không được sửa số |
+| NULL | giá trị con trỏ rỗng, không chỉ tới object | được kiểm tra trước *low |
+
+### Ví dụ nhỏ — tính tay trước
+
+a = 8, b = 3. Hàm nhận &a và &b, giữ tạm 8, ghi 3 vào a rồi ghi 8 vào b. Caller thấy a = 3, b = 8 vì cả hai lần ghi dùng địa chỉ của caller.
 
 Một màn hình nhập hai mức tồn kho nhưng người dùng có thể nhập ngược: giới hạn thấp lại lớn hơn giới hạn cao. Ta cần hàm sắp xếp hai biến theo thứ tự tăng dần.
 
@@ -27,7 +59,9 @@ void order_wrong(int left, int right)
 
 Ta sẽ truyền địa chỉ của hai biến để hàm truy cập đúng object của bên gọi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -101,11 +135,24 @@ Khoang ton kho: 10..30
 Goi voi NULL: bi tu choi
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main giữ 30 và 10; các đối số là địa chỉ của hai biến này.
+2. order_ascending nhận bản sao hai địa chỉ, kiểm tra NULL trước khi đọc dữ liệu.
+3. Vì 30 > 10, biến tạm giữ 30; hai lần ghi qua pointer đổi caller thành 10 và 30.
+4. Hàm in đọc qua const int *; không sở hữu và không giải phóng dữ liệu. Số phép đọc/ghi cố định, không phụ thuộc kích thước input ngoài hai số.
+
+### Mini-check
+
+Nếu low và high cùng trỏ một int thì hàm sắp xếp có cần tạo hai int mới không? Trace điều kiện so sánh.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Trước khi gọi hàm
 
-Trong stack frame của `main`:
+Dùng mô hình stack frame phổ biến để trace (chuẩn C không bắt buộc vị trí vật lý này), trong `main`:
 
 ```text
 low_stock = 30             high_stock = 10
@@ -172,7 +219,45 @@ static void print_range(const int *low, const int *high)
 
 nghĩa là hàm được đọc `*low`, nhưng compiler không cho hàm gán `*low = ...`. Pointer cục bộ `low` vẫn có thể được gán để trỏ nơi khác; điều bị bảo vệ ở đây là object nhìn qua pointer đó.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| int value | bản sao một số | rẻ, rõ; ưu tiên nếu chỉ đọc một int |
+| int *value | bản sao địa chỉ, có thể sửa đích | cần contract NULL/vòng đời; dùng output parameter |
+| const int *value | đọc đích qua con trỏ | không làm đích bất biến qua mọi alias; dùng API chỉ đọc |
+
+### Misconception check
+
+**Đúng hay sai?** C có truyền tham chiếu khi tham số là int *.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: C vẫn sao chép giá trị con trỏ; thao tác gián tiếp mới sửa caller.
+
+</details>
+
+**Đúng hay sai?** const int * ngăn mọi đoạn code khác sửa int.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ hạn chế ghi qua đường truy cập đó.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace bản sao địa chỉ và ghi qua *.
+
+- **Working Developer — dùng khi làm việc:** thiết kế contract output không đổi khi lỗi.
+
+- **Deep Dive — có thể quay lại sau:** phân tích alias và giới hạn của NULL check.
 
 ### Ba dạng `const` thường gặp
 
@@ -271,7 +356,17 @@ Nếu hàm nhận `const int *value`, không cast bỏ `const` để ghi. Hãy s
 
 Không trả `&temporary` khi `temporary` là biến cục bộ của hàm. Object hết lifetime lúc hàm kết thúc. Bài [Stack, heap và vòng đời bộ nhớ](./06-stack-heap-va-vong-doi-bo-nho.md) sẽ phân tích lỗi này đầy đủ.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng output parameter cho một phép tính chỉ trả một giá trị và không có trạng thái lỗi cần tách. Không dùng con trỏ có quyền ghi cho hàm chỉ in; quyền đọc đủ sẽ làm contract rõ hơn.
+
+## 8. Production notes & scale check
+
+Với hai số, tối ưu thêm không có lợi đáng kể; ưu tiên ca NULL và alias cùng object. API thực phải nói khi thất bại output có giữ nguyên không. NULL check không chứng minh mọi pointer khác NULL đều hợp lệ.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tăng tồn kho
 
@@ -297,7 +392,23 @@ Vẽ stack ngay trước và trong lời gọi `add_stock(&quantity, 5)`.
 
 **Gợi ý:** phải có object `quantity`, pointer tham số và mũi tên từ pointer tới object.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Module 01 đã dùng giá trị trả về. Thiết kế phép chia cần trả thương và báo mẫu số 0: so sánh sentinel với trạng thái thành công + output parameter; chỉ ra ca INT_MIN / -1 và giá trị output khi lỗi.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vì sao gán low = NULL trong hàm không đổi pointer caller?
+2. const đặt trước int hạn chế thao tác nào?
+3. Nêu hai ca kiểm thử ngoài a > b.
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được “C truyền bản sao của địa chỉ”.
 - [ ] Tôi biết lúc nào dùng `&variable` và lúc nào dùng `*pointer`.

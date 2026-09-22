@@ -1,5 +1,19 @@
 # Nhập xuất với stdio
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- stdio nối chương trình với các luồng ký tự vào/ra.
+- Dùng khi cần nhập dữ liệu lúc chạy thay vì sửa source.
+- Ký tự chưa phải số nghiệp vụ; sample một ký tự cố ý chưa validate.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bàn phím đưa ký tự vào hàng chờ; getchar lấy một ký tự khỏi đó. Khi bạn gõ 4 rồi Enter, chương trình nhận chữ số và dấu xuống dòng, không tự nhận một số nguyên hoàn chỉnh. Chuyển chữ số thành số là bước riêng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| stream | luồng dữ liệu đọc/ghi lần lượt | stdin và stdout |
+| EOF | giá trị báo hết input hoặc lỗi đọc | kết quả đặc biệt của getchar |
+| buffer | vùng giữ tạm dữ liệu | output có thể chưa hiện ngay |
+| terminal echo | terminal hiện lại phím gõ | không phải output của chương trình |
+
+### Ví dụ nhỏ — tính tay trước
+
+Dòng 4\n có hai ký tự. Lần getchar đầu lấy '4'; trừ '0' được 4. Ký tự xuống dòng vẫn chờ lần đọc tiếp. Với x, phép trừ vẫn có kết quả số nhưng không phải số cốc hợp lệ.
+
 Quầy nước không muốn sửa source mỗi khi số cốc thay đổi. Người dùng sẽ gõ một chữ số từ `0` đến `9`; mỗi cốc giá `15000` VND. Với input `4`, chương trình in:
 
 ```text
@@ -22,7 +53,9 @@ Tong tien: 60000 VND
 
 Bài này chỉ đọc **một ký tự**. Kiểm tra input sai cần điều kiện và sẽ được bổ sung ngay ở bài 07.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `drink_order.c`:
 
@@ -64,7 +97,20 @@ Tong tien: 60000 VND
 
 Khi chạy tương tác, ký tự `4` do terminal echo sẽ xuất hiện ngay sau prompt. Pipeline kiểm thử không echo input, nên output kiểm chứng ở trên không chứa dòng echo. Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. getchar lấy ký tự '4' từ stdin vào input_character kiểu int.
+2. Phép trừ '0' tạo quantity=4; nhân 15000 cho total=60000.
+3. printf ghi stdout; prompt và kết quả liền nhau trong pipe vì pipe không echo input.
+4. State gồm ký tự và các số local; chi phí chủ yếu là chờ/ghi I/O (nhập xuất), không phải phép nhân.
+
+### Mini-check
+
+Sau khi đọc '4', lần getchar tiếp theo với input 4\n nhận gì?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Ba standard stream
 
@@ -105,7 +151,45 @@ putchar('\n');
 
 `putchar` cũng trả một `int` để báo thành công hoặc lỗi. Bài đầu về I/O chưa xử lý lỗi ghi; code production cần kiểm tra khi output là dữ liệu quan trọng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| getchar | đọc một ký tự hoặc EOF | dễ trace; không dùng như bộ đọc số nhiều chữ số |
+| printf | ghi text theo format | hợp báo cáo; phải ghép đúng type |
+| putchar | ghi một ký tự | đơn giản cho một byte; không tự định dạng số |
+
+### Misconception check
+
+**Đúng hay sai?** Gõ 12 làm một lần getchar trả số 12.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: nó chỉ đọc ký tự đầu.
+
+</details>
+
+**Đúng hay sai?** char luôn giữ đủ mọi kết quả getchar.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phải giữ int để phân biệt EOF.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** stream và chữ số.
+
+- **Working Developer — dùng khi làm việc:** phân biệt EOF/input sai, kiểm tra lỗi I/O.
+
+- **Deep Dive — có thể quay lại sau:** buffering và lỗi đọc so với hết dữ liệu.
 
 ### Input là byte/ký tự trước khi thành dữ liệu nghiệp vụ
 
@@ -152,7 +236,17 @@ Khi output không nối terminal, buffering có thể giữ prompt chưa có new
 
 Terminal tương tác thường echo phím; pipe không làm vậy. Hãy so sánh các dòng chương trình thực sự ghi, không nhầm echo thành output của code.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng sample một ký tự này để nhận số lượng tùy ý hoặc input chưa tin cậy. Sau bài 07 thêm kiểm tra miền, sau bài 13 đọc trọn dòng. Không đưa scanf với địa chỉ như công thức chưa hiểu cho người mới.
+
+## 8. Production notes & scale check
+
+Quầy demo chỉ hỗ trợ 0–9. Công cụ thật cần phân biệt EOF, lỗi đọc, ký tự sai và số ngoài miền; output quan trọng cần kiểm tra lỗi ghi. Team nhỏ có thể dùng giao diện dòng lệnh, chưa cần UI. Đo thời gian chờ người nhập riêng với CPU; thêm fflush khi cần prompt hiện trước thao tác đọc.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Đọc một chữ số khác
 
@@ -178,7 +272,26 @@ Chạy `./drink_order < /dev/null` và ghi nhận kết quả bất hợp lý hi
 
 **Gợi ý:** chưa sửa bằng `if`; mục đích là chứng minh input phải validate.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Trước khi ghép với menu bài 07 và parser Module 02, chọn kiểm tra ký tự ở chỗ đọc hay kiểm tra số cốc sau conversion? Nêu vì sao cả hai ranh giới có câu hỏi khác nhau; không đề xuất UI để che input sai.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ bàn phím/pipe → stdin → getchar → số → stdout.
+2. Vì sao pipe không in lại phím 4?
+3. Nêu giới hạn khiến demo chưa dùng cho input bất kỳ.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi phân biệt stdin, stdout và stderr.
 - [ ] Tôi đọc một ký tự bằng `getchar`.

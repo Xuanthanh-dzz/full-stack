@@ -6,8 +6,24 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 - Giai đoạn: `Biên soạn nội dung — module 01–09 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
 - Checkpoint hiện tại: module `09-linq-va-ef-core` đạt `24 / 24` bài và đã nâng lên Lesson Authoring Standard v4: beginner-first explanation, glossary/table, walkthrough, execution trace, misconception check, mini-check, learning levels, Failure Labs, Spaced Reviews, PR Reviews, Career Checkpoint; CI vẫn kiểm tra compile/test/migration/SQL Server/MkDocs.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `10-web-nen-tang/01-internet-dns-tcp-tls-va-trinh-duyet.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Ưu tiên hiện tại: retrofit Module 01 → 08 theo Lesson Authoring Standard v4. Không bắt đầu Module 10 trước khi cả tám module được verified và maintainer review. Module 00 giữ nguyên backlog.
 - Tiến độ: `164 / 421` file hoàn thành (`39,0%`).
+
+## Retrofit Module 01–08 — không tăng lesson completed
+
+| Module | Bài retrofit | Failure Labs | Spaced Reviews | PR Review | Sample/clarity/links/MkDocs local | CI remote | Maintainer review |
+|---|---:|---:|---:|---:|---|---|---|
+| 01 | 15/15 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35707360303](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35707360303) | PENDING |
+| 02 | 15/15 | 3 | 3 | 1 | PASS, 2026-09-22 | PENDING — chờ run của commit Module 02 | PENDING |
+| 03 | 0/14 | — | — | — | Chưa retrofit | — | — |
+| 04 | 0/16 | — | — | — | Chưa retrofit | — | — |
+| 05 | 0/19 | — | — | — | Chưa retrofit; C# Foundation checkpoint chưa tạo | — | — |
+| 06 | 0/14 | — | — | — | Chưa retrofit | — | — |
+| 07 | 0/19 | — | — | — | Chưa retrofit | — | — |
+| 08 | 0/25 | — | — | — | Chưa retrofit | — | — |
+
+Module 01: [bản đồ học và lệnh kiểm tra](./01-nen-tang-lap-trinh/index.md).
+Gate cấu trúc tự động không chứng nhận chất lượng giải thích; reviewer cần kiểm tra người mới có thể trace code/state/cost và làm judgment độc lập. Các checkbox bài cũ vẫn phản ánh completion lịch sử, không phải xác nhận đã retrofit toàn bộ. Tổng giữ **164/421**.
 
 ## Quy ước checkbox
 
@@ -32,7 +48,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Definition of Done cho một bài học
 
-- Module 01–08 hiện dùng gate legacy tám phần cho tới khi retrofit.
+- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4 và chạy gate local; CI remote còn pending. Module 03–08 giữ trạng thái legacy cho đến lượt retrofit; không được coi là đã đạt v4.
 - Module 09+ bắt buộc Lesson Authoring Standard v4: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment/retrieval, cùng clarity blocks: trực giác, từ vựng, walkthrough, comparison/trace, misconception check, mini-check và Beginner/Working Developer/Deep Dive.
 - Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.
@@ -554,6 +570,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 | F — Architect | Sau module `20` | `21/10–11` | Requirement, C4, ADR, threat model, PoC, cost và migration plan |
 
 ## Lịch sử cập nhật
+
+- `2026-09-22`: retrofit 15 bài Module 01 theo v4; thêm 3 Failure Labs, 3 Spaced Reviews, 1 PR Review, verifier C11/output/contracts/sanitizer và workflow CI. Local pass; remote CI và maintainer review chưa xác nhận. Không đổi số bài `164/421`, không bắt đầu Module 10.
 
 - `2026-09-22`: rewrite 24/24 bài Module 09 theo clarity gate v4 để giảm độ khó: thêm trực giác 60 giây, bảng từ vựng, ví dụ tính tay, walkthrough/execution trace, bảng so sánh, misconception check, mini-check và phân tầng Beginner/Working Developer/Deep Dive; không đổi manifest `164/421`.
 - `2026-09-22`: nâng quality system Module 09 lên module gate v3: thêm 4 Failure Labs, 5 Spaced Reviews, 2 PR Review Labs và Career Checkpoint `Junior Data/Backend`; các artifact bổ trợ không làm thay đổi tiến độ manifest `164/421`.
