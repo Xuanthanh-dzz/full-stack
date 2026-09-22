@@ -21,6 +21,24 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Dynamic query không có nghĩa là “tự xây SQL string”. Nó thường đơn giản hơn: bắt đầu với một query gốc rồi **gắn thêm filter nếu người dùng có gửi điều kiện đó**.
+
+Ví dụ request có thể có `status`, có thể không; có thể có `minTotal`, có thể không. Thay vì viết 8 query cho mọi tổ hợp, ta compose một pipeline.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| composition | ghép thêm bước vào query |
+| optional filter | filter chỉ áp dụng nếu request có giá trị |
+| whitelist | danh sách giá trị được phép |
+| query shape | cấu trúc tổng thể của query |
+| specification | object/logic mô tả một điều kiện truy vấn |
+
+Điểm mấu chốt: dynamic query tốt vẫn phải giữ **execution ở data source** càng lâu càng hợp lý.
+
 Endpoint `/orders` có optional status, minTotal, fromDate và sort. Nếu viết mọi combination bằng `if` lồng nhau hoặc raw SQL concat, code nhanh mất kiểm soát.
 
 ## 3. Lời giải chạy được
@@ -55,7 +73,72 @@ Console.WriteLine(string.Join(",", query.Select(order => order.Id)));
 public sealed record Order(int Id, string Status, decimal Total);
 ~~~
 
+### Walkthrough từng bước
+
+Request:
+
+~~~text
+status = Paid
+minTotal = 1000
+sort = newest
+~~~
+
+Ta bắt đầu:
+
+~~~text
+query = all orders
+~~~
+
+Sau filter status:
+
+~~~text
+query = orders WHERE Status = Paid
+~~~
+
+Sau minTotal:
+
+~~~text
+query = orders WHERE Status = Paid AND Total >= 1000
+~~~
+
+Sau sort:
+
+~~~text
+query = ... ORDER BY Id DESC
+~~~
+
+Chưa nhất thiết có dữ liệu chạy qua RAM; ta chỉ đang nối thêm expression cho tới terminal operator.
+
 ## 4. Cơ chế hoạt động
+
+### Vì sao composition tốt hơn nối SQL string?
+
+Vì value được biểu diễn qua expression/parameter, provider có thể parameterize an toàn hơn, code type-safe hơn và refactor dễ hơn.
+
+### Khi nào abstraction bắt đầu quá tay?
+
+| Tình huống | Giải pháp hợp lý |
+|---|---|
+| 2–4 filter | `if` + compose query |
+| nhiều filter nhưng rõ | helper nhỏ/request object |
+| query rule reuse thật | specification/query object |
+| client gửi query language phức tạp | cần parser/limit/security riêng |
+
+### Misconception check
+
+**Đúng hay sai?** Dynamic query bắt buộc cần expression tree tự dựng bằng `Expression.AndAlso`.
+
+**Đáp án:** Sai. Nhiều trường hợp chỉ cần nối `Where` có điều kiện.
+
+**Đúng hay sai?** Cho client truyền tên property sort tự do là harmless.
+
+**Đáp án:** Sai. Cần whitelist để tránh field không mong muốn/query khó tối ưu.
+
+### Mini-check
+
+Nếu `ToList()` nằm trước các `if` filter, điều gì thay đổi?
+
+Đáp án: phần filter sau chạy in-memory trên dữ liệu đã materialize.
 
 Mỗi `Where` tạo query expression mới; query object thường immutable về semantics. Reassign biến `query` chỉ cập nhật reference tới pipeline mới.
 
@@ -64,6 +147,14 @@ Optional filter không cần build expression tree thủ công nếu simple comp
 Dynamic sort bằng string reflection/library có thể tiện nhưng cần whitelist để tránh field không mong muốn và query khó index.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** compose query bằng `if` mà không materialize sớm.
+
+**Working developer:** whitelist sort/filter, page-size limit, test combination quan trọng.
+
+**Deep dive:** specification, expression composition, query language và cache query shape.
 
 Composition là lợi thế lớn của `IQueryable`: tầng application có thể thêm filter trước khi query thực thi.
 
