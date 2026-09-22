@@ -37,7 +37,7 @@ public sealed class CommerceDbContext(DbContextOptions<CommerceDbContext> option
             entity.Property(x => x.Name).HasMaxLength(160);
             entity.Property(x => x.Price).HasPrecision(19, 4);
             entity.HasIndex(x => x.Sku).IsUnique();
-            entity.HasQueryFilter(x => x.IsActive);
+            entity.HasQueryFilter("ActiveProductFilter", x => x.IsActive);
         });
 
         modelBuilder.Entity<Stock>(entity =>
