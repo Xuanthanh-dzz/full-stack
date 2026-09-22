@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install production docs dependencies
+      - name: Install docs dependencies from main
         run: python -m pip install -r main-src/requirements-docs.txt
 
       - name: Build production root from main
@@ -41,7 +41,7 @@ jobs:
             -f main-src/mkdocs.yml \
             -d "$GITHUB_WORKSPACE/site"
 
-      - name: Build previews for all open same-repo PRs
+      - name: Build previews with latest main UI
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -58,10 +58,14 @@ jobs:
             [ "$head_repo" = "$GITHUB_REPOSITORY" ] || continue
 
             workdir="$RUNNER_TEMP/pr-$number"
+            assembled="$RUNNER_TEMP/assembled-pr-$number"
             target="$GITHUB_WORKSPACE/site/pr-preview/pr-$number"
-            rm -rf "$workdir" "$target"
 
-            echo "Building preview for PR #$number at $sha"
+            rm -rf "$workdir" "$assembled" "$target"
+
+            echo "Building PR #$number"
+            echo "  UI      : latest main"
+            echo "  Content : $sha"
 
             if ! git -C main-src fetch --no-tags --depth=1 origin "$sha"; then
               echo "::warning::Could not fetch PR #$number; skipping preview"
@@ -73,20 +77,22 @@ jobs:
               continue
             fi
 
-            if ! python -m pip install -r "$workdir/requirements-docs.txt"; then
-              echo "::warning::Dependency install failed for PR #$number; skipping preview"
+            if ! python main-src/scripts/build_pr_preview.py \
+              --main main-src \
+              --pr "$workdir" \
+              --out "$assembled"; then
+              echo "::warning::Could not assemble PR #$number; skipping preview"
               git -C main-src worktree remove "$workdir" --force || true
               continue
             fi
 
-            if ! mkdocs build -f "$workdir/mkdocs.yml" -d "$target"; then
+            if ! mkdocs build -f "$assembled/mkdocs.yml" -d "$target"; then
               echo "::warning::MkDocs build failed for PR #$number; skipping preview"
               rm -rf "$target"
-              git -C main-src worktree remove "$workdir" --force || true
-              continue
             fi
 
             git -C main-src worktree remove "$workdir" --force || true
+            rm -rf "$assembled"
           done < "$RUNNER_TEMP/open-prs.tsv"
 
       - name: Upload Pages artifact
