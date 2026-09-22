@@ -124,6 +124,7 @@ def check_supplemental_artifacts() -> None:
     failure_labs = sorted(failure_dir.glob("[0-9][0-9]-*.md"))
     reviews = sorted(review_dir.glob("review-*.md"))
     pr_reviews = sorted(pr_review_dir.glob("[0-9][0-9]-*.md"))
+    published_diffs = sorted((pr_review_dir / "diffs").glob("*.diff"))
 
     if len(failure_labs) != 4:
         fail(f"Expected 4 Failure Labs, found {len(failure_labs)}")
@@ -131,6 +132,8 @@ def check_supplemental_artifacts() -> None:
         fail(f"Expected 5 Spaced Reviews, found {len(reviews)}")
     if len(pr_reviews) != 2:
         fail(f"Expected 2 PR Review Labs, found {len(pr_reviews)}")
+    if len(published_diffs) != 2:
+        fail(f"Expected 2 published PR diff artifacts, found {len(published_diffs)}")
     if not checkpoint.exists():
         fail("Missing Module 09 career checkpoint")
 
