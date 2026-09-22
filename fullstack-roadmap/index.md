@@ -23,7 +23,7 @@ hide:
     <div class="stat-label">Module Kiến Thức</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number"><!-- AUTO_LESSON_COUNT_START -->94+<!-- AUTO_LESSON_COUNT_END --></div>
+    <div class="stat-number"><!-- AUTO_LESSON_COUNT_START -->161+<!-- AUTO_LESSON_COUNT_END --></div>
     <div class="stat-label">Bài Học Chuyên Sâu</div>
   </div>
   <div class="stat-card">
@@ -106,6 +106,34 @@ hide:
     [:octicons-arrow-right-24: Học Module 06](06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md)
 
 <!-- AUTO_COMPLETED_MODULES_START -->
+
+-   :material-source-branch:{ .card-icon }
+    
+    ### Module 07: Cấu Trúc Dữ Liệu & Giải Thuật
+    <span class="badge badge-success">19 Bài • Hoàn thành</span>
+    
+    Big-O, array, linked list, hash table, tree, heap, graph, BFS/DFS, Dijkstra, sorting, greedy, backtracking, dynamic programming và Route Engine.
+    
+    [:octicons-arrow-right-24: Học Module 07](07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md)
+
+-   :material-database:{ .card-icon }
+    
+    ### Module 08: SQL & Cơ Sở Dữ Liệu
+    <span class="badge badge-success">25 Bài • Hoàn thành</span>
+    
+    Mô hình quan hệ, CRUD, JOIN, CTE, window function, chuẩn hóa, index, transaction, isolation, execution plan, security, backup/migration và capstone CSDL thương mại điện tử.
+    
+    [:octicons-arrow-right-24: Học Module 08](08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md)
+
+-   :material-database-cog:{ .card-icon }
+    
+    ### Module 09: LINQ & Entity Framework Core
+    <span class="badge badge-success">24 Bài • Hoàn thành</span>
+    
+    LINQ, IQueryable, expression tree, EF Core, migration, tracking, relationship, transaction, performance, testing và data-access architecture.
+    
+    [:octicons-arrow-right-24: Học Module 09](09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md)
+
 <!-- AUTO_COMPLETED_MODULES_END -->
 
 </div>
@@ -131,11 +159,10 @@ graph LR
 <!-- AUTO_PLANNING_ROWS_START -->
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
-| **07** | Cấu trúc dữ liệu & Giải thuật | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **10-13** | Web Foundation, ASP.NET Core & React/Angular | <span class="badge badge-warning">Đang biên soạn</span> |
+| **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang biên soạn</span> |
+| **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang biên soạn</span> |
+| **21** | Dự án tổng hợp | <span class="badge badge-warning">Đang biên soạn</span> |
 <!-- AUTO_PLANNING_ROWS_END -->
 
 ---

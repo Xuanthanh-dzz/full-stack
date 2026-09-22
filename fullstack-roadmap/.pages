@@ -7,4 +7,7 @@ nav:
   - 04 · C# Cơ bản: 04-csharp-co-ban
   - 05 · C# Nâng cao: 05-csharp-nang-cao
   - 06 · OOP & Thiết kế: 06-oop-va-thiet-ke
+  - 07 · Cấu trúc dữ liệu & Giải thuật: 07-cau-truc-du-lieu-giai-thuat
+  - 08 · SQL & Cơ sở dữ liệu: 08-sql-va-csdl
+  - 09 · LINQ & Entity Framework Core: 09-linq-va-ef-core
   - ...

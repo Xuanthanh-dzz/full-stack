@@ -8,6 +8,7 @@ on:
       - "mkdocs.yml"
       - "requirements-docs.txt"
       - "scripts/build_pr_preview.py"
+      - "scripts/render_homepage.py"
       - ".github/workflows/deploy-docs.yml"
       - ".github/workflows/preview-docs.yml"
   workflow_dispatch:
@@ -24,23 +25,26 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
           path: main-src
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
       - name: Install docs dependencies from main
         run: python -m pip install -r main-src/requirements-docs.txt
+
+      - name: Render production homepage from PROGRESS
+        run: python main-src/scripts/render_homepage.py --docs main-src/fullstack-roadmap
 
       - name: Build production root
         run: |
@@ -109,7 +113,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
