@@ -113,7 +113,7 @@ graph LR
     B --> C[Module 04-05: C# & .NET 9]
     C --> D[Module 06-07: SOLID & DSA]
     D --> E[Module 08-09: SQL & EF Core]
-    E --> F[Module 10-13: Full-stack Web & React]
+    E --> F[Module 10-13: Full-stack Web & React/Angular]
     F --> G[Module 14-15: DevOps & Docker]
     G --> H[Module 16-20: System Design & Architect]
 ```
@@ -123,12 +123,24 @@ graph LR
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
 | **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
-| **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **10-13** | Web Foundation, ASP.NET Core & React/Angular | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 
 ---
 
+## 🧩 Hai Lựa Chọn Frontend
+
+Sau phần nền tảng chung **HTML → CSS → JavaScript → TypeScript**, người học chọn **một** framework để đi tiếp:
+
+| Nhánh | Trọng tâm | Kết nối backend |
+|---|---|---|
+| **React** | JSX, hooks, React Router, Context/Reducer, TanStack Query | ASP.NET Core API |
+| **Angular** | Standalone Components, DI, RxJS, Reactive Forms, Router, HttpClient, Signals | ASP.NET Core API |
+
+Cả hai nhánh quay lại cùng Module 13 để học authentication, validation end-to-end, upload/download, realtime, Docker và triển khai full-stack. Không bắt buộc học cả React và Angular.
+
+---
 ## 💡 Phương Pháp Học "Problem-First"
 
 Mỗi bài học trong bộ tài liệu được thiết kế theo tiêu chuẩn 8 phần nghiêm ngặt:
