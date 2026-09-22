@@ -8,7 +8,8 @@ public sealed class CommerceDbContextFactory : IDesignTimeDbContextFactory<Comme
     public CommerceDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("COMMERCE_DB")
-            ?? "Server=localhost,1433;Database=CommerceLab09;User Id=sa;Password=SqlLab!2026Strong;TrustServerCertificate=True";
+            ?? throw new InvalidOperationException(
+                "Set COMMERCE_DB before running EF Core design-time commands.");
 
         var options = new DbContextOptionsBuilder<CommerceDbContext>()
             .UseSqlServer(connectionString)
