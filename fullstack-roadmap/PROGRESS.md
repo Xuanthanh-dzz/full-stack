@@ -1,13 +1,13 @@
 # Tiến độ biên soạn Full-stack Roadmap
 
-File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ. Mỗi checkbox tương ứng với một file Markdown phải có trong bộ tài liệu; source code chạy kèm bài sẽ được tạo và kiểm tra khi viết bài đó.
+File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ. Mỗi checkbox tương ứng với một file Markdown phải có trong bộ tài liệu; source code chạy kèm bài sẽ được tạo và kiểm tra khi viết bài đó. Riêng Module 12 có hai nhánh framework song song: người học hoàn thành phần nền tảng chung, chọn **React hoặc Angular**, rồi học phần frontend dùng chung.
 
 ## Trạng thái hiện tại
 
 - Giai đoạn: `Biên soạn nội dung — module 01–07 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
 - Checkpoint hiện tại: module `07-cau-truc-du-lieu-giai-thuat` đạt `19 / 19` bài; GitHub Actions đã kiểm tra đủ tám phần, cross-link nội bộ và build/run 19 sample .NET 9 với warnings-as-errors thành công.
 - Bài tiếp theo theo dependency của các module đã hoàn thành: `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `115 / 410` file hoàn thành (`28,0%`).
+- Tiến độ: `115 / 421` file hoàn thành (`27,3%`).
 
 ## Quy ước checkbox
 
@@ -294,6 +294,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 12-frontend
 
+### Nền tảng chung — bắt buộc cho cả hai nhánh
+
 - [ ] `12-frontend/01-html-semantic-va-cau-truc-trang.md`
 - [ ] `12-frontend/02-form-validation-va-accessibility.md`
 - [ ] `12-frontend/03-css-selector-box-model-va-cascade.md`
@@ -306,19 +308,39 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [ ] `12-frontend/10-browser-storage-cookie-va-security.md`
 - [ ] `12-frontend/11-typescript-type-interface-union-va-generic.md`
 - [ ] `12-frontend/12-typescript-narrowing-module-va-tsconfig.md`
-- [ ] `12-frontend/13-react-va-jsx.md`
-- [ ] `12-frontend/14-component-props-va-composition.md`
-- [ ] `12-frontend/15-state-event-va-controlled-form.md`
-- [ ] `12-frontend/16-hook-useeffect-va-vong-doi.md`
-- [ ] `12-frontend/17-custom-hook.md`
-- [ ] `12-frontend/18-react-router.md`
-- [ ] `12-frontend/19-context-reducer-va-state-management.md`
-- [ ] `12-frontend/20-tanstack-query-va-server-state.md`
-- [ ] `12-frontend/21-goi-api-xac-thuc-va-refresh-token.md`
-- [ ] `12-frontend/22-css-framework-va-design-system.md`
-- [ ] `12-frontend/23-testing-react.md`
-- [ ] `12-frontend/24-performance-accessibility-va-build.md`
-- [ ] `12-frontend/25-du-an-spa-quan-ly-cong-viec.md`
+- [ ] `12-frontend/13-chon-nhanh-react-hoac-angular.md`
+
+### Nhánh A — React
+
+- [ ] `12-frontend/14-react-jsx-component-va-props.md`
+- [ ] `12-frontend/15-react-state-event-va-controlled-form.md`
+- [ ] `12-frontend/16-react-hook-useeffect-va-custom-hook.md`
+- [ ] `12-frontend/17-react-router-va-layout.md`
+- [ ] `12-frontend/18-react-context-reducer-va-state-management.md`
+- [ ] `12-frontend/19-react-tanstack-query-va-server-state.md`
+- [ ] `12-frontend/20-react-api-auth-va-refresh-token.md`
+- [ ] `12-frontend/21-testing-react.md`
+- [ ] `12-frontend/22-du-an-react-spa-quan-ly-cong-viec.md`
+
+### Nhánh B — Angular
+
+- [ ] `12-frontend/23-angular-cli-standalone-component-va-project-structure.md`
+- [ ] `12-frontend/24-angular-template-binding-directive-va-pipe.md`
+- [ ] `12-frontend/25-angular-component-input-output-va-lifecycle.md`
+- [ ] `12-frontend/26-angular-service-di-rxjs-va-observable.md`
+- [ ] `12-frontend/27-angular-reactive-form-va-validation.md`
+- [ ] `12-frontend/28-angular-router-guard-va-resolver.md`
+- [ ] `12-frontend/29-angular-httpclient-interceptor-auth-va-refresh-token.md`
+- [ ] `12-frontend/30-angular-signals-rxjs-va-state-management.md`
+- [ ] `12-frontend/31-testing-angular.md`
+- [ ] `12-frontend/32-du-an-angular-spa-quan-ly-cong-viec.md`
+
+### Hoàn thiện frontend — áp dụng cho framework đã chọn
+
+- [ ] `12-frontend/33-css-framework-va-design-system.md`
+- [ ] `12-frontend/34-performance-accessibility-va-build.md`
+- [ ] `12-frontend/35-frontend-architecture-va-so-sanh-react-angular.md`
+- [ ] `12-frontend/36-checkpoint-frontend-production-ready.md`
 
 ## 13-fullstack-tich-hop
 
@@ -331,7 +353,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [ ] `13-fullstack-tich-hop/07-signalr-websocket-realtime.md`
 - [ ] `13-fullstack-tich-hop/08-docker-compose-fullstack.md`
 - [ ] `13-fullstack-tich-hop/09-crud-backend-aspnet-core.md`
-- [ ] `13-fullstack-tich-hop/10-crud-frontend-react.md`
+- [ ] `13-fullstack-tich-hop/10-crud-frontend-react-hoac-angular.md`
 - [ ] `13-fullstack-tich-hop/11-kiem-thu-va-trien-khai-ung-dung-crud.md`
 - [ ] `13-fullstack-tich-hop/12-du-an-fullstack-quan-ly-ban-hang.md`
 
@@ -531,6 +553,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## Lịch sử cập nhật
 
+- `2026-09-22`: mở rộng module `12-frontend` thành hai lựa chọn song song React/Angular sau 12 bài nền tảng HTML/CSS/JavaScript/TypeScript; Module 13 chấp nhận framework đã chọn. Tổng manifest tăng từ `410` lên `421` file.
 - `2026-09-21`: hoàn thành toàn bộ module `07-cau-truc-du-lieu-giai-thuat` (`19/19` bài); bổ sung CI kiểm tra cấu trúc tám phần, cross-link, build warnings-as-errors và run toàn bộ sample .NET 9; project cuối module là Route Engine dùng weighted graph, priority queue và Dijkstra.
 - `2026-07-31`: hoàn thành toàn bộ module `06-oop-va-thiet-ke` (`14/14` bài); build/run 14 sample .NET 9 với `Nullable` bật và warnings-as-errors, đối chiếu từng dòng output, kiểm tra failure path của các bài Liskov/contract, và dựng dự án refactor 10 file có characterization harness so sánh bản cũ với bản mới.
 - `2026-07-31`: hoàn thành toàn bộ module `01-nen-tang-lap-trinh` (`15/15` bài), `02-c-chuyen-sau` (`15/15` bài) và `03-cpp` (`14/14` bài); build/run 44 lời giải chính bằng C11/C++20 với warnings-as-errors, đối chiếu output, kiểm tra failure path, Makefile, ASan/UBSan, ownership/lifetime và audit chéo toàn bộ prerequisite/cross-link.
