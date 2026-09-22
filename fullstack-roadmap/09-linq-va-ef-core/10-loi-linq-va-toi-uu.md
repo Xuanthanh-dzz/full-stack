@@ -21,6 +21,25 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+LINQ không tự làm code chậm. Vấn đề thường đến từ **thuật toán phía dưới** hoặc **nơi chạy sai**.
+
+Ví dụ: với mỗi order bạn gọi `allowedSkus.Any(...)` trên một list 20.000 phần tử. Nếu có 100.000 orders, worst-case gần như 2 tỉ phép so sánh. Cú pháp LINQ đẹp không xóa Big-O.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| time complexity | tốc độ tăng của số phép toán theo input |
+| lookup | tìm phần tử theo key |
+| hash set | cấu trúc tối ưu cho membership lookup |
+| multiple enumeration | đọc cùng source nhiều lượt |
+| allocation | cấp phát object/memory |
+| bottleneck | phần giới hạn hiệu năng tổng thể |
+
+Muốn tối ưu đúng, hỏi: **data ở đâu, bao nhiêu, chạy mấy lần, và operator có complexity gì?**
+
 Code kiểm tra 100.000 order có SKU thuộc 20.000 allowed SKU bằng `allowed.Any(...)` trong mỗi order. Output đúng nhưng complexity gần O(n×m).
 
 ## 3. Lời giải chạy được
@@ -40,7 +59,67 @@ Console.WriteLine(matched);
 
 Lookup hash trung bình phù hợp hơn scan danh sách allowed cho từng order.
 
+### Walkthrough complexity
+
+Cách chậm:
+
+~~~text
+100,000 orders
+× scan up to 20,000 allowed SKUs
+≈ 2,000,000,000 comparisons worst-case
+~~~
+
+Cách dùng `HashSet`:
+
+~~~text
+build set: O(m)
+100,000 lookups: ~O(n)
+total gần O(n + m) average
+~~~
+
+Ta trả thêm memory để đổi lấy lookup nhanh hơn.
+
+Đây là trade-off cấu trúc dữ liệu từ Module 07, không phải “mẹo LINQ”.
+
 ## 4. Cơ chế hoạt động
+
+### Checklist điều tra performance
+
+~~~text
+1. Dữ liệu nằm ở DB hay RAM?
+2. Bao nhiêu row/item?
+3. Pipeline enumerate mấy lần?
+4. Có nested scan không?
+5. Có materialize sớm không?
+6. Có projection dư không?
+7. Nếu DB: SQL/index/plan ra sao?
+8. Đo trước và sau fix.
+~~~
+
+### `List.Contains` vs `HashSet.Contains`
+
+| Thuộc tính | List | HashSet |
+|---|---|---|
+| Lookup membership | O(n) | trung bình O(1) |
+| Giữ thứ tự | có | không phải mục tiêu chính |
+| Memory overhead | thấp hơn | cao hơn |
+| Build cost | nhỏ | cần hash/index |
+
+### Misconception check
+
+**Đúng hay sai?** Thay mọi list bằng HashSet sẽ làm app nhanh hơn.
+
+**Đáp án:** Sai. Nếu ít lookup hoặc cần ordering/index, HashSet có thể chỉ thêm cost.
+
+**Đúng hay sai?** `Any()` luôn nhanh hơn `Count() > 0`.
+
+**Đáp án:** Với iterator không có cheap count thường có lợi vì stop sớm; nhưng collection có `Count` property thì context khác. Đừng biến guideline thành luật mù.
+
+### Mini-check
+
+Nếu profiler cho thấy database scan chiếm 98% latency, tối ưu một LINQ allocation trong process có đáng ưu tiên không?
+
+Đáp án: thường không.
 
 LINQ là abstraction; complexity của operator vẫn tuân theo cấu trúc dữ liệu phía dưới.
 
@@ -49,6 +128,14 @@ LINQ là abstraction; complexity của operator vẫn tuân theo cấu trúc d�
 Multiple enumeration cũng nhân work: source từ file/network/database có thể đắt hơn collection memory.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** nhìn ra nested scan/multiple enumeration.
+
+**Working developer:** chọn cấu trúc dữ liệu, đo before/after, inspect SQL.
+
+**Deep dive:** allocation profile, iterator fusion, compiled query và provider-specific optimization.
 
 Liên hệ Module 07 Big-O: operator chain không xóa complexity. Liên hệ Module 08 index: HashSet in-memory giống ý tưởng dùng cấu trúc lookup thích hợp, nhưng database index giải quyết ở storage/query engine.
 
