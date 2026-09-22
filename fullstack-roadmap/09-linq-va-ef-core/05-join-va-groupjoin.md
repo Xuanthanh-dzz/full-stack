@@ -21,6 +21,36 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Join trả lời câu hỏi: **làm sao nối dữ liệu từ hai nguồn theo một key chung?**
+
+Ví dụ:
+
+~~~text
+Customers                  Orders
+1  An                      101  CustomerId=1
+2  Bình                    102  CustomerId=1
+3  Chi                     201  CustomerId=2
+~~~
+
+Nếu muốn biết `Order 101` thuộc ai, ta so `Customer.Id` với `Order.CustomerId`.
+
+`Join` cho ta từng cặp match. `GroupJoin` thì khác: nó giữ mỗi customer một lần và gom tất cả order match thành một nhóm bên cạnh customer đó.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| join key | giá trị dùng để nối hai tập |
+| outer sequence | tập bên ngoài/được duyệt chính |
+| inner sequence | tập được match vào outer |
+| inner join | chỉ giữ phần có match |
+| group join | mỗi outer giữ một nhóm inner matches |
+| cardinality | số row/phần tử sau join |
+
+Cardinality là trọng tâm: nếu một customer có 10 orders, `Join` tạo 10 result cho customer đó; `GroupJoin` vẫn tạo một result nhưng bên trong chứa 10 order.
+
 Ta có customer và order ở hai collection riêng. Báo cáo cần vừa lấy các order có customer hợp lệ, vừa có màn hình customer kể cả khi chưa từng order.
 
 ## 3. Lời giải chạy được
@@ -63,7 +93,76 @@ public sealed record Customer(int Id, string Name);
 public sealed record Order(int Id, int CustomerId, decimal TotalAmount);
 ~~~
 
+### Walkthrough từng bước
+
+Với `customers.Join(orders, ...)`:
+
+~~~text
+Customer 1 (An)
+  compare key 1 với Order.CustomerId
+  → match 101
+  → match 102
+
+Customer 2 (Bình)
+  → match 201
+
+Customer 3 (Chi)
+  → không có match
+~~~
+
+Output inner join:
+
+~~~text
+An:101
+An:102
+Bình:201
+~~~
+
+Với `GroupJoin`, output về mặt ý tưởng:
+
+~~~text
+An   → [101, 102]
+Bình → [201]
+Chi  → []
+~~~
+
+Vì vậy `GroupJoin` đặc biệt hữu ích khi bạn muốn giữ outer element kể cả không có inner match.
+
 ## 4. Cơ chế hoạt động
+
+### `Join` vs `GroupJoin` vs navigation
+
+| Cách | Output | Khi dễ đọc nhất |
+|---|---|---|
+| `Join` | mỗi cặp match một row | hai tập độc lập, inner join rõ |
+| `GroupJoin` | outer + nhóm matches | cần outer kể cả không match |
+| navigation EF | đi qua quan hệ model | entity relationship đã map tốt |
+
+### Vì sao navigation thường rõ hơn trong EF?
+
+Nếu `Order` đã có `Customer`, code:
+
+~~~csharp
+order.Customer.Email
+~~~
+
+thể hiện domain relationship trực tiếp. EF vẫn có thể sinh JOIN SQL bên dưới; bạn không cần tự viết join chỉ để chứng minh mình biết join.
+
+### Misconception check
+
+**Đúng hay sai?** `GroupJoin` chỉ là cách viết khác của `Join` và output cardinality giống nhau.
+
+**Đáp án:** Sai. `GroupJoin` giữ một outer result và đặt matches vào sequence.
+
+**Đúng hay sai?** Có duplicate sau join thì cứ thêm `Distinct()` là được.
+
+**Đáp án:** Không. Duplicate có thể phản ánh cardinality thật hoặc join condition sai. `Distinct` có thể che bug.
+
+### Mini-check
+
+Một customer có 5 orders. `Join` customer-orders tạo mấy result cho customer đó? `GroupJoin` tạo mấy outer result?
+
+Đáp án: `Join` tạo 5; `GroupJoin` tạo 1 outer result chứa 5 matches.
 
 `Join` build/match key pairs và phát một result cho mỗi match. Với one-to-many, outer row lặp theo số child match.
 
@@ -72,6 +171,14 @@ public sealed record Order(int Id, int CustomerId, decimal TotalAmount);
 Trong .NET 10, `LeftJoin` và `RightJoin` là operator trực tiếp; EF Core 10 nhận diện và dịch chúng. Tuy vậy codebase cũ vẫn đầy `GroupJoin`, nên hiểu cơ chế là bắt buộc.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** hiểu key matching và cardinality.
+
+**Working developer:** biết khi nào navigation rõ hơn manual join.
+
+**Deep dive:** translation sang SQL, left/right join API .NET 10 và row multiplication.
 
 Module 08 đã dạy INNER/LEFT/RIGHT/FULL/CROSS JOIN và cardinality. Dùng kiến thức đó để dự đoán số row trước khi viết LINQ.
 
