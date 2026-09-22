@@ -14,7 +14,7 @@
     <div class="stat-label">Module Kiến Thức</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number">112+</div>
+    <div class="stat-number">137+</div>
     <div class="stat-label">Bài Học Chuyên Sâu</div>
   </div>
   <div class="stat-card">
@@ -101,6 +101,15 @@
     
     [:octicons-arrow-right-24: Học Module 07](07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho/)
 
+-   :material-database:{ .card-icon }
+    
+    ### Module 08: SQL & Cơ Sở Dữ Liệu
+    <span class="badge badge-success">25 Bài • Hoàn thành</span>
+    
+    Mô hình quan hệ, CRUD, JOIN, CTE, window function, chuẩn hóa, index, transaction, isolation, execution plan, security, backup/migration và capstone CSDL thương mại điện tử.
+    
+    [:octicons-arrow-right-24: Học Module 08](08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server/)
+
 </div>
 
 ---
@@ -122,7 +131,7 @@ graph LR
 
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
-| **08-09** | SQL, Database Design & EF Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+| **09** | LINQ & Entity Framework Core | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **10-13** | Web Foundation, ASP.NET Core & React/Angular | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang lên kế hoạch</span> |
