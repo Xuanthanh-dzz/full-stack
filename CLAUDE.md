@@ -23,3 +23,8 @@ Mandatory rules:
 - Add spaced review checkpoints after each 4–6 lesson cluster.
 - Add at least one PR/code-review lab per technical module.
 - Add the career checkpoint artifact when the module is a defined career milestone.
+
+- Explain new concepts beginner-first: intuition → vocabulary → tiny example → execution trace → mechanism → production.
+- Do not use a new technical term before defining it in plain language.
+- For difficult concepts, include a comparison table, misconception check, and a step-by-step walkthrough.
+- A lesson is not complete if a learner cannot explain where code runs, what state is kept, and where cost lives.
