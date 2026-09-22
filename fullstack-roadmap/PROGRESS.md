@@ -1,19 +1,19 @@
 # Tiến độ biên soạn Full-stack Roadmap
 
-File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ. Mỗi checkbox tương ứng với một file Markdown phải có trong bộ tài liệu; source code chạy kèm bài sẽ được tạo và kiểm tra khi viết bài đó.
+File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ. Mỗi checkbox tương ứng với một file Markdown phải có trong bộ tài liệu; source code chạy kèm bài sẽ được tạo và kiểm tra khi viết bài đó. Riêng Module 12 có hai nhánh framework song song: người học hoàn thành phần nền tảng chung, chọn **React hoặc Angular**, rồi học phần frontend dùng chung.
 
 ## Trạng thái hiện tại
 
-- Giai đoạn: `Biên soạn nội dung — module 01–06 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
-- Checkpoint hiện tại: module `06-oop-va-thiet-ke` đạt `14 / 14` bài; toàn bộ sample .NET 9 đã build/run với warnings-as-errors, output trong bài khớp với lần chạy thật, dự án refactor cuối module đối chiếu bản cũ và bản mới trên bốn bộ dữ liệu đều `same`.
-- Bài tiếp theo theo dependency của các module đã hoàn thành: `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
-- Tiến độ: `96 / 410` file hoàn thành (`23,4%`).
+- Giai đoạn: `Biên soạn nội dung — module 01–09 đã hoàn thành; module 00 còn các bài hướng dẫn môi trường`.
+- Checkpoint hiện tại: module `09-linq-va-ef-core` đạt `24 / 24` bài và đã nâng lên Lesson Authoring Standard v4: beginner-first explanation, glossary/table, walkthrough, execution trace, misconception check, mini-check, learning levels, Failure Labs, Spaced Reviews, PR Reviews, Career Checkpoint; CI vẫn kiểm tra compile/test/migration/SQL Server/MkDocs.
+- Bài tiếp theo theo dependency của các module đã hoàn thành: `10-web-nen-tang/01-internet-dns-tcp-tls-va-trinh-duyet.md`; nếu lấp khoảng trống theo số thứ tự toàn cục, bắt đầu tại `00-huong-dan/01-cach-su-dung-bo-tai-lieu.md`.
+- Tiến độ: `164 / 421` file hoàn thành (`39,0%`).
 
 ## Quy ước checkbox
 
 - `[ ]`: mới nằm trong kế hoạch; file bài học chưa được tạo hoặc chưa đạt Definition of Done.
 - `[x]`: file tồn tại, đã đủ nội dung, code đã được chạy/kiểm tra và cross-link hợp lệ.
-- README, roadmap và PROGRESS là tài liệu quản trị nên không áp dụng template tám phần của bài học.
+- README, roadmap và PROGRESS là tài liệu quản trị nên không áp dụng lesson template. Các Failure Lab, Spaced Review, PR Review và Career Checkpoint là artifact bổ trợ, không tính vào 421 bài chính.
 - Chỉ cập nhật một bài sang `[x]` sau khi hoàn tất; hoàn thành trọn module hiện tại rồi mới viết module tiếp theo.
 - Khi thêm, đổi tên hoặc tách bài, phải cập nhật tổng số, prerequisite, roadmap và mọi cross-link liên quan.
 
@@ -23,16 +23,18 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 |---|---|
 | C | C11 |
 | C++ | C++20 |
-| .NET | Target framework `net9.0`; pin exact SDK trong bài môi trường |
+| .NET | Module 01–08 giữ baseline lịch sử đã verify; Module 09+ dùng .NET 10 LTS trừ khi bài ghi rõ khác; luôn pin major/patch cần thiết trong metadata/project |
 | C# | Dùng compiler đã pin và các tính năng ngôn ngữ mới tương thích với target; nêu rõ `LangVersion` khi không dùng mặc định |
-| ASP.NET Core / EF Core | Major version 9; pin package patch version trong project |
-| Database chính | SQL Server; ghi chú khác biệt PostgreSQL khi điều đó giúp hiểu provider/dialect |
-| Frontend | Node.js LTS, TypeScript và React; pin version bằng lockfile khi viết project |
+| ASP.NET Core / EF Core | Module 09 dùng EF Core 10.0.12; các module mới dùng major LTS/current đã verify và pin patch; module cũ chỉ đổi baseline khi retrofit + chạy lại CI |
+| Database chính | SQL Server; Module 08 được chạy kiểm chứng trên SQL Server 2025; ghi chú khác biệt PostgreSQL khi điều đó giúp hiểu provider/dialect |
+| Frontend | Node.js LTS, TypeScript; người học chọn React hoặc Angular và pin version bằng lockfile khi viết project |
 | Hạ tầng | Docker làm môi trường tái tạo cục bộ; GitHub Actions và GitLab CI đều có pipeline mẫu |
 
 ## Definition of Done cho một bài học
 
-- Đủ tám phần: mục tiêu, bài toán, code chạy được, cơ chế, kiến thức nền, lỗi thường gặp, bài tập và checklist/link.
+- Module 01–08 hiện dùng gate legacy tám phần cho tới khi retrofit.
+- Module 09+ bắt buộc Lesson Authoring Standard v4: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment/retrieval, cùng clarity blocks: trực giác, từ vựng, walkthrough, comparison/trace, misconception check, mini-check và Beginner/Working Developer/Deep Dive.
+- Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.
 - Có lệnh build/run/test và version cần thiết; không phụ thuộc trạng thái riêng của IDE.
 - Có sơ đồ text mô tả stack/heap/reference/ownership khi liên quan.
@@ -171,80 +173,80 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 07-cau-truc-du-lieu-giai-thuat
 
-- [ ] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
-- [ ] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/04-linked-list.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/09-trie.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/13-sorting.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/14-searching.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/15-greedy.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/16-backtracking.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md`
+- [x] `07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md`
 
 ## 08-sql-va-csdl
 
-- [ ] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
-- [ ] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
-- [ ] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
-- [ ] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
-- [ ] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
-- [ ] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
-- [ ] `08-sql-va-csdl/07-group-by-aggregate-va-having.md`
-- [ ] `08-sql-va-csdl/08-inner-left-right-full-cross-join.md`
-- [ ] `08-sql-va-csdl/09-subquery-va-correlated-subquery.md`
-- [ ] `08-sql-va-csdl/10-set-operator-union-intersect-except.md`
-- [ ] `08-sql-va-csdl/11-cte-va-recursive-cte.md`
-- [ ] `08-sql-va-csdl/12-window-function.md`
-- [ ] `08-sql-va-csdl/13-view-stored-procedure-function-trigger.md`
-- [ ] `08-sql-va-csdl/14-mo-hinh-er-va-quan-he.md`
-- [ ] `08-sql-va-csdl/15-chuan-hoa-1nf-2nf-3nf-bcnf.md`
-- [ ] `08-sql-va-csdl/16-denormalization-va-du-lieu-lich-su.md`
-- [ ] `08-sql-va-csdl/17-index-btree-clustered-nonclustered.md`
-- [ ] `08-sql-va-csdl/18-covering-filtered-composite-index.md`
-- [ ] `08-sql-va-csdl/19-transaction-va-acid.md`
-- [ ] `08-sql-va-csdl/20-isolation-level-mvcc-lock-deadlock.md`
-- [ ] `08-sql-va-csdl/21-execution-plan-va-statistics.md`
-- [ ] `08-sql-va-csdl/22-toi-uu-truy-van-va-sargability.md`
-- [ ] `08-sql-va-csdl/23-bao-mat-phan-quyen-va-sql-injection.md`
-- [ ] `08-sql-va-csdl/24-backup-restore-va-migration-du-lieu.md`
-- [ ] `08-sql-va-csdl/25-du-an-csdl-thuong-mai-dien-tu.md`
+- [x] `08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md`
+- [x] `08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md`
+- [x] `08-sql-va-csdl/03-kieu-du-lieu-va-null.md`
+- [x] `08-sql-va-csdl/04-crud-select-insert-update-delete.md`
+- [x] `08-sql-va-csdl/05-filter-sort-va-pagination.md`
+- [x] `08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md`
+- [x] `08-sql-va-csdl/07-group-by-aggregate-va-having.md`
+- [x] `08-sql-va-csdl/08-inner-left-right-full-cross-join.md`
+- [x] `08-sql-va-csdl/09-subquery-va-correlated-subquery.md`
+- [x] `08-sql-va-csdl/10-set-operator-union-intersect-except.md`
+- [x] `08-sql-va-csdl/11-cte-va-recursive-cte.md`
+- [x] `08-sql-va-csdl/12-window-function.md`
+- [x] `08-sql-va-csdl/13-view-stored-procedure-function-trigger.md`
+- [x] `08-sql-va-csdl/14-mo-hinh-er-va-quan-he.md`
+- [x] `08-sql-va-csdl/15-chuan-hoa-1nf-2nf-3nf-bcnf.md`
+- [x] `08-sql-va-csdl/16-denormalization-va-du-lieu-lich-su.md`
+- [x] `08-sql-va-csdl/17-index-btree-clustered-nonclustered.md`
+- [x] `08-sql-va-csdl/18-covering-filtered-composite-index.md`
+- [x] `08-sql-va-csdl/19-transaction-va-acid.md`
+- [x] `08-sql-va-csdl/20-isolation-level-mvcc-lock-deadlock.md`
+- [x] `08-sql-va-csdl/21-execution-plan-va-statistics.md`
+- [x] `08-sql-va-csdl/22-toi-uu-truy-van-va-sargability.md`
+- [x] `08-sql-va-csdl/23-bao-mat-phan-quyen-va-sql-injection.md`
+- [x] `08-sql-va-csdl/24-backup-restore-va-migration-du-lieu.md`
+- [x] `08-sql-va-csdl/25-du-an-csdl-thuong-mai-dien-tu.md`
 
 ## 09-linq-va-ef-core
 
-- [ ] `09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md`
-- [ ] `09-linq-va-ef-core/02-where-select-va-selectmany.md`
-- [ ] `09-linq-va-ef-core/03-ordering-partitioning-va-distinct.md`
-- [ ] `09-linq-va-ef-core/04-aggregate-groupby-va-tolookup.md`
-- [ ] `09-linq-va-ef-core/05-join-va-groupjoin.md`
-- [ ] `09-linq-va-ef-core/06-deferred-execution-va-materialization.md`
-- [ ] `09-linq-va-ef-core/07-ienumerable-va-iqueryable.md`
-- [ ] `09-linq-va-ef-core/08-expression-tree-query-provider-va-sql-translation.md`
-- [ ] `09-linq-va-ef-core/09-composition-va-dynamic-query.md`
-- [ ] `09-linq-va-ef-core/10-loi-linq-va-toi-uu.md`
-- [ ] `09-linq-va-ef-core/11-ef-core-9-dbcontext-va-entity.md`
-- [ ] `09-linq-va-ef-core/12-convention-data-annotation-va-fluent-api.md`
-- [ ] `09-linq-va-ef-core/13-migration-code-first-va-seeding.md`
-- [ ] `09-linq-va-ef-core/14-crud-change-tracking-va-unit-of-work.md`
-- [ ] `09-linq-va-ef-core/15-quan-he-one-to-one-one-to-many-many-to-many.md`
-- [ ] `09-linq-va-ef-core/16-eager-explicit-va-lazy-loading.md`
-- [ ] `09-linq-va-ef-core/17-n-plus-one-projection-va-split-query.md`
-- [ ] `09-linq-va-ef-core/18-transaction-va-concurrency-token.md`
-- [ ] `09-linq-va-ef-core/19-global-query-filter-va-interceptor.md`
-- [ ] `09-linq-va-ef-core/20-raw-sql-va-stored-procedure.md`
-- [ ] `09-linq-va-ef-core/21-performance-no-tracking-compiled-query-bulk-update.md`
-- [ ] `09-linq-va-ef-core/22-testing-ef-core-voi-sqlite-va-testcontainers.md`
-- [ ] `09-linq-va-ef-core/23-repository-pattern-co-nen-dung.md`
-- [ ] `09-linq-va-ef-core/24-du-an-data-access-cho-web-api.md`
+- [x] `09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md`
+- [x] `09-linq-va-ef-core/02-where-select-va-selectmany.md`
+- [x] `09-linq-va-ef-core/03-ordering-partitioning-va-distinct.md`
+- [x] `09-linq-va-ef-core/04-aggregate-groupby-va-tolookup.md`
+- [x] `09-linq-va-ef-core/05-join-va-groupjoin.md`
+- [x] `09-linq-va-ef-core/06-deferred-execution-va-materialization.md`
+- [x] `09-linq-va-ef-core/07-ienumerable-va-iqueryable.md`
+- [x] `09-linq-va-ef-core/08-expression-tree-query-provider-va-sql-translation.md`
+- [x] `09-linq-va-ef-core/09-composition-va-dynamic-query.md`
+- [x] `09-linq-va-ef-core/10-loi-linq-va-toi-uu.md`
+- [x] `09-linq-va-ef-core/11-ef-core-10-dbcontext-va-entity.md`
+- [x] `09-linq-va-ef-core/12-convention-data-annotation-va-fluent-api.md`
+- [x] `09-linq-va-ef-core/13-migration-code-first-va-seeding.md`
+- [x] `09-linq-va-ef-core/14-crud-change-tracking-va-unit-of-work.md`
+- [x] `09-linq-va-ef-core/15-quan-he-one-to-one-one-to-many-many-to-many.md`
+- [x] `09-linq-va-ef-core/16-eager-explicit-va-lazy-loading.md`
+- [x] `09-linq-va-ef-core/17-n-plus-one-projection-va-split-query.md`
+- [x] `09-linq-va-ef-core/18-transaction-va-concurrency-token.md`
+- [x] `09-linq-va-ef-core/19-global-query-filter-va-interceptor.md`
+- [x] `09-linq-va-ef-core/20-raw-sql-va-stored-procedure.md`
+- [x] `09-linq-va-ef-core/21-performance-no-tracking-compiled-query-bulk-update.md`
+- [x] `09-linq-va-ef-core/22-testing-ef-core-voi-sqlite-va-testcontainers.md`
+- [x] `09-linq-va-ef-core/23-repository-pattern-co-nen-dung.md`
+- [x] `09-linq-va-ef-core/24-du-an-data-access-cho-web-api.md`
 
 ## 10-web-nen-tang
 
@@ -294,6 +296,8 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 
 ## 12-frontend
 
+### Nền tảng chung — bắt buộc cho cả hai nhánh
+
 - [ ] `12-frontend/01-html-semantic-va-cau-truc-trang.md`
 - [ ] `12-frontend/02-form-validation-va-accessibility.md`
 - [ ] `12-frontend/03-css-selector-box-model-va-cascade.md`
@@ -306,19 +310,39 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [ ] `12-frontend/10-browser-storage-cookie-va-security.md`
 - [ ] `12-frontend/11-typescript-type-interface-union-va-generic.md`
 - [ ] `12-frontend/12-typescript-narrowing-module-va-tsconfig.md`
-- [ ] `12-frontend/13-react-va-jsx.md`
-- [ ] `12-frontend/14-component-props-va-composition.md`
-- [ ] `12-frontend/15-state-event-va-controlled-form.md`
-- [ ] `12-frontend/16-hook-useeffect-va-vong-doi.md`
-- [ ] `12-frontend/17-custom-hook.md`
-- [ ] `12-frontend/18-react-router.md`
-- [ ] `12-frontend/19-context-reducer-va-state-management.md`
-- [ ] `12-frontend/20-tanstack-query-va-server-state.md`
-- [ ] `12-frontend/21-goi-api-xac-thuc-va-refresh-token.md`
-- [ ] `12-frontend/22-css-framework-va-design-system.md`
-- [ ] `12-frontend/23-testing-react.md`
-- [ ] `12-frontend/24-performance-accessibility-va-build.md`
-- [ ] `12-frontend/25-du-an-spa-quan-ly-cong-viec.md`
+- [ ] `12-frontend/13-chon-nhanh-react-hoac-angular.md`
+
+### Nhánh A — React
+
+- [ ] `12-frontend/14-react-jsx-component-va-props.md`
+- [ ] `12-frontend/15-react-state-event-va-controlled-form.md`
+- [ ] `12-frontend/16-react-hook-useeffect-va-custom-hook.md`
+- [ ] `12-frontend/17-react-router-va-layout.md`
+- [ ] `12-frontend/18-react-context-reducer-va-state-management.md`
+- [ ] `12-frontend/19-react-tanstack-query-va-server-state.md`
+- [ ] `12-frontend/20-react-api-auth-va-refresh-token.md`
+- [ ] `12-frontend/21-testing-react.md`
+- [ ] `12-frontend/22-du-an-react-spa-quan-ly-cong-viec.md`
+
+### Nhánh B — Angular
+
+- [ ] `12-frontend/23-angular-cli-standalone-component-va-project-structure.md`
+- [ ] `12-frontend/24-angular-template-binding-directive-va-pipe.md`
+- [ ] `12-frontend/25-angular-component-input-output-va-lifecycle.md`
+- [ ] `12-frontend/26-angular-service-di-rxjs-va-observable.md`
+- [ ] `12-frontend/27-angular-reactive-form-va-validation.md`
+- [ ] `12-frontend/28-angular-router-guard-va-resolver.md`
+- [ ] `12-frontend/29-angular-httpclient-interceptor-auth-va-refresh-token.md`
+- [ ] `12-frontend/30-angular-signals-rxjs-va-state-management.md`
+- [ ] `12-frontend/31-testing-angular.md`
+- [ ] `12-frontend/32-du-an-angular-spa-quan-ly-cong-viec.md`
+
+### Hoàn thiện frontend — áp dụng cho framework đã chọn
+
+- [ ] `12-frontend/33-css-framework-va-design-system.md`
+- [ ] `12-frontend/34-performance-accessibility-va-build.md`
+- [ ] `12-frontend/35-frontend-architecture-va-so-sanh-react-angular.md`
+- [ ] `12-frontend/36-checkpoint-frontend-production-ready.md`
 
 ## 13-fullstack-tich-hop
 
@@ -331,7 +355,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 - [ ] `13-fullstack-tich-hop/07-signalr-websocket-realtime.md`
 - [ ] `13-fullstack-tich-hop/08-docker-compose-fullstack.md`
 - [ ] `13-fullstack-tich-hop/09-crud-backend-aspnet-core.md`
-- [ ] `13-fullstack-tich-hop/10-crud-frontend-react.md`
+- [ ] `13-fullstack-tich-hop/10-crud-frontend-react-hoac-angular.md`
 - [ ] `13-fullstack-tich-hop/11-kiem-thu-va-trien-khai-ung-dung-crud.md`
 - [ ] `13-fullstack-tich-hop/12-du-an-fullstack-quan-ly-ban-hang.md`
 
@@ -524,13 +548,19 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 |---|---|---|---|
 | A — Người mới | Sau module `03` | `21/02–03` | C nhiều file, file I/O, memory sạch; C++ dùng RAII/STL |
 | B — Data/.NET | Sau module `09` | `04/16`, `08/25`, `09/24`, rồi `21/04` | SQL, migration, transaction, query plan và EF performance |
-| C — Junior | Sau module `14` | `11/23`, `12/25`, `13/12`, rồi `21/05–07` | API + React + auth + validation + test end-to-end |
+| C — Junior | Sau module `14` | `11/23`, `12/22` hoặc `12/32`, `13/12`, rồi `21/05–07` | API + React/Angular + auth + validation + test end-to-end |
 | D — Middle | Sau module `16` | `15/19`, `16/27`, rồi `21/08` | Container, CI/CD, monitoring, rollback và refactor có lý do |
 | E — Senior | Sau module `19` | `17/22`, `19/22`, rồi `21/09` | Broker, Redis, gRPC, idempotency, resilience, tracing và Kubernetes |
 | F — Architect | Sau module `20` | `21/10–11` | Requirement, C4, ADR, threat model, PoC, cost và migration plan |
 
 ## Lịch sử cập nhật
 
+- `2026-09-22`: rewrite 24/24 bài Module 09 theo clarity gate v4 để giảm độ khó: thêm trực giác 60 giây, bảng từ vựng, ví dụ tính tay, walkthrough/execution trace, bảng so sánh, misconception check, mini-check và phân tầng Beginner/Working Developer/Deep Dive; không đổi manifest `164/421`.
+- `2026-09-22`: nâng quality system Module 09 lên module gate v3: thêm 4 Failure Labs, 5 Spaced Reviews, 2 PR Review Labs và Career Checkpoint `Junior Data/Backend`; các artifact bổ trợ không làm thay đổi tiến độ manifest `164/421`.
+- `2026-09-22`: hoàn thành module `09-linq-va-ef-core` (`24/24` bài) theo Lesson Authoring Standard v2; baseline .NET 10/C# 14/EF Core 10.0.12/SQL Server 2025; thêm Entry/Exit test, rubric, TL;DR, mục `Khi nào KHÔNG dùng`, scale notes, bài judgment liên module, retrieval practice, sample CommerceLab Data Access và CI migration/provider-real smoke test.
+- `2026-09-22`: hoàn thành toàn bộ module `08-sql-va-csdl` (`25/25` bài); verifier chạy từng lab trên SQL Server 2025 trong Docker, kiểm tra cấu trúc tám phần/cross-link và build toàn bộ MkDocs; capstone cuối module là CSDL thương mại điện tử có schema, constraint, index, transaction, security, backup/migration và query tuning.
+- `2026-09-22`: mở rộng module `12-frontend` thành hai lựa chọn song song React/Angular sau 12 bài nền tảng HTML/CSS/JavaScript/TypeScript; Module 13 chấp nhận framework đã chọn. Tổng manifest tăng từ `410` lên `421` file.
+- `2026-09-21`: hoàn thành toàn bộ module `07-cau-truc-du-lieu-giai-thuat` (`19/19` bài); bổ sung CI kiểm tra cấu trúc tám phần, cross-link, build warnings-as-errors và run toàn bộ sample .NET 9; project cuối module là Route Engine dùng weighted graph, priority queue và Dijkstra.
 - `2026-07-31`: hoàn thành toàn bộ module `06-oop-va-thiet-ke` (`14/14` bài); build/run 14 sample .NET 9 với `Nullable` bật và warnings-as-errors, đối chiếu từng dòng output, kiểm tra failure path của các bài Liskov/contract, và dựng dự án refactor 10 file có characterization harness so sánh bản cũ với bản mới.
 - `2026-07-31`: hoàn thành toàn bộ module `01-nen-tang-lap-trinh` (`15/15` bài), `02-c-chuyen-sau` (`15/15` bài) và `03-cpp` (`14/14` bài); build/run 44 lời giải chính bằng C11/C++20 với warnings-as-errors, đối chiếu output, kiểm tra failure path, Makefile, ASan/UBSan, ownership/lifetime và audit chéo toàn bộ prerequisite/cross-link.
 - `2026-07-30`: hoàn thành toàn bộ module `05-csharp-nang-cao` (`19/19` bài); build/run 19 project .NET 9 với warnings-as-errors, đối chiếu output, audit tuyến prerequisite/memory model/cross-link và kiểm tra failure path của dự án batch JSON bất đồng bộ.

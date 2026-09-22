@@ -1,14 +1,14 @@
 # Full-stack Roadmap: từ số 0 đến Software Architect
 
-Đây là bộ tài liệu tự học bằng tiếng Việt, lấy C làm nền tảng tư duy và mô hình bộ nhớ, C#/.NET làm công nghệ đi làm chính, C++ ở mức đủ sâu để hiểu OOP, STL, RAII và ownership. Tuyến học đi tiếp qua SQL, LINQ, Entity Framework Core, web, React, kiểm thử, DevOps, kiến trúc phần mềm và thiết kế hệ thống.
+Đây là bộ tài liệu tự học bằng tiếng Việt, lấy C làm nền tảng tư duy và mô hình bộ nhớ, C#/.NET làm công nghệ đi làm chính, C++ ở mức đủ sâu để hiểu OOP, STL, RAII và ownership. Tuyến học đi tiếp qua SQL, LINQ, Entity Framework Core, web, React hoặc Angular, kiểm thử, DevOps, kiến trúc phần mềm và thiết kế hệ thống.
 
-> Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ module `01`–`05`: 15 bài C nền tảng, 15 bài C chuyên sâu, 14 bài C++20, 16 bài C# cơ bản và 19 bài C# nâng cao. Module `00` hiện mới có roadmap; các bài hướng dẫn môi trường vẫn chờ biên soạn**.
+> Trạng thái hiện tại: **đã hoàn thành khung chương trình và toàn bộ module `01`–`09`: 15 bài C nền tảng, 15 bài C chuyên sâu, 14 bài C++20, 16 bài C# cơ bản, 19 bài C# nâng cao, 14 bài OOP/thiết kế, 19 bài cấu trúc dữ liệu & giải thuật và 25 bài SQL/CSDL và 24 bài LINQ/EF Core. Module `00` hiện mới có roadmap; các bài hướng dẫn môi trường vẫn chờ biên soạn**.
 
 ## Bắt đầu ở đâu?
 
 1. Đọc [roadmap 5 cấp](./00-huong-dan/roadmap.md) để hiểu thứ tự, prerequisite và checkpoint.
 2. Mở [PROGRESS.md](./PROGRESS.md) để xem toàn bộ mục lục dự kiến và trạng thái từng file.
-3. Học tuyến tính theo số module và số bài. Module `01–05` đã hoàn thành; trước khi bắt đầu module `01`, hãy tự bảo đảm đã có C compiler theo lệnh build ghi trong bài vì các bài cài môi trường chi tiết của module `00` chưa được viết.
+3. Học tuyến tính theo số module và số bài. Module `01–09` đã hoàn thành; trước khi bắt đầu module `01`, hãy tự bảo đảm đã có C compiler theo lệnh build ghi trong bài vì các bài cài môi trường chi tiết của module `00` chưa được viết.
 
 ## Phạm vi kỹ thuật
 
@@ -16,8 +16,8 @@
 - C++: C++20, OOP, STL, RAII, smart pointer và move semantics.
 - .NET: project target `net9.0`; bài học sẽ pin rõ SDK, compiler và package để code có thể tái tạo được.
 - C#: từ cú pháp cơ bản đến generics, async/await, reflection, nullable, `Span<T>` và các tính năng ngôn ngữ mới phù hợp với target.
-- Dữ liệu: SQL chuyên sâu, thiết kế cơ sở dữ liệu, LINQ và Entity Framework Core.
-- Full-stack: ASP.NET Core, HTTP/API/security, HTML/CSS, JavaScript, TypeScript và React.
+- Dữ liệu: SQL chuyên sâu, thiết kế cơ sở dữ liệu, transaction/index/query tuning trên SQL Server; tiếp theo là LINQ và Entity Framework Core.
+- Full-stack: ASP.NET Core, HTTP/API/security, HTML/CSS, JavaScript, TypeScript; frontend có hai nhánh lựa chọn **React hoặc Angular**.
 - Production: testing, Docker, CI/CD, Redis, gRPC, SignalR, message broker, cloud, Kubernetes và observability.
 - Senior/Architect: design pattern, DDD, CQRS, event-driven architecture, microservices, system design, ADR, C4/UML và phân tích trade-off.
 
@@ -39,7 +39,7 @@ Phiên bản patch/minor và dependency cụ thể sẽ được khóa trong bà
 | `09-linq-va-ef-core` | LINQ và Entity Framework Core chuyên sâu |
 | `10-web-nen-tang` | HTTP, REST, identity và web security |
 | `11-aspnet-core-backend` | Backend với ASP.NET Core |
-| `12-frontend` | HTML/CSS, JavaScript, TypeScript và React |
+| `12-frontend` | HTML/CSS, JavaScript, TypeScript; chọn React hoặc Angular |
 | `13-fullstack-tich-hop` | Tích hợp frontend–backend end-to-end |
 | `14-testing-chat-luong` | Testing, TDD và quality engineering |
 | `15-devops-trien-khai` | Git nâng cao, Docker, CI/CD và vận hành |
@@ -75,4 +75,34 @@ Mọi bài tuân theo hướng **problem-first**. Thuật ngữ, keyword, tên h
 
 ## Trạng thái và review
 
-`PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `01-nen-tang-lap-trinh` đến `05-csharp-nang-cao` hiện đã hoàn thành, kiểm tra code/output/failure path và cross-link; module `00` còn các bài hướng dẫn môi trường, còn checkbox của module `06` trở đi vẫn biểu thị kế hoạch chưa viết.
+## Chuẩn giải thích beginner-first
+
+Từ Module 09, mỗi bài không chỉ đúng kỹ thuật mà còn phải xây mental model theo flow:
+
+~~~text
+Trực giác 60 giây
+→ Từ vựng
+→ Ví dụ nhỏ
+→ Walkthrough / execution trace
+→ Cơ chế
+→ Bảng so sánh
+→ Misconception check
+→ Mini-check
+→ Beginner / Working Developer / Deep Dive
+→ Production / Judgment / Retrieval
+~~~
+
+Người học lượt đầu có thể tập trung `Beginner core`; phần `Deep Dive` dành cho lượt học sau.
+
+## Hệ thống đánh giá
+
+Từ Module 09, roadmap dùng thêm bốn lớp đánh giá ngoài 24 bài chính:
+
+- **Failure Labs:** debug lỗi production-like;
+- **Spaced Reviews:** ôn giãn cách sau mỗi cụm 4–6 bài;
+- **PR Review Labs:** review diff như pull request thật;
+- **Career Checkpoints:** build + debug + review + judgment tại các mốc nghề nghiệp.
+
+Các artifact bổ trợ này không tính vào tổng 421 bài chính; chúng là quality gate bắt buộc cho module mới.
+
+`PROGRESS.md` là nguồn sự thật duy nhất về phạm vi và tiến độ. Module `01-nen-tang-lap-trinh` đến `08-sql-va-csdl` hiện đã hoàn thành và đã qua kiểm tra code/SQL/cross-link theo Definition of Done; module `00` còn các bài hướng dẫn môi trường, còn module `10` trở đi vẫn đang trong kế hoạch biên soạn.
