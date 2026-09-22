@@ -21,6 +21,29 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Khi một Order có Customer và Items, câu hỏi không phải chỉ là “có navigation không?”, mà là **dữ liệu liên quan được lấy từ database lúc nào**.
+
+- eager loading: quyết định lấy trước;
+- explicit loading: tự ra lệnh lấy sau;
+- lazy loading: chạm navigation thì tự lấy.
+
+Khác biệt nằm ở **thời điểm I/O và mức độ visible của cost**.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| eager loading | lấy relation chủ động cùng query plan/batch |
+| explicit loading | gọi API để load relation sau |
+| lazy loading | tự query khi navigation được access |
+| navigation | property trỏ entity liên quan |
+| roundtrip | một lượt app ↔ database |
+| projection | lấy thẳng shape cần dùng thay vì full graph |
+
+Người mới thường thấy lazy loading “tiện nhất”; production lại thường đau vì I/O bị ẩn.
+
 Endpoint cần Order + customer + items. Developer có ba cách load. Nếu chọn lazy loading, `foreach` item/customer có thể âm thầm gửi hàng trăm query.
 
 ## 3. Lời giải chạy được
@@ -47,7 +70,79 @@ await db.Entry(order)
 
 Trong CommerceLab read API, ưu tiên projection từ `OrderReadService` khi chỉ cần DTO.
 
+### Walkthrough ba chiến lược
+
+Giả sử cần Order 1001 và Items.
+
+**Eager:**
+
+~~~text
+code gọi Include(Items)
+→ query execute
+→ Order + Items được lấy theo query strategy
+→ access order.Items không cần query mới
+~~~
+
+**Explicit:**
+
+~~~text
+query Order
+→ 1st roundtrip
+code gọi Collection(...).LoadAsync()
+→ 2nd roundtrip
+~~~
+
+**Lazy:**
+
+~~~text
+query Order
+→ 1st roundtrip
+code vô tình access order.Items
+→ hidden 2nd roundtrip
+~~~
+
+Trong loop 100 orders, hidden roundtrip có thể thành N+1.
+
 ## 4. Cơ chế hoạt động
+
+### So sánh loading strategy
+
+| Tiêu chí | Eager | Explicit | Lazy |
+|---|---|---|---|
+| I/O visible ở code | khá rõ | rất rõ | dễ bị ẩn |
+| Roundtrip | thường ít hơn | tăng theo lệnh | có thể rất nhiều |
+| Dễ gây N+1 | có thể | có thể nếu loop | rất dễ |
+| Entity graph detail | tốt | tốt | tiện nhưng khó kiểm soát |
+| Read DTO/list | thường không tối ưu bằng projection | idem | idem |
+
+### Vì sao projection thường tốt cho read API?
+
+Nếu response chỉ cần:
+
+~~~text
+OrderId
+CustomerEmail
+ItemCount
+TotalAmount
+~~~
+
+ta không cần materialize Customer entity và toàn Items collection. Provider có thể select/aggregate đúng dữ liệu cần.
+
+### Misconception check
+
+**Đúng hay sai?** `Include` luôn tốt hơn nhiều query.
+
+**Đáp án:** Sai. Nhiều collection Include có thể gây row multiplication.
+
+**Đúng hay sai?** Lazy loading chỉ là syntax tiện hơn, performance giống nhau.
+
+**Đáp án:** Sai. Nó thay đổi lúc I/O xảy ra và dễ tạo query ngoài ý định.
+
+### Mini-check
+
+Serializer đi qua navigation lazy-loaded của 100 orders có thể gây chuyện gì?
+
+Đáp án: hàng loạt query ẩn trong serialization.
 
 `Include` thêm navigation load vào query shape; provider có thể join hoặc split tùy query/config.
 
@@ -56,6 +151,14 @@ Explicit loading giữ I/O visible tại call site nhưng tạo roundtrip bổ s
 Lazy-loading proxy override virtual navigation và trigger query khi access navigation chưa load; entity/context phải còn phù hợp.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** biết ba strategy khác nhau ở thời điểm I/O.
+
+**Working developer:** default lazy off, projection cho list/read, Include có chủ đích.
+
+**Deep dive:** proxy mechanism, fix-up, split query và consistency.
 
 Must know: navigation access có thể là memory access hoặc database I/O tùy strategy — đây là semantic difference lớn.
 
