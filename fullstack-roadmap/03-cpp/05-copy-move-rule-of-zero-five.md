@@ -1,5 +1,19 @@
 # Copy, move và Rule of Zero/Five
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Copy tạo state độc lập; move có thể chuyển tài nguyên; Rule of Zero giao cleanup cho member đã an toàn.
+- Dùng member string/vector trước khi tự quản lý raw resource.
+- std::move chỉ cho phép chọn move; copy pointer sở hữu mặc định dễ double delete.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - biết trạng thái tối thiểu được bảo đảm của object sau move.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Copy một kho hàng có thể nghĩa là tạo kho mới với hàng riêng; move giống bàn giao chìa khóa kho cũ. Sao chép mỗi địa chỉ rồi để cả hai cùng tự phá kho là sai ownership, dù hai object trông độc lập.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| deep copy | tạo dữ liệu sở hữu riêng | IntBuffer copy cấp mảng mới |
+| move | chuyển state/tài nguyên theo contract kiểu | IntBuffer chuyển pointer |
+| special member | operation tạo/copy/move/gán/hủy đặc biệt | năm operation cần xem xét |
+| Rule of Zero | dùng member tự quản lý để không tự viết special member | Report chứa string |
+| noexcept | cam kết operation không để exception thoát | move số/pointer |
+
+### Ví dụ nhỏ — tính tay trước
+
+A sở hữu [10,20]. Copy B → mảng khác; B[0]=99 không đổi A. Move B sang C → C giữ mảng B cũ, B có size 0 theo contract IntBuffer này.
 
 Một buffer số nguyên cấp phát động được dùng để xử lý dữ liệu. Nếu để compiler copy từng data member:
 
@@ -30,7 +62,9 @@ Ta cần:
 - object nguồn sau move vẫn có thể bị hủy an toàn;
 - đồng thời biết vì sao code production nên tránh tự viết toàn bộ cơ chế này.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 `IntBuffer` dưới đây cố ý dùng `new[]`/`delete[]` để học copy/move. Khi học [STL ở bài 09](./09-stl-container.md), `std::vector<int>` sẽ là lựa chọn production thông thường.
 
@@ -183,7 +217,20 @@ Assigned[0]: 10
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Report copy hai string theo value; sửa second_report không đổi first_report.
+2. IntBuffer original cấp hai int; copied cấp mảng riêng rồi chép từng int.
+3. Move constructor chuyển địa chỉ sang moved và đặt copied về {0,nullptr}; không copy từng phần tử.
+4. Copy assignment tạo dữ liệu mới trước rồi thay owner cũ. Deep copy O(n)/O(n) memory, move constructor của IntBuffer O(1); destructor giải phóng allocation đúng một lần.
+
+### Mini-check
+
+Copy assignment new thất bại trước delete[] cũ: destination có bị mất dữ liệu không? Vì sao thứ tự là quan trọng?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Rule of Zero
 
@@ -271,7 +318,45 @@ Nếu class trực tiếp sở hữu tài nguyên và phải tự viết destruc
 
 Không có nghĩa luôn phải bật cả copy lẫn move. Một resource có thể chỉ cho move và chủ động `delete` copy operation. Điều quan trọng là quyết định ownership rõ ràng, không để compiler shallow-copy raw owning pointer.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Copy member RAII | member quyết định copy hợp lệ | ít code, ưu tiên Rule of Zero |
+| Copy raw owner mặc định | copy cùng địa chỉ | rẻ nhưng sai khi cả hai delete; cấm hoặc viết deep copy |
+| Move owner | chuyển quyền theo contract | có thể rẻ; không giả định mọi kiểu luôn zero-copy |
+
+### Misconception check
+
+**Đúng hay sai?** std::move tự gọi free và chép byte.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: nó là cast; move operation được chọn mới làm việc.
+
+</details>
+
+**Đúng hay sai?** Mọi kiểu sau move đều rỗng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: IntBuffer quy định rỗng; nhiều kiểu thư viện chỉ hứa trạng thái hợp lệ nhưng không chỉ rõ giá trị.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** phân biệt copy/move với sơ đồ owner.
+
+- **Working Developer — dùng khi làm việc:** test assignment và trạng thái nguồn.
+
+- **Deep Dive — có thể quay lại sau:** exception guarantee và noexcept của container.
 
 ### Lvalue và rvalue ở mức cần thiết
 
@@ -340,7 +425,17 @@ Move thường cần sửa source để chuyển ownership. `const T` không cho
 
 `at` tự viết chưa kiểm tra `index`. Gọi với index sai gây undefined behavior. Đừng sao chép API tối giản này vào production.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không viết Rule of Five cho class chỉ chứa string/int. Không dùng IntBuffer::at mẫu như API production có kiểm tra biên: nó có precondition index < size dù tên giống at của thư viện.
+
+## 8. Production notes & scale check
+
+Buffer hai int chỉ để nhìn ownership. Test copy độc lập, copy/move assignment, self-assignment, size 0, dùng lại source sau gán mới và sanitizer cleanup. Khi cần dãy thực tế, vector giảm bề mặt lỗi; chỉ giữ raw resource wrapper khi API cấp thấp bắt buộc.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Theo dõi allocation
 
@@ -372,7 +467,23 @@ Chạy `original = original` và `original = std::move(original)`, xác nhận o
 
 **Gợi ý:** hai nhánh `this == &other` đang bảo vệ trường hợp này.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu struct Product chứa char* Module 02: copy mặc định thiếu trách nhiệm nào? Chọn cấm copy, deep copy hay member tự sở hữu theo nhu cầu kho; giải thích cost của lựa chọn.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ allocation trước/sau copy và move.
+2. Constructor khác assignment về tài nguyên cũ thế nào?
+3. Khi nào Rule of Zero tốt hơn tự viết đủ năm hàm?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 
@@ -385,3 +496,5 @@ Bạn hoàn thành bài khi có thể:
 **Bài prerequisite:** [Constructor, destructor và bộ nhớ](./04-constructor-destructor-va-bo-nho.md)
 
 **Bài tiếp theo:** [Kế thừa và đa hình](./06-ke-thua-va-da-hinh.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/01-copy-raw-owner.md) · [Review](./reviews/review-01.md).

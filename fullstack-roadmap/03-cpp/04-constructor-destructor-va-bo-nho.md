@@ -1,5 +1,19 @@
 # Constructor, destructor và bộ nhớ
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Constructor khởi tạo object, destructor cleanup theo vòng đời.
+- Dùng initializer list và object theo scope để state/tài nguyên được quản lý rõ.
+- Raw new/delete trong bài là thí nghiệm; pointer hết scope không tự delete object động.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - ghép đúng mỗi `new` minh họa với một `delete` và giải thích vì sao production ưu tiên RAII.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Khi mở một quầy, cần đặt đủ tên và giá trước khi phục vụ; khi đóng quầy, thu dọn vật dụng đã nhận trách nhiệm. Constructor/destructor đánh dấu hai đầu đó, còn storage là nơi đặt quầy.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| constructor | hàm đặc biệt khởi tạo object | Book(title, price) |
+| destructor | hàm đặc biệt chạy trong quá trình hủy | ~Book |
+| initializer list | phần khởi tạo member trước thân constructor | title_{title} |
+| dynamic storage | storage được xin theo yêu cầu runtime | new Book |
+| owning raw pointer | pointer có trách nhiệm delete theo quy ước | heap_book |
+
+### Ví dụ nhỏ — tính tay trước
+
+Tạo Book A trong block, rồi Book B trong block con. Ra block con hủy B; ra block ngoài hủy A. Một Book tạo bằng new chỉ được hủy khi owner thực hiện delete tương ứng.
 
 Ở bài trước, `LoyaltyAccount` được tạo với ID rỗng rồi mới gọi setter. Giữa hai thao tác, object tồn tại ở trạng thái chưa sẵn sàng.
 
@@ -27,7 +59,9 @@ Constructor mẫu chỉ yêu cầu caller truyền đủ `title` và `price`; n�
 
 Tên biến/output `stack_book` và `heap_book` được giữ như nhãn học tập quen thuộc. Thuật ngữ chuẩn xác dùng trong phần cơ chế là *automatic storage duration* và *dynamic storage duration*; stack/heap chỉ là vị trí triển khai phổ biến.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```cpp
 #include <iostream>
@@ -104,7 +138,20 @@ Destroyed: Clean Code
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. stack_book được dựng với Clean Code; tên stack chỉ là nhãn mô hình phổ biến.
+2. new xin storage và dựng C++ Core Guidelines; heap_book giữ địa chỉ, là object khác Book đích.
+3. delete heap_book hủy Book động, sau đó gán pointer nullptr; in Leaving main.
+4. Kết thúc main hủy stack_book. Copy title có cost theo ký tự; new có cost cấp phát; object/member hủy theo quy tắc vòng đời, không cần destructor thủ công cho string.
+
+### Mini-check
+
+Nếu chỉ gán heap_book = nullptr mà bỏ delete, object Book động được hủy ở đâu?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Constructor khởi tạo các member ban đầu
 
@@ -136,7 +183,7 @@ stack frame main (mô hình triển khai phổ biến)
     └── price_: 320000
 ```
 
-Khi rời block của `main`, destructor `~Book()` chạy tự động. Sau destructor, lifetime object kết thúc và storage tự động của nó được thu hồi; trong mô hình phổ biến, việc này đi cùng lúc stack frame được tháo.
+Khi rời block của `main`, destructor `~Book()` chạy tự động. Với class object, lifetime kết thúc khi lời gọi destructor bắt đầu; destructor và việc hủy member/base vẫn thực hiện các bước cleanup theo quy tắc riêng. Storage tự động được thu hồi theo scope; trong mô hình phổ biến, việc này đi cùng lúc stack frame được tháo.
 
 ### 4.3. Mỗi `new` tạo một object động riêng
 
@@ -184,7 +231,45 @@ Object tự động trong cùng scope bị hủy theo thứ tự ngược với 
 
 Trong class, data member được khởi tạo theo thứ tự khai báo trong class, không theo thứ tự viết ở initializer list; khi object bị hủy, các member bị hủy theo thứ tự ngược lại. Thân `~Book()` chạy trước khi destructor của `title_` chạy.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Book theo value | vòng đời theo scope/object chứa | ít nhánh cleanup, ưu tiên nếu đủ |
+| new/delete | vòng đời động thủ công | linh hoạt nhưng dễ leak/UB; chỉ minh họa ở đây |
+| malloc/free | xin/trả storage kiểu C | không tự gọi constructor/destructor C++; không trộn cặp |
+
+### Misconception check
+
+**Đúng hay sai?** Constructor có tham số đã tự validate title và price.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample vẫn đặt precondition cho caller; truyền đủ không đồng nghĩa giá trị hợp lệ.
+
+</details>
+
+**Đúng hay sai?** Thứ tự initializer list quyết định thứ tự dựng member.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: theo thứ tự khai báo trong class; hãy viết list cùng thứ tự đó.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** dự đoán construct/destroy theo scope.
+
+- **Working Developer — dùng khi làm việc:** initializer order và ownership.
+
+- **Deep Dive — có thể quay lại sau:** phân biệt thời điểm lifetime với thu hồi storage.
 
 ### Default constructor và constructor có parameter
 
@@ -254,7 +339,17 @@ Compiler luôn theo thứ tự khai báo member. Hãy viết initializer list c�
 
 Destructor rỗng có thể cản một số operation được compiler sinh tự động và làm class phức tạp vô ích. Chỉ tự viết khi có hành vi cleanup hoặc mục tiêu quan sát rõ như demo này.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không cấp phát động mọi object chỉ vì dùng OOP. Không tự viết destructor rỗng cho đủ bộ; có thể ảnh hưởng special member generation và tăng việc bảo trì. Object theo value đủ cho hai sách sống cùng scope.
+
+## 8. Production notes & scale check
+
+Demo dùng dữ liệu đã hợp lệ và log vòng đời; không chứng minh exception safety cho mọi bước sau raw new. Production ưu tiên owner tự cleanup ở bài 11–12. Test thứ tự hủy bằng log, không dựa vào địa chỉ vật lý stack/heap.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Scope lồng nhau
 
@@ -286,7 +381,23 @@ Viết ba đoạn ngắn minh họa leak, double delete, use-after-free nhưng c
 
 **Gợi ý:** đánh dấu rõ lifetime bắt đầu ở `new` và kết thúc ở `delete`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Liên hệ malloc/free Module 02: so sánh storage với khởi tạo Book. Nếu một bước sau new báo lỗi, đánh dấu đường nào phải delete và vì sao object tự động giảm nhánh cleanup.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Pointer và Book động là mấy object?
+2. Member bị hủy trước hay sau thân destructor chứa nó?
+3. Ai chịu validation trong constructor mẫu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

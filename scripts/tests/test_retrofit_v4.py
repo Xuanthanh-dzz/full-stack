@@ -22,6 +22,9 @@ class ClarityGateTests(unittest.TestCase):
     def test_original_passes(self):
         self.check(self.original)
 
+    def test_inline_lambda_is_not_a_link(self):
+        self.check(self.original+'\nLambda syntax: `[capture](parameters) { body }`.\n')
+
     def test_missing_baseline_fails(self):
         with self.assertRaisesRegex(ValueError,'Baseline'):
             self.check(self.original.replace('**Baseline:**','**Old baseline:**'))

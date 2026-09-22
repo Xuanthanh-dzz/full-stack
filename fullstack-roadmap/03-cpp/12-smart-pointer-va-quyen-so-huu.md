@@ -1,5 +1,19 @@
 # Smart pointer và quyền sở hữu
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Smart pointer biểu đạt ownership; raw pointer/reference vẫn có thể là view không sở hữu.
+- Ưu tiên value, rồi unique_ptr; chỉ dùng shared_ptr khi thật sự có nhiều owner.
+- Reference counting không tự làm dữ liệu thread-safe; shared cycle có thể giữ object mãi.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một người giữ chìa khóa là unique owner; chuyển chìa đổi người chịu trách nhiệm. Nhiều người cùng có quyền giữ căn phòng tồn tại là shared ownership. Người chỉ xem lịch phòng là observer, không kéo dài thời gian thuê.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| unique_ptr | owner động duy nhất, không copy | sách trong Shelf |
+| shared_ptr | owner cùng chia sẻ vòng đời | Promotion |
+| weak_ptr | observer không giữ object sống | PromotionObserver |
+| control block | state quản lý shared/weak ownership | số owner và thông tin cleanup |
+| lock | thử lấy shared owner từ weak observer | giữ object sống trong nhánh if |
+
+### Ví dụ nhỏ — tính tay trước
+
+Owner A giữ Book, raw view V nhìn Book. Move A sang B → A rỗng, B sở hữu cùng Book, V vẫn dùng được khi Book còn sống. B.reset() → Book hủy, V không được dùng nữa.
+
 Một kệ sách cần sở hữu nhiều object `Book` được tạo động. Khi kệ bị hủy, toàn bộ sách phải tự bị hủy. Một màn hình khác chỉ quan sát chương trình khuyến mãi dùng chung:
 
 - kệ là owner duy nhất của từng sách;
@@ -19,7 +51,9 @@ Một kệ sách cần sở hữu nhiều object `Book` được tạo động. 
 - chương trình khuyến mãi có thể được nhiều component sở hữu;
 - observer không được kéo dài lifetime khuyến mãi và phải phát hiện khi nó hết hạn.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Điều kiện `if (const std::shared_ptr<...> promotion = promotion_.lock())` vừa tạo một smart pointer cục bộ, vừa kiểm tra pointer đó có object hay không. Biến `promotion` chỉ sống trong nhánh `if`/`else`.
 
@@ -155,7 +189,20 @@ Promotion expired
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. make_unique tạo hai Book; Shelf::add nhận ownership và move vào vector.
+2. Vector reallocation có thể dời unique_ptr, nhưng không tự dời Book mà chúng sở hữu.
+3. Promotion có shared owner ở main; observer giữ weak. lock lần đầu tạo owner tạm rồi trả sau block.
+4. main reset owner cuối, Promotion hủy; lock sau trả rỗng. Control block có thể sống tới khi weak cuối hết; shared có overhead quản lý count, unique không cần shared count.
+
+### Mini-check
+
+weak_ptr còn sống sau khi owner cuối reset: object Promotion hay control block còn tồn tại?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. `unique_ptr` biểu đạt một owner
 
@@ -249,7 +296,45 @@ chuyển ownership; nó không tự di chuyển hay hủy `Book`, nên raw view 
 trong lúc owner đích còn giữ chính object đó. Không gọi `delete` trên kết quả
 `get()`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Value / reference | sở hữu theo object hoặc mượn | đơn giản khi vòng đời đủ; reference không gia hạn |
+| unique_ptr | một owner động | chuyển bằng move, ít overhead; không dùng dynamic khi value đủ |
+| shared_ptr / weak_ptr | nhiều owner / quan sát | cần control block và tránh cycle; không dùng để che owner chưa rõ |
+
+### Misconception check
+
+**Đúng hay sai?** Move unique_ptr luôn làm raw view tới Book mất hiệu lực.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chuyển owner không dời Book; view còn hợp lệ trong vòng đời Book.
+
+</details>
+
+**Đúng hay sai?** shared_ptr làm mọi thao tác trên T tự đồng bộ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: quản lý count không đồng bộ việc sửa object T.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** vẽ owner và borrow.
+
+- **Working Developer — dùng khi làm việc:** unique move, weak lock và cleanup.
+
+- **Deep Dive — có thể quay lại sau:** control block, cycle và giới hạn thread safety.
 
 ### Bảng quyết định ownership
 
@@ -322,7 +407,17 @@ Count có thể đổi và không nói owner nào tồn tại. Nó phù hợp đ
 
 Smart pointer bảo vệ lifetime chỉ trong khi có owner. Reference/raw view lấy ra không tự kéo dài lifetime.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng shared_ptr mặc định cho toàn bộ graph. Không delete kết quả get(); đó là view. Nếu kệ chỉ chứa Book đồng nhất theo value và không cần địa chỉ/lifetime động riêng, vector<Book> thường đơn giản hơn.
+
+## 8. Production notes & scale check
+
+Demo hai sách không có driver performance; dùng để quan sát ownership. Test move giữ địa chỉ object, source rỗng, reject empty pointer và weak hết hạn. Shared cycle cần thiết kế cạnh sở hữu theo domain, không đổi ngẫu nhiên một cạnh chỉ để hết leak.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Chuyển ownership
 
@@ -354,7 +449,23 @@ Với năm tình huống: local config, optional view, factory polymorphic, shar
 
 **Gợi ý:** bắt đầu bằng câu hỏi “ai quyết định lifetime?”.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Thay Product* owner và chuỗi cấp phát tay của Module 02 bằng lựa chọn C++: phần nào nên là value/string, phần nào thực sự cần unique_ptr? Nêu lý do không dùng shared_ptr cho dữ liệu một kho sở hữu.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Ai hủy Book khi Shelf hết scope?
+2. get khác release về ownership thế nào? Tra contract release trước khi dùng.
+3. Vẽ vòng shared cycle và cạnh observer hợp lý.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

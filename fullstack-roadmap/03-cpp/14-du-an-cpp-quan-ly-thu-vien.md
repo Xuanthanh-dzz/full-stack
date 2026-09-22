@@ -1,5 +1,19 @@
 # Dự án C++ quản lý thư viện
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Capstone ghép invariant, polymorphism, container và RAII thành thư viện console có ownership rõ.
+- Dùng để chứng minh mượn/trả, duplicate, tìm kiếm và report qua cả đường lỗi.
+- Report không phải persistence đầy đủ; các lượt quét lồng nhau có cost theo cả item và loan.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - build project C++20 sạch warning và giải thích automatic/dynamic storage, ownership và lifetime.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Thư viện giữ tài liệu, thành viên và lịch sử mượn. Trước khi thêm một phiếu mượn phải kiểm tra đủ người, sách và trạng thái. Một owner rõ giữ từng tài liệu; các thao tác chỉ mượn view để hỏi, không tự chia quyền sở hữu.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| polymorphic ownership | sở hữu object derived qua base có destructor phù hợp | unique_ptr<LibraryItem> |
+| active loan | phiếu mượn chưa trả | returned == false |
+| commit | đưa record hợp lệ vào state chính | push_back Loan sau validation |
+| report | ảnh chụp dữ liệu để đọc, chưa có load/restore | library-report.txt |
+| index | cấu trúc phụ để tra nhanh | chỉ cân nhắc khi lượt quét đo được là bottleneck |
+
+### Ví dụ nhỏ — tính tay trước
+
+Một sách A và thành viên M: borrow → một loan active; borrow lần hai bị từ chối giữ một loan; return → loan marked returned; borrow lại tạo lịch sử mới. Không xóa lịch sử để giả vờ chưa từng mượn.
 
 Một thư viện cần ứng dụng console nhỏ để:
 
@@ -25,7 +57,9 @@ Thiết kế phải cho phép thêm loại tài liệu khác sau này mà `Libra
 
 Phạm vi checkpoint này chưa có ngày tháng, database hay giao diện nhập lệnh. `main` chạy một kịch bản deterministic để kiểm chứng toàn bộ đường nghiệp vụ đã học; các phần mở rộng nằm ở bài tập.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.cpp`. Bốn API nhỏ được dùng thêm và được giải thích ngay trong bài:
 
@@ -368,7 +402,21 @@ BK-002,RAII in Practice,available,21
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0`, C++20 và `-Wall -Wextra -Wpedantic -Werror`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main dựng Library, thêm hai PrintedBook qua unique_ptr và hai Member trong map.
+2. borrow kiểm tra member/item/active loan trước khi append; lần mượn thứ hai bị bắt lỗi không đổi state.
+3. Search RAII quét title; return đánh dấu phiếu active, catalog cho cả hai available.
+4. save_report mở stream, ghi từng item rồi close/kiểm tra trước báo saved. Library sở hữu containers và Books; destructor cleanup khi hết scope.
+5. find_item O(I), tìm loan O(L); report gọi tìm loan cho mỗi item nên O(I×L) chưa tính độ dài text. Vector pointer dời không dời Book phía sau.
+
+### Mini-check
+
+Nếu add_item nhận unique_ptr theo value rồi phát hiện duplicate, owner nào hủy object bị từ chối? Caller có được giả định còn giữ nó không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Mỗi class giữ một trách nhiệm rõ
 
@@ -441,7 +489,45 @@ Lỗi dự kiến của lần mượn thứ hai được bắt gần operation �
 
 Ở đường thành công, code chủ động `close()` rồi kiểm tra stream trước khi trả về, thay vì báo “saved” trước khi buffer được đóng. Destructor vẫn là cleanup fallback cho mọi đường exception trước đó. Với hệ thống cần atomic/durable report, cần chiến lược file tạm, flush/fsync và rename theo nền tảng; checkpoint này chỉ bảo đảm cleanup và phát hiện lỗi stream cơ bản.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| vector<Book> | giữ object đồng nhất theo value | ít allocation/indirection; đủ nếu không cần đa hình |
+| vector<unique_ptr<Base>> | giữ dynamic type với owner duy nhất | thêm allocation; phù hợp contract nhiều loại tài liệu |
+| Thêm index active loan | tránh quét lặp | tốn memory và invariant đồng bộ; không thêm trước đo workload |
+
+### Misconception check
+
+**Đúng hay sai?** Mỗi lần vector unique_ptr reallocate thì địa chỉ Book đổi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: smart pointer được move, object Book độc lập vẫn ở chỗ cũ tới khi bị hủy.
+
+</details>
+
+**Đúng hay sai?** File report hiện tại đủ khôi phục toàn bộ Library sau restart.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chưa lưu/load member và lịch sử, còn giới hạn escaping/title.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chạy và trace mượn/trả.
+
+- **Working Developer — dùng khi làm việc:** test rejection, ownership và stream failure.
+
+- **Deep Dive — có thể quay lại sau:** đo quét lồng nhau và thiết kế persistence theo driver.
 
 ### `map::emplace`
 
@@ -526,7 +612,17 @@ Mở file thành công không bảo đảm mọi write thành công. Kiểm tra 
 
 Expected rejection được bắt riêng. Fatal error trả non-zero; không in “saved” nếu operation thất bại.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng shared_ptr khi Library là owner duy nhất. Không thêm database chỉ để demo hai sách. Ngược lại, không dùng report CSV giản lược như kho dữ liệu thật nhiều người sửa hoặc coi đóng stream là transaction bền.
+
+## 8. Production notes & scale check
+
+Team nhỏ, vài chục sách dùng quét tuyến tính dễ kiểm chứng. Gate thử duplicate, unknown ID, borrow/return lặp, path lỗi và file giữ state nghiệp vụ hợp lệ. Title có dấu phẩy/newline chưa được escape; báo cáo hiện chỉ phù hợp dữ liệu mẫu. Driver mở rộng là yêu cầu lưu/load hoặc workload đo được.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Loại tài liệu mới
 
@@ -558,7 +654,23 @@ Tách declaration/definition thành `library-item.h/.cpp`, `library.h/.cpp`, `ma
 
 **Gợi ý:** header có include guard; lệnh link phải chứa mọi `.cpp`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh load kho C Module 02 với report thư viện: cái nào là roundtrip persistence, cái nào chỉ export? Đề xuất một bước nhỏ tiếp theo và failure test trước khi nghĩ tới database hay nhiều service.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ ownership từ Library xuống từng Book.
+2. Trace borrow lỗi và state loans trước/sau.
+3. Vì sao report O(I×L) dù chỉ có một vòng for nhìn ở save_report?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành module khi có thể:
 
@@ -572,3 +684,7 @@ Bạn hoàn thành module khi có thể:
 **Bài prerequisite:** [Move semantics và perfect forwarding](./13-move-semantics-va-perfect-forwarding.md)
 
 **Bài tiếp theo:** [.NET 9 và chương trình C# đầu tiên](../04-csharp-co-ban/01-dotnet-9-va-chuong-trinh-csharp.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/03-raii-khong-rollback.md) · [Review](./reviews/review-03.md).
+
+**Trước khi sang C#:** [PR Review](./pr-review-labs/01-library.md).

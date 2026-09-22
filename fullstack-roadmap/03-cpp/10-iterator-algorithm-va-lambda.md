@@ -1,5 +1,19 @@
 # Iterator, algorithm và lambda
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Iterator mô tả range; algorithm duyệt; lambda cung cấp quy tắc nhỏ tại chỗ.
+- Dùng sort/find/count/accumulate khi contract khớp thay vì viết lại cơ chế duyệt.
+- Không dereference end; comparator/capture/kiểu accumulator sai có thể phá kết quả hoặc vòng đời.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn giao một đoạn danh sách và câu hỏi “đơn nào chưa trả?”. Algorithm lo đi từng vị trí, lambda chỉ trả lời câu hỏi cho một phần tử. Biên cuối là dấu dừng, không phải phần tử để đọc.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| iterator | giá trị mô tả vị trí trong range | begin/end |
+| range nửa mở | gồm đầu, không gồm cuối | [begin,end) |
+| predicate | hàm trả đúng/sai cho điều kiện | order chưa paid |
+| lambda/closure | hàm viết tại chỗ kèm state được giữ | capture minimum_total |
+| accumulator | giá trị tổng hợp mang qua từng bước | sum bắt đầu 0LL |
+
+### Ví dụ nhỏ — tính tay trước
+
+[5,2,8] sort giảm → [8,5,2]; count >=5 → 2. Accumulate bắt đầu 0LL: 0→8→13→15. Với dãy rỗng, begin==end và không đọc phần tử nào.
+
 Một danh sách đơn hàng cần:
 
 - sắp xếp giảm dần theo tổng tiền;
@@ -21,7 +53,9 @@ Một danh sách đơn hàng cần:
 
 Viết bốn vòng lặp tay sẽ lặp lại logic duyệt và dễ sai biên. Thư viện chuẩn đã có algorithm; ta chỉ truyền phần nghiệp vụ thay đổi dưới dạng lambda.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Trong mẫu:
 
@@ -124,7 +158,20 @@ Paid total: 650000 VND
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Vector chứa A250000 paid, B120000 unpaid, C400000 paid; sort thay thứ tự thành C,A,B.
+2. find_if trả vị trí B; code so end trước đọc id.
+3. Lambda capture threshold 200000 theo value, count cho 2; accumulate 0LL cộng C+A thành 650000.
+4. Algorithms làm việc đồng bộ trên dữ liệu vector sở hữu. Sort O(n log n) so sánh; các lượt find/count/sum tuyến tính; capture một số dùng state cố định.
+
+### Mini-check
+
+Comparator >= trả gì với hai đơn cùng total? Điều đó vi phạm điều kiện compare(x,x) nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Iterator biểu diễn vị trí
 
@@ -199,7 +246,45 @@ Nếu thay bằng literal `0`, `T` nội bộ trở thành `int`. Với **lambda
 
 Đây là lỗi phổ biến: chọn initial value cùng kiểu kết quả mong muốn.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Loop tường minh | tự giữ iterator/biên | hợp logic tùy biến đơn giản; dễ sai biên khi lặp lại |
+| Algorithm + lambda | cơ chế duyệt chuẩn và policy riêng | rõ ý định; phải giữ contract range/comparator |
+| Capture value/reference | giữ bản sao/mượn biến ngoài | value độc lập hơn; reference phải giữ nguồn sống |
+
+### Misconception check
+
+**Đúng hay sai?** const auto iterator làm phần tử nó chỉ tới thành const.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: const hạn chế biến iterator; kiểu iterator/container quyết định quyền sửa phần tử.
+
+</details>
+
+**Đúng hay sai?** Gán accumulate(...,0,...) vào long long đủ tránh hẹp số.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: accumulator nội bộ đã là int; phải chọn initial value đúng kiểu.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace range và thuật toán.
+
+- **Working Developer — dùng khi làm việc:** comparator/capture/accumulator contracts.
+
+- **Deep Dive — có thể quay lại sau:** iterator category, cost và tối ưu closure.
 
 ### Comparator phải tạo strict weak ordering
 
@@ -269,7 +354,17 @@ Không thêm/xóa phần tử trong khi algorithm đang duyệt cùng range, tr�
 
 `remove_if` chỉ sắp lại phần tử và trả logical end. Với vector C++20 có thể dùng `std::erase_if`; nếu dùng erase-remove idiom, phải gọi `erase`.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng algorithm nếu lambda dài che mất luồng nghiệp vụ hơn vòng lặp rõ ràng. Không capture mọi biến bằng [&] để tiện rồi lưu closure vượt scope. Không cần ranges mới để giải bốn phép duyệt này.
+
+## 8. Production notes & scale check
+
+Demo ba đơn có tổng nằm trong long long; 0LL chọn đúng kiểu nhưng không tự chống overflow tổng tùy ý. Test rỗng, không tìm thấy, tổng lớn hơn int và khóa bằng nhau. Capture reference trong lời gọi đồng bộ khác callback được lưu để chạy sau.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tìm theo ID
 
@@ -301,7 +396,23 @@ Tạo các order sao cho tổng vượt miền `int`, so sánh `accumulate` bắ
 
 **Gợi ý:** với lambda hiện tại, phép cộng được promote lên `long long`; lỗi nằm ở lúc kết quả lambda được ghi trở lại accumulator `int`. `std::numeric_limits<int>::max()` từ `<limits>` cho biết cận trên của `int` trên môi trường đang build.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Liên hệ callback C Module 02: lambda giữ threshold theo value còn function pointer C không tự chứa state. Thiết kế báo cáo sau khi threshold gốc đổi và chọn snapshot hay giá trị mới có chủ đích.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. end biểu diễn gì khi range rỗng?
+2. Capture value giữ dữ liệu lúc nào?
+3. Với lambda hiện tại, chuyển hẹp xảy ra ở đâu nếu initial là 0?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 
@@ -314,3 +425,5 @@ Bạn hoàn thành bài khi có thể:
 **Bài prerequisite:** [STL container](./09-stl-container.md)
 
 **Bài tiếp theo:** [Exception và RAII](./11-exception-va-raii.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/02-vector-invalidation.md) · [Review](./reviews/review-02.md).
