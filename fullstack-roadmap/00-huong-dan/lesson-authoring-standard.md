@@ -298,3 +298,127 @@ Khi retrofit Module 01–08:
 4. sửa terminology/style;
 5. thêm judgment/production note;
 6. chỉ tick verified sau CI.
+
+
+## 13. Failure Lab bắt buộc
+
+Từ Module 09 trở đi, ngoài bài tập debug nhỏ trong từng bài, mỗi module phải có **lab lỗi chuyên dụng**.
+
+### Cadence
+
+- tối thiểu 1 Failure Lab sau mỗi 4–6 bài;
+- một module 20+ bài nên có ít nhất 4 lab;
+- lab không tính vào số bài chính trong manifest.
+
+### Cấu trúc Failure Lab
+
+Mỗi lab phải có:
+
+1. bối cảnh production-like;
+2. code/query/config cố ý sai;
+3. triệu chứng quan sát được;
+4. cách tái hiện;
+5. acceptance criteria;
+6. 2–4 hint tăng dần;
+7. checklist điều tra;
+8. **không có full solution trong cùng trang**.
+
+Lab phải buộc người học dùng ít nhất hai kỹ năng, ví dụ:
+
+- LINQ + Big-O;
+- EF loading + SQL cardinality;
+- concurrency + transaction;
+- cache + HTTP semantics.
+
+Verifier module phải kiểm tra số lượng lab tối thiểu.
+
+## 14. Spaced Review / Retrieval Cycle
+
+Retrieval practice cuối bài là mức vi mô; mỗi module còn phải có **review checkpoint giãn cách**.
+
+### Cadence
+
+- sau khoảng bài 1–5;
+- sau bài 6–10;
+- sau bài 11–15;
+- sau bài 16–20;
+- cuối module/capstone.
+
+Mỗi review phải trộn:
+
+- 40–60% kiến thức cụm vừa học;
+- 20–30% kiến thức module trước;
+- 10–20% judgment/debugging.
+
+Không copy nguyên câu hỏi từ bài cũ.
+
+### Format
+
+Mỗi review nên có:
+
+- 5 câu retrieval không nhìn tài liệu;
+- 2 bài dự đoán output/SQL/query count;
+- 1 bài debug;
+- 1 bài judgment chọn tầng giải quyết;
+- self-score để biết nên ôn lại bài nào.
+
+## 15. PR / Code Review Lab
+
+Từ Module 09 trở đi, mỗi module kỹ thuật phải có ít nhất **1 PR review lab**; module backend/data/architecture nên có 2.
+
+Lab phải cung cấp:
+
+- diff hoặc patch gần giống PR thật;
+- 6–12 vấn đề thuộc nhiều nhóm;
+- rubric review: correctness, performance, security, maintainability, operability;
+- yêu cầu viết review comment có severity và reasoning;
+- không yêu cầu người học sửa hết code trước khi review.
+
+Mục tiêu là luyện khả năng:
+
+```text
+đọc code người khác
+→ phát hiện vấn đề
+→ đánh giá mức độ
+→ giải thích tác động
+→ đề xuất thay đổi nhỏ nhất hợp lý
+```
+
+## 16. Career Checkpoint
+
+Các mốc nghề nghiệp chính:
+
+| Sau module | Checkpoint | Mục tiêu |
+|---|---|---|
+| 05 | C# Foundation | viết/debug/test ứng dụng C# vừa |
+| 09 | Junior Data/Backend | LINQ + SQL + EF Core + data access production basics |
+| 13 | Full-stack Junior | API + React/Angular + auth + integration |
+| 15 | Production-ready Developer | testing + CI/CD + Docker + observability |
+| 18 | Senior/System Design | architecture drivers + distributed/system design |
+| 20 | Architect | trade-off, ADR, migration strategy, technical leadership |
+
+Mỗi checkpoint phải có ít nhất:
+
+1. knowledge test;
+2. build task;
+3. debugging task;
+4. PR review task;
+5. judgment task;
+6. interview-style explanation;
+7. competency matrix theo mức **Chưa đạt / Đạt / Vững**.
+
+Checkpoint **không xếp hạng con người**; nó chỉ chỉ ra gap kỹ năng và bài cần ôn.
+
+## 17. Quality gate module v3
+
+Từ Module 09 trở đi, module chỉ hoàn thành khi:
+
+- lesson gate v2 pass;
+- Failure Labs đạt cadence;
+- Spaced Reviews đạt cadence;
+- PR Review Lab tồn tại;
+- Career Checkpoint tương ứng tồn tại nếu module là mốc checkpoint;
+- sample/test/provider-real gate pass;
+- freshness gate pass;
+- MkDocs build pass.
+
