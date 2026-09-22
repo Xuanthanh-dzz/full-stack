@@ -520,7 +520,7 @@ Thêm OrderNumber theo expand-contract.
 Điều hướng:
 
 - Bài trước: [Backup, restore và migration dữ liệu](./24-backup-restore-va-migration-du-lieu.md)
-- Module tiếp theo: [LINQ và Entity Framework Core](../09-linq-va-ef-core/01-linq-query-syntax-va-method-syntax.md)
+- Module tiếp theo: [LINQ và Entity Framework Core](../PROGRESS.md#09-linq-va-ef-core)
 
 ---
 
