@@ -21,6 +21,25 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Khi EF load một entity ở chế độ tracking, nó không chỉ trả object. Nó còn giữ một **entry** mô tả: entity nào, key gì, state hiện tại, và giá trị gốc cần để biết có gì thay đổi.
+
+Bạn sửa property trên object. Đến `SaveChanges`, EF so/đọc state rồi quyết định cần `INSERT`, `UPDATE` hay `DELETE` gì.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| change tracker | bộ nhớ theo dõi entity state |
+| entity state | Added / Unchanged / Modified / Deleted / Detached |
+| original value | giá trị lúc EF bắt đầu track |
+| current value | giá trị object hiện tại |
+| identity map | cùng key trong context thường dùng cùng tracked instance |
+| Unit of Work | gom một nhóm thay đổi thành commit boundary |
+
+Điểm chính: `DbContext` đã có nhiều behavior của Unit of Work. Thêm wrapper chỉ để gọi `SaveChangesAsync()` thường không tạo giá trị mới.
+
 Một request load Order, đổi Status, rồi save. EF cần biết entity nào thay đổi và statement nào phải gửi. Đồng thời developer định thêm `IUnitOfWork.SaveAsync()` chỉ gọi `DbContext.SaveChangesAsync()`.
 
 ## 3. Lời giải chạy được
@@ -45,7 +64,73 @@ db.Products.Add(product);
 await db.SaveChangesAsync(cancellationToken);
 ~~~
 
+### Walkthrough một update
+
+~~~text
+1. SELECT Order 42
+2. EF materialize Order object
+3. ChangeTracker entry:
+   Key=42
+   State=Unchanged
+   Original Status=Pending
+
+4. code:
+   order.Status = Paid
+
+5. DetectChanges / state evaluation
+   State=Modified
+
+6. SaveChanges
+   → generate UPDATE
+   → execute
+   → affected rows checked
+
+7. sau save
+   State trở lại Unchanged
+   current values trở thành baseline mới
+~~~
+
+Với `AsNoTracking`, bước giữ entry không xảy ra, nên sửa object rồi `SaveChanges` không tự biết phải persist.
+
 ## 4. Cơ chế hoạt động
+
+### Tracked vs no-tracking
+
+| | Tracking | No-tracking |
+|---|---|---|
+| Change tracker entry | có | không |
+| Sửa entity rồi save | tự nhiên | không tự nhiên |
+| Memory/CPU | cao hơn | thấp hơn |
+| Read-only projection/list | thường thừa | phù hợp |
+| Command load-then-update | phù hợp | không phải default |
+
+### `DbContext` và Unit of Work
+
+Unit of Work về ý tưởng:
+
+~~~text
+load/change nhiều entity
+→ giữ pending changes
+→ commit một boundary
+~~~
+
+`DbContext` đã làm việc này qua tracker + `SaveChanges` + transaction behavior. Custom `IUnitOfWork` chỉ đáng có nếu nó thêm policy/cross-resource abstraction thật.
+
+### Misconception check
+
+**Đúng hay sai?** Tracking làm object “live sync” với database.
+
+**Đáp án:** Sai. Entity có thể stale nếu DB thay đổi bên ngoài context.
+
+**Đúng hay sai?** `context.Update(entity)` luôn an toàn cho detached DTO.
+
+**Đáp án:** Sai. Nó có thể mark nhiều property modified và gây over-posting/stale overwrite.
+
+### Mini-check
+
+Nếu endpoint chỉ đọc 10.000 rows để export và không sửa gì, tracking giúp gì?
+
+Đáp án: thường rất ít; projection/no-tracking phù hợp hơn.
 
 Change tracker giữ entry theo key/entity instance và original/current values cần thiết.
 
@@ -54,6 +139,14 @@ Change tracker giữ entry theo key/entity instance và original/current values 
 Identity map giúp cùng key trong một context thường resolve về một tracked instance, tránh hai object cạnh tranh state.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** entity state và `SaveChanges` pipeline.
+
+**Working developer:** tracked command vs no-tracking read, detached update risk.
+
+**Deep dive:** DetectChanges, identity resolution, graph attach/update semantics.
 
 Unit of Work pattern gom nhiều thay đổi thành commit boundary. `DbContext` đã làm phần lớn behavior này.
 
