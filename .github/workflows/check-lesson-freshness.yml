@@ -1,0 +1,40 @@
+name: Check lesson freshness
+
+on:
+  schedule:
+    - cron: "17 3 1 * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "fullstack-roadmap/09-linq-va-ef-core/**"
+      - "fullstack-roadmap/10-web-nen-tang/**"
+      - "fullstack-roadmap/11-aspnet-core-backend/**"
+      - "fullstack-roadmap/12-frontend/**"
+      - "fullstack-roadmap/13-fullstack-tich-hop/**"
+      - "fullstack-roadmap/14-testing-va-chat-luong/**"
+      - "fullstack-roadmap/15-devops/**"
+      - "fullstack-roadmap/16-design-patterns/**"
+      - "fullstack-roadmap/17-kien-truc/**"
+      - "fullstack-roadmap/18-system-design/**"
+      - "fullstack-roadmap/19-cong-nghe-hien-dai/**"
+      - "fullstack-roadmap/20-ky-nang-architect/**"
+      - "fullstack-roadmap/21-du-an/**"
+      - "scripts/check_lesson_freshness.py"
+      - ".github/workflows/check-lesson-freshness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Check last-verified metadata
+        run: python scripts/check_lesson_freshness.py --start-module 9

@@ -13,19 +13,19 @@
   /* Custom Color Tokens (Light Mode) */
   --fs-primary: #4f46e5;
   --fs-primary-hover: #4338ca;
-  --fs-accent: #0ea5e9;
+  --fs-accent: #0284c7;
   --fs-heading: #0f172a;
-  --fs-text: #334155;
-  --fs-text-muted: #64748b;
-  --fs-border: #e2e8f0;
-  --fs-border-subtle: #f1f5f9;
+  --fs-text: #1e293b;
+  --fs-text-muted: #475569;
+  --fs-border: #cbd5e1;
+  --fs-border-subtle: #e2e8f0;
   --fs-bg-body: #ffffff;
-  --fs-card-bg: rgba(255, 255, 255, 0.95);
-  --fs-card-border: rgba(226, 232, 240, 0.85);
-  --fs-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
-  --fs-active-bg: rgba(79, 70, 229, 0.08);
-  --fs-hover-bg: rgba(79, 70, 229, 0.04);
-  --fs-table-header-bg: #f8fafc;
+  --fs-card-bg: rgba(255, 255, 255, 0.98);
+  --fs-card-border: rgba(203, 213, 225, 0.9);
+  --fs-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --fs-active-bg: rgba(79, 70, 229, 0.12);
+  --fs-hover-bg: rgba(79, 70, 229, 0.05);
+  --fs-table-header-bg: #f1f5f9;
 }
 
 [data-md-color-scheme="slate"] {
@@ -151,32 +151,32 @@ html {
   border: 1px solid var(--fs-card-border);
 }
 
-/* --- Typography & Reading Experience --- */
+/* --- Typography & Reading Experience (Giảm 15% theo yêu cầu để vừa vặn, tinh tế) --- */
 .md-typeset {
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-size: 0.925rem;
+  line-height: 1.72;
   color: var(--fs-text);
 }
 
 .md-typeset h1 {
-  font-size: 2.2rem;
+  font-size: 2.15rem;
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.025em;
   color: var(--fs-heading);
   margin-top: 0.5rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.15rem;
 }
 
 .md-typeset h2 {
-  font-size: 1.45rem;
+  font-size: 1.4rem;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.015em;
   color: var(--fs-heading);
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-top: 2.2rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--fs-border);
 }
 
@@ -186,8 +186,8 @@ html {
   line-height: 1.4;
   letter-spacing: -0.01em;
   color: var(--fs-heading);
-  margin-top: 1.8rem;
-  margin-bottom: 0.6rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.55rem;
 }
 
 .md-typeset p,
@@ -245,45 +245,91 @@ html {
 }
 
 /* --- Inline Code & Code Blocks --- */
-.md-typeset code {
+.md-typeset :not(pre) > code {
   font-family: var(--md-font-code);
-  font-size: 0.85em;
-  font-weight: 500;
-  padding: 0.18em 0.45em;
+  font-size: 0.875em;
+  font-weight: 600;
+  padding: 0.18em 0.48em;
   border-radius: 6px;
   background: #f1f5f9;
-  color: #4338ca;
-  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
   word-break: break-word;
 }
 
-[data-md-color-scheme="slate"] .md-typeset code {
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+[data-md-color-scheme="slate"] .md-typeset :not(pre) > code {
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+  border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 .md-typeset pre {
-  margin: 1.25rem 0;
+  margin: 1.5rem 0;
 }
 
 .highlight {
   border-radius: 12px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
 [data-md-color-scheme="slate"] .highlight {
-  border: 1px solid rgba(51, 65, 85, 0.6);
-  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  background-color: #0f172a;
+  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
 }
 
 .md-typeset pre > code {
   font-family: var(--md-font-code);
-  font-size: 0.85rem;
+  font-size: 0.925rem;
   line-height: 1.65;
-  padding: 1rem 1.25rem;
+  padding: 1.15rem 4.5rem 1.15rem 1.25rem;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+[data-md-color-scheme="default"] .md-typeset pre > code {
+  color: #0f172a;
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre > code {
+  color: #f1f5f9;
+}
+
+/* Code Action Buttons (Copy, Select) Clearance & Styling */
+.md-code__nav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.md-code__button {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  color: #475569 !important;
+  transition: all 0.15s ease !important;
+}
+
+[data-md-color-scheme="slate"] .md-code__button {
+  background: rgba(30, 41, 59, 0.85) !important;
+  border: 1px solid rgba(71, 85, 105, 0.6) !important;
+  color: #cbd5e1 !important;
+}
+
+.md-code__button:hover {
+  color: var(--fs-primary) !important;
+  border-color: var(--fs-primary) !important;
+  background: #ffffff !important;
+}
+
+[data-md-color-scheme="slate"] .md-code__button:hover {
+  background: #1e293b !important;
 }
 
 /* --- Modern Table Styling --- */
@@ -628,12 +674,35 @@ html {
    Zen Reading Mode & Hamburger Module Navigator (Top-Left Hover Menu)
    ========================================================================== */
 
+/* Trang chủ giữ nguyên kích thước chuẩn như cũ (centered container cân đối) */
+.md-grid {
+  max-width: 1220px;
+  margin: 0 auto;
+}
+
+/* Full màn hình 100% CHỈ kích hoạt khi vào học bài (Zen Mode) */
+body.zen-mode .md-grid {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+body.zen-mode .md-main__inner {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
 /* Hide bulky header & tabs during lesson reading */
 body.zen-mode .md-header {
   display: none !important;
 }
 
-body.zen-mode .md-tabs { display: none !important; 
+body.zen-mode .md-tabs {
   display: none !important;
 }
 
@@ -650,6 +719,23 @@ body.zen-mode .md-sidebar--primary {
 body.zen-mode .md-sidebar--secondary {
   top: 4.5rem !important;
   height: calc(100vh - 4.8rem) !important;
+}
+
+/* Back to top button positioned gracefully at bottom right */
+.md-top {
+  top: auto !important;
+  bottom: 2.5rem !important;
+  right: 2.5rem !important;
+  left: auto !important;
+  transform: none !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
+  z-index: 100 !important;
+}
+
+/* Soft TOC scrollbar */
+.md-sidebar--secondary .md-sidebar__scrollwrap {
+  scrollbar-width: thin;
 }
 
 /* Floating 3-bar hamburger component */

@@ -23,7 +23,7 @@ hide:
     <div class="stat-label">Module Kiến Thức</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number">94+</div>
+    <div class="stat-number"><!-- AUTO_LESSON_COUNT_START -->94+<!-- AUTO_LESSON_COUNT_END --></div>
     <div class="stat-label">Bài Học Chuyên Sâu</div>
   </div>
   <div class="stat-card">
@@ -105,6 +105,9 @@ hide:
     
     [:octicons-arrow-right-24: Học Module 06](06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md)
 
+<!-- AUTO_COMPLETED_MODULES_START -->
+<!-- AUTO_COMPLETED_MODULES_END -->
+
 </div>
 
 ---
@@ -125,6 +128,7 @@ graph LR
 
 ### 📦 Các Module Đang Biên Soạn
 
+<!-- AUTO_PLANNING_ROWS_START -->
 | Module | Chủ đề chính | Trạng thái |
 |---|---|---|
 | **07** | Cấu trúc dữ liệu & Giải thuật | <span class="badge badge-warning">Đang lên kế hoạch</span> |
@@ -132,6 +136,7 @@ graph LR
 | **10-13** | Web Foundation, ASP.NET Core & React | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **14-15** | Testing, CI/CD, Docker & DevOps | <span class="badge badge-warning">Đang lên kế hoạch</span> |
 | **16-20** | Design Patterns, Microservices & System Design | <span class="badge badge-warning">Đang lên kế hoạch</span> |
+<!-- AUTO_PLANNING_ROWS_END -->
 
 ---
 
