@@ -21,6 +21,33 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Deferred execution nghĩa là: **bạn mới viết công thức, chưa nấu món ăn**.
+
+Ví dụ:
+
+~~~csharp
+var evens = numbers.Where(x => x % 2 == 0);
+~~~
+
+Dòng này thường chưa duyệt toàn bộ `numbers`. Nó tạo một object biết rằng: “khi ai đó hỏi dữ liệu, hãy lấy source rồi giữ số chẵn”.
+
+Đến khi bạn `foreach`, `ToList()`, `Count()`... thì công thức mới được chạy.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| deferred execution | trì hoãn chạy tới khi cần kết quả |
+| enumeration | quá trình lấy lần lượt phần tử |
+| terminal operator | operation cần kết quả thật |
+| materialization | tạo collection/result cụ thể trong memory |
+| snapshot | ảnh chụp dữ liệu tại một thời điểm |
+| multiple enumeration | chạy lại cùng sequence nhiều lần |
+
+Đây không chỉ là lý thuyết. Nếu source là database, mỗi terminal operation có thể biến thành một SQL roundtrip riêng.
+
 Một developer log 'query đã tạo xong', rồi source thay đổi trước `foreach`. Kết quả khác điều họ nghĩ vì biến LINQ giữ recipe, không phải snapshot.
 
 ## 3. Lời giải chạy được
@@ -48,7 +75,71 @@ Console.WriteLine("Snapshot");
 Console.WriteLine(string.Join(",", snapshot));
 ~~~
 
+### Walkthrough thời gian
+
+Giả sử:
+
+~~~text
+T0: numbers = [1,2,3,4]
+T1: var evens = numbers.Where(...)
+T2: numbers.Add(6)
+T3: foreach(evens)
+~~~
+
+Tại `T1`, chưa có snapshot `[2,4]`.
+
+Đến `T3`, sequence đọc source hiện tại:
+
+~~~text
+1 → reject
+2 → keep
+3 → reject
+4 → keep
+6 → keep
+~~~
+
+nên kết quả là `[2,4,6]`.
+
+Nếu ở `T2` bạn đã gọi `var snapshot = evens.ToList()`, list đó sẽ giữ dữ liệu materialize tại thời điểm chạy.
+
 ## 4. Cơ chế hoạt động
+
+### Deferred vs materialized
+
+| Thuộc tính | Deferred sequence | Materialized collection |
+|---|---|---|
+| Chạy ngay | thường không | có |
+| Phản ánh source thay đổi sau đó | có thể | không tự động |
+| Có thể enumerate lại | có | có, nhưng data đã có sẵn |
+| I/O có thể lặp | có | không cho cùng snapshot |
+| Memory upfront | thấp hơn | cao hơn |
+
+### Vì sao multiple enumeration nguy hiểm?
+
+Với list nhỏ, hai lần enumerate có thể chỉ là vài microseconds. Với EF:
+
+~~~text
+CountAsync()   → SQL query 1
+ToListAsync()  → SQL query 2
+~~~
+
+Đôi khi hai query là đúng thiết kế. Nhưng bạn phải biết mình đang trả giá hai roundtrip và có thể nhìn thấy dữ liệu ở hai thời điểm khác nhau.
+
+### Misconception check
+
+**Đúng hay sai?** Gán LINQ query vào biến nghĩa là kết quả đã được tính.
+
+**Đáp án:** Sai với nhiều operator deferred.
+
+**Đúng hay sai?** `ToList()` chỉ đổi type trả về.
+
+**Đáp án:** Sai. Nó còn tạo execution/materialization boundary.
+
+### Mini-check
+
+Nếu bạn gọi `Count()` rồi `ToList()` trên một iterator có side effect, side effect có thể chạy mấy lượt?
+
+Đáp án: thường hai lượt.
 
 `Where` trả enumerable mới giữ reference/source + predicate. Nó không chạy predicate ngay.
 
@@ -57,6 +148,14 @@ Mỗi lần `foreach`, `ToList`, `Count` hoặc terminal operator cần dữ li�
 `ToList` materialize thành snapshot tại thời điểm đó. Sau boundary, thay đổi source không tự đi vào list.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** biết query chưa chắc đã chạy khi được khai báo.
+
+**Working developer:** nhận ra execution boundary và multiple enumeration.
+
+**Deep dive:** iterator state machine, streaming/buffering operator và EF roundtrip consistency.
 
 Iterator/yield từ C# nâng cao giúp hiểu deferred execution: enumerator kéo từng phần tử khi consumer yêu cầu.
 
