@@ -112,3 +112,5 @@ DBA cung cấp stored procedure report ổn định nhưng app cần thêm filte
 
 - Bài trước: [Global query filter và interceptor](./19-global-query-filter-va-interceptor.md)
 - Bài tiếp theo: [Performance: no-tracking, compiled query và bulk update](./21-performance-no-tracking-compiled-query-bulk-update.md)
+- Spaced review: [Review 04 — Loading, concurrency & SQL](./reviews/review-04-loading-concurrency-and-sql.md)
+- Failure Lab: [N+1 và cartesian explosion](./failure-labs/03-n-plus-one-va-cartesian-explosion.md)
