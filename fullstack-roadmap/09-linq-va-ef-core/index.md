@@ -91,6 +91,25 @@ Không copy sample:
 | Maintainability/readability | 10% |
 | Documentation/reproducibility | 5% |
 
+## Learning system bắt buộc
+
+Module 09 không chỉ có 24 bài chính. Người học phải đi qua bốn lớp assessment bổ sung:
+
+- [Failure Labs](./failure-labs/01-multiple-enumeration-va-materialization.md) — 4 lab debug production-like;
+- [Spaced Reviews](./reviews/review-01-linq-core.md) — 5 checkpoint ôn giãn cách;
+- [PR Review Labs](./pr-review-labs/01-review-linq-search-service.md) — 2 PR/diff gần giống công việc thật;
+- [Career Checkpoint — Junior Data/Backend](./career-checkpoint/index.md) — build + debug + review + judgment.
+
+Khuyến nghị cadence:
+
+~~~text
+01–05 → Review 01
+06–10 → Review 02 + Failure Lab 01–02
+11–15 → Review 03
+16–20 → Review 04 + Failure Lab 03
+21–24 → Review 05 + Failure Lab 04 + PR Review + Career Checkpoint
+~~~
+
 ## Quality gate
 
 Module chỉ được đánh dấu hoàn thành khi:
