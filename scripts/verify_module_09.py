@@ -114,6 +114,74 @@ def check_lesson(path: Path, today: date) -> None:
             fail(f"{path}: forbidden terminology '{forbidden}'; prefer '{preferred}'")
 
 
+
+def check_supplemental_artifacts() -> None:
+    failure_dir = MODULE / "failure-labs"
+    review_dir = MODULE / "reviews"
+    pr_review_dir = MODULE / "pr-review-labs"
+    checkpoint = MODULE / "career-checkpoint" / "index.md"
+
+    failure_labs = sorted(failure_dir.glob("[0-9][0-9]-*.md"))
+    reviews = sorted(review_dir.glob("review-*.md"))
+    pr_reviews = sorted(pr_review_dir.glob("[0-9][0-9]-*.md"))
+
+    if len(failure_labs) != 4:
+        fail(f"Expected 4 Failure Labs, found {len(failure_labs)}")
+    if len(reviews) != 5:
+        fail(f"Expected 5 Spaced Reviews, found {len(reviews)}")
+    if len(pr_reviews) != 2:
+        fail(f"Expected 2 PR Review Labs, found {len(pr_reviews)}")
+    if not checkpoint.exists():
+        fail("Missing Module 09 career checkpoint")
+
+    required_failure_sections = [
+        "## Bối cảnh",
+        "## Triệu chứng",
+        "## Cách tái hiện",
+        "## Acceptance criteria",
+        "## Hints",
+        "## Checklist điều tra",
+    ]
+    for path in failure_labs:
+        text = path.read_text(encoding="utf-8")
+        for section in required_failure_sections:
+            if section not in text:
+                fail(f"{path}: missing Failure Lab section {section}")
+        if "## Lời giải" in text or "## Full solution" in text:
+            fail(f"{path}: Failure Lab must not contain a full solution section")
+        check_links(path, text)
+
+    for path in reviews:
+        text = path.read_text(encoding="utf-8")
+        for section in ("## Retrieval", "## Debug", "## Judgment liên module", "## Self-score"):
+            if section not in text:
+                fail(f"{path}: missing Spaced Review section {section}")
+        check_links(path, text)
+
+    for path in pr_reviews:
+        text = path.read_text(encoding="utf-8")
+        for section in ("## Diff", "## Nhiệm vụ review", "## Rubric", "## Submission format"):
+            if section not in text:
+                fail(f"{path}: missing PR Review section {section}")
+        check_links(path, text)
+
+    checkpoint_text = checkpoint.read_text(encoding="utf-8")
+    for section in (
+        "## 1. Knowledge test",
+        "## 2. Build task",
+        "## 3. Debugging task",
+        "## 4. PR review task",
+        "## 5. Judgment tasks",
+        "## 6. Interview-style explanation",
+        "## 7. Competency matrix",
+        "## 8. Remediation map",
+    ):
+        if section not in checkpoint_text:
+            fail(f"{checkpoint}: missing career checkpoint section {section}")
+    check_links(checkpoint, checkpoint_text)
+
+    print("Supplemental assessment gate passed: 4 Failure Labs, 5 Spaced Reviews, 2 PR Reviews, 1 Career Checkpoint.")
+
 def compile_linq_samples(paths: list[Path]) -> None:
     for path in paths[:10]:
         text = path.read_text(encoding="utf-8")
@@ -179,10 +247,12 @@ def main() -> None:
     for path in paths:
         check_lesson(path, today)
 
+    check_supplemental_artifacts()
+
     if args.compile_linq:
         compile_linq_samples(paths)
 
-    print("Module 09 content gate passed: 24/24 lessons.")
+    print("Module 09 quality gate passed: 24/24 lessons + supplemental assessment artifacts.")
 
 
 if __name__ == "__main__":
