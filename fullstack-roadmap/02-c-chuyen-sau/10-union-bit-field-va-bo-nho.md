@@ -1,5 +1,19 @@
 # `union`, bit-field và bộ nhớ
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- union dùng chung storage cho các lựa chọn; tag cho biết lựa chọn nào đang có nghĩa.
+- Dùng khi một giá trị chỉ ở một trong vài dạng, như giảm giá cố định hoặc phần trăm.
+- Kích thước/layout không nên đoán; bit-field không phải định dạng file/network portable.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,6 +26,24 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một hộp có thể chứa phiếu “giảm 150 đồng” hoặc “giảm 20%”. Nhãn bên ngoài nói phải đọc phiếu theo cách nào. Nếu đổi nhãn mà không đổi nội dung tương ứng, người tính có thể dùng sai quy tắc.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| union | kiểu cho nhiều trường dùng chung storage | fixed_amount hoặc percent |
+| tag | giá trị chỉ lựa chọn đang dùng | loại Adjustment |
+| tagged union | union đi kèm tag và quy tắc nhất quán | hàm chỉ đọc nhánh được chọn |
+| bit-field | trường số nguyên khai báo độ rộng theo bit | cờ sản phẩm |
+| padding | phần đệm để đáp ứng layout/alignment | sizeof không chỉ là tổng kích thước nhìn thấy |
+
+### Ví dụ nhỏ — tính tay trước
+
+Giá 1000: tag FIXED, amount 150 → 850; tag PERCENT, percent 20 → 800. Không đọc cả hai trường rồi cộng hai giảm giá vì đây là lựa chọn loại trừ nhau.
+
 Một điều chỉnh giá có đúng một trong hai dạng:
 
 - giảm một số xu cố định;
@@ -21,7 +53,9 @@ Nếu `struct` luôn chứa cả hai giá trị, một member sẽ không có ý
 
 Sản phẩm còn có hai cờ boolean nội bộ: đang hoạt động và chịu thuế. Ta dùng bit-field để mô tả chúng, đồng thời giữ rõ giới hạn portability.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -138,7 +172,20 @@ Gia sau giam phan tram: 800 xu
 Trang thai: active=1 taxable=1
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main tạo hai Adjustment với tag và thành viên union tương ứng.
+2. Hàm tính kiểm tra tag rồi chỉ xử lý nhánh đã chọn; percent ngoài 0..100 bị từ chối.
+3. Kết quả 850 và 800 được ghi ra output; cờ bit-field được đọc riêng để in 1, 1.
+4. Mọi object mẫu ở caller; không cấp phát động. Tính giá cost cố định, storage/layout do implementation quyết định nên không có output sizeof cố định.
+
+### Mini-check
+
+Nếu percent = 101, có nên clamp âm thầm hay báo lỗi theo contract mẫu? Output cũ có cần giữ nguyên không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### `struct` và `union` bố trí member khác nhau
 
@@ -212,7 +259,45 @@ khai báo member có độ rộng một bit trong đơn vị lưu trữ do imple
 
 Bit-field phù hợp cho một nhóm cờ nội bộ khi layout chính xác không đi qua ranh giới process/file/network. Code truy cập bằng `flags.active` như member thường, nhưng không thể lấy địa chỉ bit-field bằng `&flags.active`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| struct hai trường | giữ đồng thời cả hai giá trị | đơn giản nếu cả hai cùng có nghĩa; tốn storage cho cả hai |
+| tagged union | một lựa chọn có nghĩa tại một thời điểm | cần giữ tag/content nhất quán; phù hợp dữ liệu nhiều dạng |
+| bit mask tường minh | quy định vị trí bit bằng phép toán | hợp format trao đổi đã đặc tả; không thay bằng layout bit-field compiler |
+
+### Misconception check
+
+**Đúng hay sai?** sizeof(union) luôn đúng bằng thành viên lớn nhất.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Không được giả định bằng tuyệt đối: cần tính cả yêu cầu alignment/padding.
+
+</details>
+
+**Đúng hay sai?** Bit-field của mọi compiler có cùng thứ tự bit trong file.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: layout phụ thuộc implementation; cần định dạng tuần tự hóa tường minh.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đọc đúng nhánh tag.
+
+- **Working Developer — dùng khi làm việc:** validate tag/payload trước tính.
+
+- **Deep Dive — có thể quay lại sau:** alignment và format byte độc lập compiler.
 
 ### Khi nào dùng `union`
 
@@ -277,7 +362,17 @@ Bit-field không nhất thiết có địa chỉ byte riêng, nên `&flags.activ
 
 Tag vẫn có thể mang giá trị lạ từ file/input hoặc memory corruption. Có nhánh từ chối rõ ràng.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng union để tiết kiệm vài byte nếu hai trường thực sự cần sống đồng thời. Không ghi thẳng bit-field ra network để làm protocol portable; định nghĩa byte/bit rõ ràng đơn giản hơn debug khác compiler.
+
+## 8. Production notes & scale check
+
+Ở kho nhỏ, tagged union làm rõ nghiệp vụ hơn tối ưu byte. Validate tag và payload tại đầu vào; test unknown tag, 0%, 100%, >100% và giá sát giới hạn. Đo sizeof trên baseline chỉ là quan sát của compiler đó, không thành cam kết chung.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Giá trị số hoặc text
 
@@ -303,7 +398,23 @@ In `sizeof` của union, struct chứa hai member riêng và tagged union trên 
 
 **Gợi ý:** compiler có thể thêm padding vì alignment.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với enum trạng thái bài 09, Adjustment cần thêm dữ liệu theo loại. Chọn struct hai trường hay tagged union cho yêu cầu “mỗi đơn chỉ được một cách giảm”; nêu invariant và một test phá invariant.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Tag bảo vệ cách đọc union thế nào?
+2. Vì sao layout memory khác format file?
+3. Giảm 100% trên giá lớn cần tránh tràn ở bước nào?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt vùng lưu trữ member của `struct` và `union`.
 - [ ] Tôi luôn ghép union nhiều dạng với tag rõ ràng.
@@ -314,3 +425,5 @@ In `sizeof` của union, struct chứa hai member riêng và tagged union trên 
 **Bài prerequisite:** [Struct, enum và typedef](./09-struct-enum-typedef.md)
 
 **Bài tiếp theo:** [File I/O](./11-file-io.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/02-alias-sau-free.md) · [Spaced Review](./reviews/review-02-lifetime-va-ownership.md).

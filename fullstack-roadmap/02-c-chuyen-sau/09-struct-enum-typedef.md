@@ -1,5 +1,19 @@
 # `struct`, `enum` và `typedef`
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- struct gom dữ liệu, enum đặt tên lựa chọn và typedef đặt tên kiểu cho dễ đọc.
+- Dùng để biểu diễn một thực thể nhỏ có các trường liên quan và contract rõ.
+- Sao chép struct chứa pointer không tự sao chép dữ liệu được trỏ tới.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -13,11 +27,30 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Thay vì giữ mã, tên, số lượng ở ba danh sách dễ lệch nhau, đặt chúng vào cùng một phiếu sản phẩm. Phiếu chỉ là dữ liệu; thao tác nhập thêm vẫn phải kiểm tra số lượng và giới hạn trước khi sửa.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| struct | kiểu chứa nhiều trường có tên | Product |
+| enum | kiểu có các hằng số nguyên được đặt tên | trạng thái tồn kho |
+| typedef | tên khác cho một kiểu | viết Product thay struct Product |
+| inline array | mảng là thành phần nằm trong object chứa nó | name[32] |
+
+### Ví dụ nhỏ — tính tay trước
+
+Product có quantity = 4, reorder = 5 → LOW. Nhập thêm 6 → quantity = 10 → OK. Chỉ trường quantity đổi; tên/mã vẫn thuộc cùng object.
+
 Một sản phẩm có mã số, tên, số lượng và ngưỡng nhập thêm. Nếu lưu bốn mảng hoặc bốn biến rời, rất dễ truyền nhầm dữ liệu của sản phẩm này với sản phẩm khác.
 
 Ta cần một kiểu `Product` gom các trường thành một object và một kiểu `StockState` chỉ cho phép ba trạng thái nghiệp vụ: hết hàng, sắp hết và đủ hàng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -130,7 +163,20 @@ Output:
 101 | Ban phim | quantity=10 | state=OK
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main khởi tạo Product với tên trong mảng char của chính struct.
+2. Hàm trạng thái so sánh quantity với ngưỡng để chọn enum, hàm in đổi enum thành chuỗi.
+3. restock kiểm tra amount và INT_MAX trước cộng; chỉ ghi quantity khi hợp lệ.
+4. Không malloc cho name[32]; copy Product sao chép cả mảng này. Mỗi thao tác mẫu cost cố định, nhưng kích thước struct có thể chứa padding do implementation.
+
+### Mini-check
+
+Với name[32], có phải luôn chứa được 31 chữ tiếng Việt hiển thị không? Phân biệt byte và ký tự.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### `struct` tạo một kiểu gồm nhiều member
 
@@ -211,7 +257,45 @@ Object vẫn do `main` sở hữu; không có allocation động trong ví dụ.
 
 `StockState` gom ba hằng số nguyên có tên. `get_stock_state` trả đúng một trạng thái, giúp `switch` rõ nghĩa hơn việc rải các con số `0`, `1`, `2` trong code.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Các biến rời | mỗi dữ liệu giữ độc lập | đủ cho ví dụ rất nhỏ; dễ truyền sai cặp khi cùng mô tả sản phẩm |
+| struct chứa mảng | object chứa trực tiếp ký tự | copy struct copy mảng; tốn storage cố định dù tên ngắn |
+| struct chứa pointer | object giữ địa chỉ ký tự | copy chỉ copy địa chỉ; cần contract ownership riêng |
+
+### Misconception check
+
+**Đúng hay sai?** typedef tạo object hay cấp phát bộ nhớ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ đặt tên kiểu; khai báo object/cấp phát mới tạo storage.
+
+</details>
+
+**Đúng hay sai?** enum bảo đảm mọi giá trị runtime đều thuộc danh sách tên.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần xử lý giá trị không mong đợi tại ranh giới dữ liệu; sample có fallback.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** gom trường và đọc enum.
+
+- **Working Developer — dùng khi làm việc:** giữ invariant trước khi sửa struct.
+
+- **Deep Dive — có thể quay lại sau:** layout/padding và copy khi chứa ownership.
 
 ### `typedef` không tạo object
 
@@ -286,9 +370,19 @@ C vẫn có thể nhận giá trị không khớp enumerator từ input hoặc c
 
 ### Ghi chuỗi quá dài vào mảng member
 
-`name[32]` chỉ chứa tối đa 31 ký tự dữ liệu và `'\0'`. Khi lấy input, phải kiểm soát kích thước; không dùng hàm copy không biết capacity.
+`name[32]` chỉ chứa tối đa 31 byte dữ liệu và `'\0'`. Khi lấy input, phải kiểm soát kích thước; không dùng hàm copy không biết capacity.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng raw bytes của struct làm định dạng file dùng lâu dài; padding, endian và phiên bản trường có thể thay đổi. Không thêm struct nhiều tầng nếu chỉ cần trả một số đơn giản.
+
+## 8. Production notes & scale check
+
+Với một sản phẩm và tên tối đa 31 byte, mảng cố định dễ quản lý. Dữ liệu nhập cần giới hạn theo byte, bảo đảm terminator và kiểm tra overflow khi restock. Khi đổi sang pointer để hỗ trợ tên dài, phải thiết kế copy/free trước, không chỉ sửa kiểu trường.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Kiểu `Student`
 
@@ -314,7 +408,23 @@ Thêm member `char *description` vào một struct minh họa và vẽ hai objec
 
 **Gợi ý:** không cần chạy code; chỉ rõ cả hai pointer cùng trỏ allocation nào và nguy cơ double free.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Liên hệ ma trận dữ liệu Module 01: chọn parallel arrays hay Product[] cho kho nhỏ. Mô tả lỗi khi sắp xếp số lượng mà quên đổi tên cùng hàng, rồi giải thích struct giúp giữ quan hệ nào.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Copy struct chứa char[32] khác char * ra sao?
+2. Vì sao phải kiểm tra trước quantity + amount?
+3. UNKNOWN bảo vệ ranh giới dữ liệu nào?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi gom dữ liệu liên quan vào một `struct`.
 - [ ] Tôi dùng `enum` cho tập trạng thái hữu hạn.

@@ -1,5 +1,19 @@
 # Lỗi bộ nhớ và undefined behavior
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Lỗi bộ nhớ xảy ra khi truy cập sai biên, sai vòng đời hoặc giải phóng sai quyền sở hữu.
+- Dùng contract và sanitizer để tìm bằng chứng lỗi trên đường chạy đã thực thi.
+- Undefined behavior không đảm bảo crash; một lần chạy không lỗi không chứng minh chương trình an toàn.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,6 +26,23 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Đọc một trang ngoài cuốn sổ hay dùng chìa khóa phòng đã trả đều không có kết quả được cam kết. Máy đôi khi vẫn in dữ liệu nhìn hợp lý, nhưng điều đó không biến thao tác sai thành hợp lệ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| undefined behavior — UB | chuẩn không đặt yêu cầu cho hành vi của chương trình ở tình huống đó | đọc ngoài vùng hợp lệ |
+| use-after-free | dùng storage sau khi đã giải phóng | alias còn giữ địa chỉ cũ |
+| double free | giải phóng lại cùng allocation đã hết quyền sở hữu | hai owner giả |
+| sanitizer | công cụ thêm kiểm tra lúc chạy để phát hiện một số lỗi | AddressSanitizer và UndefinedBehaviorSanitizer |
+
+### Ví dụ nhỏ — tính tay trước
+
+Chuỗi "AB" cần 3 byte A, B, 0. Chỉ số ký tự hợp lệ để trả ở đây là 0 và 1; index 2 là terminator. Khi free owner, alias từng trỏ A không được đọc nữa dù còn giữ cùng con số địa chỉ.
+
 Ta cần sao chép một mã sản phẩm vào vùng nhớ động, đọc một ký tự có kiểm tra giới hạn rồi giải phóng. API phải an toàn cả khi hàm giải phóng được gọi hai lần qua cùng owner pointer.
 
 Mục tiêu không chỉ là “chương trình không crash”. Ta phải chứng minh:
@@ -21,7 +52,9 @@ Mục tiêu không chỉ là “chương trình không crash”. Ta phải chứ
 - owner không bị thất lạc;
 - sau giải phóng, owner pointer không còn giữ địa chỉ cũ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -140,7 +173,20 @@ cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
 
 Chương trình đúng không tạo báo cáo sanitizer.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. duplicate_text tạo bản sao BOOK-2026 trong storage riêng và trả owner.
+2. try_get kiểm tra vị trí trước khi ghi output; index 4 cho dấu -, index 99 bị từ chối.
+3. release_text nhận địa chỉ owner, free rồi đặt owner về NULL; gọi lại với owner NULL không giải phóng allocation cũ lần nữa.
+4. Copy/đo độ dài tốn thời gian theo số byte; storage bản sao cũng theo chiều dài. Sanitizer quan sát các đường chạy này, không tự kiểm tra mọi input hoặc mọi alias.
+
+### Mini-check
+
+Output của try_get nên đổi không khi index = 99? Thiết kế assertion để phát hiện ghi output trước validation.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Một allocation, một owner
 
@@ -198,7 +244,45 @@ Hệ quả có thể là:
 
 Không có yêu cầu “compiler phải báo” hoặc “runtime phải ném lỗi”. Vì vậy test chạy qua một lần không chứng minh code không có undefined behavior.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| NULL check | loại con trỏ rỗng | rẻ; không phát hiện mọi dangling pointer |
+| Kiểm tra biên/vòng đời | chứng minh điều kiện trước truy cập | cần contract caller; nền tảng correctness |
+| Sanitizer | phát hiện một số vi phạm khi chạy | thêm thời gian/bộ nhớ; dùng test, không coi PASS là chứng minh tuyệt đối |
+
+### Misconception check
+
+**Đúng hay sai?** Không crash nghĩa là không có UB.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: UB có thể biểu hiện khác giữa compiler, tối ưu và lần chạy.
+
+</details>
+
+**Đúng hay sai?** Đặt owner = NULL làm mọi alias khác an toàn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ object pointer đó đổi; alias khác vẫn cần bị bỏ hoặc cập nhật.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** nhận ra biên và vòng đời sai.
+
+- **Working Developer — dùng khi làm việc:** tái hiện bằng sanitizer và regression.
+
+- **Deep Dive — có thể quay lại sau:** giới hạn công cụ và tối ưu dưới giả định không có UB.
 
 ### Năm nhóm lỗi cần audit
 
@@ -307,7 +391,17 @@ Nếu một bước sau allocation thất bại, phải giải phóng tài nguy�
 
 Khi `realloc` trả `NULL` với kích thước khác `0`, allocation cũ vẫn sống. Owner phải giữ địa chỉ cũ và `free` sau.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không cố phục hồi bằng cách tiếp tục đọc pointer đã free để xem còn dữ liệu không. Không dùng sanitizer thay quy tắc ownership; công cụ chỉ quan sát những đường chạy đã được test.
+
+## 8. Production notes & scale check
+
+Team nhỏ nên bật warning và sanitizer ở CI, lưu lệnh/input/stack trace của lỗi đầu tiên. Demo copy một chuỗi nhỏ chưa cần allocator riêng. Ca rỗng, index sát biên, release hai lần và allocation failure có giá trị hơn chỉ chạy happy path dài.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Sao chép mảng `int`
 
@@ -339,7 +433,23 @@ Với một chương trình có ba allocation, lập bảng: tên owner, thời 
 
 **Gợi ý:** mỗi dòng phải có đúng một owner chịu trách nhiệm cuối.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Kết hợp debug Module 01 và vòng đời bài 06: người review thấy test PASS nhưng code trả pointer local. Bạn có chấp nhận không? Nêu bằng chứng source, cách tái hiện phù hợp và giới hạn của một test không crash.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Phân biệt leak và use-after-free.
+2. Vì sao strlen cũng đòi chuỗi hợp lệ trước khi gọi?
+3. Nêu dữ liệu cần giữ trong báo cáo sanitizer.
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi nhận diện được năm nhóm lỗi bộ nhớ chính.
 - [ ] Tôi biết UB không đảm bảo crash hay thông báo lỗi.

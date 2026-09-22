@@ -1,5 +1,19 @@
 # Quá trình biên dịch, linking và Makefile
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Build nhiều file gồm tiền xử lý, biên dịch từng đơn vị, rồi liên kết thành executable.
+- Dùng header cho contract, source cho implementation và Makefile để theo dõi phụ thuộc.
+- Compile từng file thành công chưa chứng minh linker tìm đủ định nghĩa hoặc executable là bản mới.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,6 +26,24 @@ Học xong bài này, bạn có thể:
 - dùng internal linkage cho helper chỉ thuộc một file.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mỗi người chuẩn bị một bộ phận theo cùng bản vẽ; cuối cùng phải ráp được chúng. Header giống bản vẽ chung, object file là bộ phận đã dịch, linker nối các chỗ gọi với định nghĩa. Make chỉ làm lại bộ phận nó biết đã cũ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| translation unit | source sau khi đã xử lý các include/chỉ thị | main.c hoặc inventory.c sau tiền xử lý |
+| object file | kết quả biên dịch trung gian | main.o, inventory.o |
+| linking | nối tham chiếu với định nghĩa thành chương trình | inventory-app |
+| dependency | file mà kết quả build phụ thuộc vào | main.o phụ thuộc inventory.h |
+| incremental build | chỉ dựng lại phần đã cũ theo quan hệ phụ thuộc | make |
+
+### Ví dụ nhỏ — tính tay trước
+
+main.c gọi total được khai báo ở inventory.h; inventory.c định nghĩa total. Thiếu inventory.o: compiler có thể đã chấp nhận main.c, nhưng linker không tìm được thân hàm. Sửa header cần dịch lại cả hai source dùng nó.
 
 Chương trình kho đã dài. Nếu mọi hàm nằm trong `main.c`, thay đổi một phần buộc ta đọc và build lại một khối lớn.
 
@@ -26,7 +58,9 @@ Makefile     — quy tắc build
 
 Mỗi file `.c` được compile riêng thành object file. Linker ghép các definition thành executable.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `inventory.h`:
 
@@ -181,7 +215,20 @@ cc main.o inventory.o -o inventory-app
 ./inventory-app
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. make đọc target và dependency; header mới hơn khiến các object phụ thuộc cần build lại.
+2. Compiler dịch main.c và inventory.c riêng, cùng đọc contract trong inventory.h.
+3. Linker nối hai object với thư viện cần dùng thành inventory-app; chạy executable mới tính tổng 9000.
+4. Source tách file không tách thành hai process hay hai kho dữ liệu. Cost build theo phần phải dịch; runtime tổng vẫn duyệt các sản phẩm như code gốc.
+
+### Mini-check
+
+Nếu sửa inventory.h mà make nói không cần làm gì, nên kiểm tra công thức tính trước hay đồ thị dependency trước?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Hai translation unit
 
@@ -264,7 +311,45 @@ Mảng `items` thuộc `main`; các pointer `code` mượn string literal có st
 
 Không có allocation động trong module nhỏ này. Việc tách file không đổi lifetime hoặc tự tạo bản sao runtime của mảng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Một source | mọi định nghĩa cùng file | dễ bắt đầu; khó phân công khi file quá dài |
+| Header + source | contract và implementation tách | cần dependency đúng; hợp hai phần đã có trách nhiệm riêng |
+| Makefile | mô tả target/phụ thuộc/lệnh | giảm build lặp; thiếu dependency có thể chạy binary cũ |
+
+### Misconception check
+
+**Đúng hay sai?** Include header là đủ để linker có implementation.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: khai báo không thay thân hàm; cần liên kết object có định nghĩa.
+
+</details>
+
+**Đúng hay sai?** Tách hai file tạo hai bản state runtime độc lập tự động.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: file source là tổ chức build; state theo các định nghĩa/linkage của chương trình.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** dịch từng file rồi link.
+
+- **Working Developer — dùng khi làm việc:** kiểm tra dependency và incremental build.
+
+- **Deep Dive — có thể quay lại sau:** inspect symbol/object khi lỗi liên kết khó thấy.
 
 ### Phân biệt loại lỗi
 
@@ -327,7 +412,17 @@ Nếu `main.o` chỉ phụ thuộc `main.c`, đổi struct trong header có th�
 
 Make truyền thống yêu cầu tab đầu dòng recipe. Space thường tạo lỗi “missing separator”.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tách mỗi hàm một file chỉ để trông chuyên nghiệp. Với chương trình vài dòng, một source dễ đọc hơn. Không dùng clean build mỗi lần để che dependency thiếu; incremental build phải đúng trước.
+
+## 8. Production notes & scale check
+
+Nhóm nhỏ cần clean build tái tạo được và test sửa header có rebuild đúng. Ghi compiler/flags và exit status, không chỉ ảnh IDE xanh. Demo hai source dùng dependency tường minh đủ; project lớn hơn có thể dùng dependency compiler tạo khi có driver.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm hàm đếm hàng sắp hết
 
@@ -359,7 +454,23 @@ Chạy `make` hai lần, rồi sửa lần lượt `main.c`, `inventory.c`, `inv
 
 **Gợi ý:** timestamp dependency quyết định target out-of-date.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Liên hệ bài build Module 01: test chạy executable cũ vẫn PASS sau khi source lỗi có chứng minh bản sửa đúng không? Viết chuỗi compile/link/run dừng khi lỗi và kiểm tra khi header đổi.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Compile error khác link error ở giai đoạn nào?
+2. Vì sao main.o phụ thuộc inventory.h?
+3. Make có tự hiểu mọi include nếu chưa khai báo dependency không?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt declaration với definition.
 - [ ] Tôi biết mỗi `.c` tạo một translation unit.

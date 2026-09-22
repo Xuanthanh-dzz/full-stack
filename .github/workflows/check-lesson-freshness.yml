@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "fullstack-roadmap/01-nen-tang-lap-trinh/**"
+      - "fullstack-roadmap/02-c-chuyen-sau/**"
       - "fullstack-roadmap/09-linq-va-ef-core/**"
       - "fullstack-roadmap/10-web-nen-tang/**"
       - "fullstack-roadmap/11-aspnet-core-backend/**"
@@ -42,4 +43,6 @@ jobs:
         run: python scripts/check_lesson_freshness.py --start-module 9
 
       - name: Check activated retrofit freshness and clarity
-        run: python scripts/verify_retrofit_v4.py 01
+        run: |
+          python scripts/verify_retrofit_v4.py 01
+          python scripts/verify_retrofit_v4.py 02

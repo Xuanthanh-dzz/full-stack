@@ -1,5 +1,19 @@
 # Dự án C: quản lý kho
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Kho C ghép model, ownership và file format thành một chương trình có invariant kiểm tra được.
+- Dùng capstone để chứng minh thêm/xóa/tính/lưu/nạp đúng cả khi thất bại.
+- Alias có thể mất hiệu lực khi sửa kho; đổi tên file không tự bảo đảm dữ liệu bền sau mất điện.
+
 ## 1. Mục tiêu
 
 Sau dự án này, bạn có thể ghép toàn bộ module thành một chương trình C11 nhiều file:
@@ -16,6 +30,24 @@ Sau dự án này, bạn có thể ghép toàn bộ module thành một chương
 Đây là checkpoint của module 02. Bạn nên tự gõ lại, chạy, thay input và vẽ memory trước khi sang C++.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Kho có hai lớp trách nhiệm: danh sách giữ các phiếu sản phẩm, mỗi phiếu sở hữu chuỗi mã/tên riêng. Khi nạp file mới, dựng một kho tạm đủ tốt rồi mới thay kho cũ. Cách này giống kiểm xong lô hàng mới mới đổi sổ chính.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| invariant | điều kiện dữ liệu phải luôn thỏa ở ranh giới thao tác | count ≤ capacity và mã không trùng |
+| capacity | số slot đã có storage, chưa chắc là sản phẩm hợp lệ | khác count |
+| ownership transfer | chuyển trách nhiệm giải phóng cùng dữ liệu | dịch phần tử khi remove |
+| commit | thời điểm đưa kết quả đã hợp lệ vào state chính | thay kho sau load thành công |
+| durability | dữ liệu vẫn tồn tại sau sự cố như mất điện | không được bảo đảm chỉ bởi rename trong C11 |
+
+### Ví dụ nhỏ — tính tay trước
+
+Kho cũ [A:2]. Nạp file [B:3, dòng hỏng]: dựng B trong kho tạm → phát hiện lỗi → dispose kho tạm → kho cũ vẫn [A:2]. Không xóa kho cũ ngay khi vừa mở được file.
 
 Một cửa hàng cần ứng dụng quản lý kho có các use case:
 
@@ -47,7 +79,9 @@ inventory_find trả borrowed pointer.
 Borrowed pointer hết hợp lệ sau add/remove/dispose vì realloc hoặc dịch phần tử.
 ```
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo thư mục project với sáu file sau.
 
@@ -1054,7 +1088,21 @@ make CFLAGS="-std=c11 -Wall -Wextra -Wpedantic -Werror \
 ./inventory-app
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main init kho rỗng; add sao chép code/name rồi bảo đảm capacity trước tăng count.
+2. Sau thêm ba sản phẩm, bán ba mouse: quantity từ 20 xuống 17; remove cable giải phóng hai chuỗi rồi dồn slot và xóa bản sao cuối.
+3. save validate và ghi file tạm trong thư mục tin cậy; chỉ rename sau ghi/đóng thành công. File tạm có tên cố định nên contract chỉ cho một writer và path dành riêng.
+4. load xây Inventory tạm, kiểm tra toàn bộ file, rồi mới dispose kho cũ và chuyển ownership; kết quả hai sản phẩm, tổng 6560000.
+5. Mảng Product cùng các chuỗi thuộc inventory; find trả borrow. Tìm mã O(n); validate mã trùng O(n²), vì vậy total/save có chi phí validation này. Tăng capacity nhân đôi chỉ giảm chi phí dời buffer trung bình, không bỏ lượt tìm trùng trong add.
+
+### Mini-check
+
+Khi lần cấp phát name thất bại sau khi code đã copy, ai free code? Count và dữ liệu cũ phải ở trạng thái nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Mô hình bộ nhớ sau ba lần `inventory_add`
 
@@ -1188,7 +1236,45 @@ free từng C/N allocation → free H array → items=NULL,count=0,capacity=0
 
 Không đọc member product sau khi H array bị giải phóng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Mảng cố định | capacity định trước | ít failure path; hợp trần dữ liệu nhỏ đã biết |
+| Mảng động + chuỗi sở hữu | tăng khi cần, mỗi chuỗi có owner | phải cleanup và invalidate borrow; phù hợp capstone này |
+| Kho tạm rồi commit | thay state sau validation toàn bộ | cần memory cho cả cũ/mới; đổi lại load lỗi không phá kho cũ |
+
+### Misconception check
+
+**Đúng hay sai?** Capacity nhân đôi làm toàn bộ inventory_add có thời gian trung bình O(1).
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: còn tìm mã trùng tuyến tính; chỉ phần tăng buffer có chi phí dời trung bình O(1) mỗi lần append.
+
+</details>
+
+**Đúng hay sai?** rename thành công chứng minh file bền vững sau mất điện trên mọi hệ điều hành.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: C11 không hứa crash durability; atomic replace và durability là các bảo đảm riêng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chạy và trace thêm/xóa/lưu/nạp.
+
+- **Working Developer — dùng khi làm việc:** test invariant và mọi nhánh thất bại sở hữu tài nguyên.
+
+- **Deep Dive — có thể quay lại sau:** đo validation cost, thiết kế persistence theo bảo đảm thực sự cần.
 
 ### Invariant của `Inventory`
 
@@ -1225,9 +1311,9 @@ Contract này quan trọng hơn tên biến. C không có type system tự thự
 ### Complexity
 
 - find/change/remove: `O(n)` do linear search;
-- append trung bình: `O(1)` amortized nhờ capacity nhân đôi;
+- phần tăng buffer khi append: chi phí dời trung bình `O(1)` mỗi lần thêm (amortized — phân bổ tổng chi phí nhiều lần thêm) nhờ capacity nhân đôi; toàn bộ `inventory_add` vẫn `O(n)` do tìm mã trùng, chưa tính copy chuỗi;
 - remove: `O(n)` do dịch phần tử;
-- validate duplicate toàn bộ: `O(n²)`;
+- validate duplicate toàn bộ: `O(n²)`; `inventory_total_value` cũng gọi validation này trước vòng cộng nên toàn hàm là `O(n²)` với độ dài mã bị chặn;
 - save: `O(n²)` vì gọi `inventory_validate` trước khi ghi; phần ghi từng record là `O(n)` chưa tính tổng độ dài text;
 - load: `O(n²)` vì mỗi record đi qua `inventory_add`, trong đó kiểm tra code trùng bằng linear search; phần đọc/parse là `O(n)` chưa tính tổng độ dài text.
 
@@ -1297,7 +1383,17 @@ Member là địa chỉ process, không phải nội dung chuỗi; padding/layou
 
 Không báo save thành công trước khi write, flush, close và commit đều thành công.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng capstone single-writer làm kho nhiều người sửa đồng thời. Không thêm hash table hoặc database chỉ vì thấy O(n): trước hết đo n và yêu cầu. Khi thực sự có lookup dày hoặc độ bền/đồng thời nghiêm ngặt, chọn công cụ theo driver đó.
+
+## 8. Production notes & scale check
+
+Demo vài sản phẩm, file text trong thư mục riêng là đủ. Gate có test lỗi cấp phát có kiểm soát, file hỏng và roundtrip. Với hàng chục nghìn sản phẩm, validate trùng O(n²) đáng đo trước; với path không tin cậy hoặc nhiều writer, temp name cố định không đạt contract. Không suy security/durability production từ test demo.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Update tên và giá
 
@@ -1329,7 +1425,23 @@ Thêm command `add`, `sell`, `remove`, `list`, `total`; parse toàn bộ số b�
 
 **Gợi ý:** tách lớp parse command khỏi inventory API; không cho input trực tiếp sửa struct.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Chuẩn bị C++ Module 03: liệt kê ba trách nhiệm free/cleanup lặp lại trong kho C và dữ liệu nào cần tự thu hồi khi ra scope. Chưa cần viết C++; so sánh lợi ích quản lý tài nguyên tự động với chi phí đổi ngôn ngữ cho kho nhỏ đang đúng.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ ownership mảng và hai chuỗi của từng Product.
+2. Trace load lỗi mà không làm mất kho cũ.
+3. Vì sao total có thể O(n²) dù vòng cộng chỉ O(n)?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi vẽ được H1 mảng `Product` và từng allocation chuỗi.
 - [ ] Tôi chỉ rõ owner/borrower và thời điểm pointer bị invalidate.
@@ -1343,3 +1455,7 @@ Thêm command `add`, `sell`, `remove`, `list`, `total`; parse toàn bộ số b�
 **Bài prerequisite:** [Xử lý lỗi và lập trình phòng thủ](./14-xu-ly-loi-va-lap-trinh-phong-thu.md)
 
 **Bài tiếp theo:** [Từ C sang C++20](../03-cpp/01-tu-c-sang-cpp20.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/03-load-lam-mat-state.md) · [Spaced Review](./reviews/review-03-build-file-va-commit.md).
+
+**Review trước khi sang C++:** [PR ownership](./pr-review-labs/01-inventory-ownership.md).

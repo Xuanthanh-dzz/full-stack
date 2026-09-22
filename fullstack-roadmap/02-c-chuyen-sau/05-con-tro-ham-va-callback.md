@@ -1,5 +1,19 @@
 # Con trỏ hàm và callback
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Con trỏ hàm chọn một hàm có chữ ký phù hợp để gọi trong quá trình xử lý.
+- Dùng khi thuật toán chung cần nhận một chính sách nhỏ thay đổi được.
+- Callback không tự tạo thread; chữ ký, NULL và contract kết quả vẫn phải kiểm tra.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,6 +26,23 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Cùng một nhân viên tính tiền, nhưng cửa hàng đưa quy tắc “giá thường” hoặc “giảm 10%”. Người tính gọi quy tắc được đưa vào, không phải biết trước mọi lựa chọn. Con trỏ hàm giữ cách chọn quy tắc đó.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| chữ ký hàm | kiểu trả về và các kiểu tham số | cùng contract tính tổng |
+| function pointer | giá trị dùng để gọi một hàm phù hợp kiểu | chính sách tính giá |
+| callback | hàm được truyền vào để bên nhận gọi | regular hoặc discount |
+| synchronous | lời gọi hoàn tất trước khi chạy lệnh tiếp theo | callback chạy ngay trong phép tính |
+
+### Ví dụ nhỏ — tính tay trước
+
+Giá 1000, số lượng 2: chọn regular → 2000; chọn ten-percent → 1800. Input giống nhau; hàm được chọn khác nhau. Caller vẫn đợi callback trả về mới in kết quả.
+
 Quy trình tính tiền luôn giống nhau:
 
 1. nhận đơn giá;
@@ -20,7 +51,9 @@ Quy trình tính tiền luôn giống nhau:
 
 Nhưng chính sách giá có thể là giữ nguyên hoặc giảm 10%. Ta không muốn chép lại toàn bộ hàm tính tổng cho mỗi chính sách. Thay vào đó, hàm tính tổng nhận một callback: địa chỉ của hàm thực hiện chính sách.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -108,7 +141,20 @@ Giam 10 phan tram: 2700 xu
 Khong co callback: du lieu khong hop le
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main chọn function pointer và truyền dữ liệu 1000 × 3 cho hàm tính.
+2. calculate_line_total kiểm tra price_rule và miền dữ liệu trước lời gọi gián tiếp; không có output parameter.
+3. Regular cho 3000; ten-percent cho 2700; price_rule NULL trả -1 báo lỗi thay vì gọi địa chỉ rỗng.
+4. Callback chạy trên cùng luồng gọi của chương trình này. print_total nhận giá trị trả về vào total, biến tạm ở từng lời gọi; số phép toán cố định, không có hàng đợi hay chạy nền.
+
+### Mini-check
+
+Tại dòng in tổng, callback trong sample còn đang chạy không? Dòng code nào chứng minh thứ tự?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Hàm cũng có địa chỉ
 
@@ -173,7 +219,45 @@ Không truyền hàm có số lượng/kiểu tham số hoặc kiểu trả về
 
 `calculate_line_total` giữ cơ chế cố định: validate, gọi chính sách, kiểm tra callback không trả giá âm, chống overflow rồi mới nhân số lượng. `ten_percent_off` tách `unit_price` thành phần trăm tròn và phần dư trước khi nhân; các phép nhân trung gian nhờ vậy không vượt miền `int`. Hai hàm callback chứa phần thay đổi. Muốn thêm chính sách mới, ta viết hàm cùng chữ ký mà không sửa thuật toán tổng quát.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Gọi trực tiếp | hàm được viết rõ tại nơi gọi | đơn giản nhất cho một chính sách |
+| if/switch | chọn giữa vài nhánh đã biết | dễ theo dõi với ít lựa chọn; tránh kéo dài vô hạn |
+| Callback | caller đưa hành vi cùng chữ ký | thêm gián tiếp và contract; dùng khi cần thay chính sách, không để tạo abstraction vô cớ |
+
+### Misconception check
+
+**Đúng hay sai?** Callback nghĩa là hàm chạy sau trên một thread khác.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample gọi đồng bộ; lịch chạy do bên nhận quyết định.
+
+</details>
+
+**Đúng hay sai?** Ép kiểu function pointer làm mọi chữ ký gọi được an toàn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: gọi qua kiểu không tương thích có thể gây undefined behavior.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** gọi được hàm qua pointer.
+
+- **Working Developer — dùng khi làm việc:** kiểm tra policy và miền số.
+
+- **Deep Dive — có thể quay lại sau:** cân nhắc indirection sau khi có nhu cầu mở rộng.
 
 ### Data pointer và function pointer
 
@@ -248,7 +332,17 @@ Callback là code do caller cung cấp. Hàm tổng quát vẫn phải validate 
 
 Quá nhiều lớp callback làm luồng điều khiển khó theo dõi. Đặt tên theo mục đích, ghi rõ callback được gọi bao nhiêu lần, đồng bộ hay được giữ lại, và có được phép `NULL` hay không.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm callback cho một phép nhân cố định chỉ có một người dùng. Không thiết kế cơ chế plugin khi hai nhánh if đã đủ và không có yêu cầu thay chính sách độc lập.
+
+## 8. Production notes & scale check
+
+Team nhỏ với hai chính sách cần kiểm tra output, tràn số, NULL và quy tắc làm tròn. Phần giảm giá dùng số nguyên, không ngầm hứa độ chính xác thập phân tùy ý. Cost chính hiện là I/O, không phải một lời gọi gián tiếp; chỉ tối ưu sau khi đo.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Hai chính sách phí
 
@@ -274,7 +368,23 @@ Mở rộng bài 3 để hệ số nhân nằm trong một object `int` được
 
 **Gợi ý:** trong callback, kiểm tra `context != NULL`, rồi chuyển về `const int *` trước khi dereference.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Module 01 dùng switch để chọn thao tác. So sánh switch với callback cho hai chính sách giá ít thay đổi: chọn cách dễ bảo trì nhất, nêu driver nào khiến bạn đổi lựa chọn sau này.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vì sao chữ ký callback phải khớp?
+2. Trace thứ tự main → tính → callback → in.
+3. Một callback được phép báo lỗi bằng cách nào trong contract mẫu?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi đọc đúng khai báo `int (*rule)(int)`.
 - [ ] Tôi hiểu function pointer chứa địa chỉ hàm, không chứa kết quả hàm.
@@ -285,3 +395,5 @@ Mở rộng bài 3 để hệ số nhân nằm trong một object `int` được
 **Bài prerequisite:** [Con trỏ cấp hai](./04-con-tro-cap-hai.md)
 
 **Bài tiếp theo:** [Stack, heap và vòng đời bộ nhớ](./06-stack-heap-va-vong-doi-bo-nho.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/01-doi-pointer-khong-doi-caller.md) · [Spaced Review](./reviews/review-01-pointer-va-contract.md).
