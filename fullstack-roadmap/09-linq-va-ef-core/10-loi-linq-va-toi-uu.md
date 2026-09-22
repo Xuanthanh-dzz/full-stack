@@ -105,3 +105,5 @@ Bài toán deduplicate 5 triệu email: chọn HashSet C#, unique index SQL hay 
 
 - Bài trước: [Composition và dynamic query](./09-composition-va-dynamic-query.md)
 - Bài tiếp theo: [EF Core 10: DbContext và entity](./11-ef-core-10-dbcontext-va-entity.md)
+- Spaced review: [Review 02 — Execution boundaries](./reviews/review-02-execution-boundaries.md)
+- Failure Labs: [Lab 01](./failure-labs/01-multiple-enumeration-va-materialization.md) · [Lab 02](./failure-labs/02-iqueryable-client-side-filter.md)
