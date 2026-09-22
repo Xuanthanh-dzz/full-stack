@@ -91,6 +91,25 @@ Không copy sample:
 | Maintainability/readability | 10% |
 | Documentation/reproducibility | 5% |
 
+## Cách đọc bài sau khi nâng clarity v4
+
+Mỗi bài Module 09 bây giờ đi theo thứ tự học:
+
+~~~text
+TL;DR
+→ Trực giác 60 giây
+→ Từ vựng
+→ Ví dụ chạy được
+→ Walkthrough từng bước
+→ Cơ chế + execution trace
+→ So sánh khái niệm dễ nhầm
+→ Misconception check + mini-check
+→ Ba tầng Beginner / Working Developer / Deep Dive
+→ Production / Judgment / Retrieval
+~~~
+
+Mục tiêu là người mới có thể hiểu **vì sao** trước khi phải nhớ API. Nếu chỉ học lượt đầu, ưu tiên `Beginner core`; phần `Deep dive` có thể quay lại sau.
+
 ## Learning system bắt buộc
 
 Module 09 không chỉ có 24 bài chính. Người học phải đi qua bốn lớp assessment bổ sung:
