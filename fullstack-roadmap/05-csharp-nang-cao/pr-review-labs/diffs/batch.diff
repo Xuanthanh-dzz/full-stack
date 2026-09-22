@@ -1,0 +1,15 @@
+diff --git a/Batch.cs b/Batch.cs
+--- a/Batch.cs
++++ b/Batch.cs
+@@ -1,8 +1,7 @@
+-await gate.WaitAsync(token);
+ try
+ {
+-    return await ReadAsync(path, token);
++    await gate.WaitAsync(token);
++    return await ReadAsync(path, CancellationToken.None);
+ }
+-catch (OperationCanceledException) { throw; }
+-catch (InvalidDataException e) { return Failure(e.Message); }
++catch (Exception e) { return Failure(e.Message); }
+ finally { gate.Release(); }

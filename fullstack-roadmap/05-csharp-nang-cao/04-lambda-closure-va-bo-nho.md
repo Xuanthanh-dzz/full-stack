@@ -1,5 +1,16 @@
 # Lambda, closure và bộ nhớ
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Lambda là cú pháp callable ngắn; closure giữ storage của biến được capture.
+- Dùng cho filter runtime hoặc factory có state nhỏ rõ ràng.
+- Capture chia sẻ biến, không snapshot; có thể kéo dài lifetime object.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Filter cầm chìa khóa tới ô “giá tối thiểu”, không chụp ảnh số trong ô. Khi bên ngoài sửa ô từ500 lên800, filter cũ cũng đọc800.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| lambda | hàm viết ngay tại chỗ dùng | product => ... |
+| capture | dùng biến ngoài thân lambda | minimumPrice |
+| closure | state giữ biến bị capture sống đủ lâu | counter count |
+| static lambda | lambda cấm capture local/this | inStock |
+
+### Ví dụ nhỏ — tính tay trước
+
+CounterFactory gọi hai lần: A()→1,A()→2,B()→1. Ba lambda capture chung i trong for rồi gọi sau loop →3,3,3; copy index riêng →0,1,2.
+
 Màn hình sản phẩm cần tạo filter từ cấu hình runtime. Người dùng đổi giá tối thiểu, filter hiện có phải dùng giá mới. Ta còn cần:
 
 - hai counter độc lập dùng cùng logic;
@@ -24,7 +52,9 @@ Named method phù hợp khi behavior có tên ổn định. Nhưng các rule ng�
 
 Điểm quan trọng không phải viết `=>` thật ngắn. Ta phải biết chính xác variable nào được capture, object nào được tạo và vì sao value có thể thay đổi sau khi delegate đã được tạo.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -194,7 +224,20 @@ Index: 2
 In-stock count: 2
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Filter capture minimumPrice; PrintMatches lần đầu chọn Keyboard/Monitor.
+2. Gán minimumPrice800 cập nhật cùng storage; lần sau chỉ Monitor.
+3. Factory tạo count riêng mỗi lần; loop tạo index mới cho từng closure.
+4. Delegate giữ closure và graph được capture; lọc O(n), result names cấp phát. Vị trí vật lý do compiler/JIT, semantics chia sẻ biến không đổi.
+
+### Mini-check
+
+Capture biến Account rồi gán biến sang object mới khác với sửa Balance object cũ ra sao?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Lambda được convert thành delegate
 
@@ -301,7 +344,7 @@ for (int i = 0; i < 3; i++)
 }
 ```
 
-các lambda capture cùng variable `i`. Khi gọi sau vòng lặp, `i` đã là `3`, nên thường in `3` ba lần. Code đúng tạo `int index = i` bên trong body; mỗi iteration có storage `index` riêng được closure tương ứng capture.
+các lambda capture cùng variable `i`. Khi gọi sau vòng lặp, `i` đã là `3`, nên trong đoạn tuần tự này in `3` ba lần. Code đúng tạo `int index = i` bên trong body; mỗi iteration có storage `index` riêng được closure tương ứng capture.
 
 Với `foreach` trong C# hiện đại, iteration variable được tạo riêng cho mỗi iteration, nhưng các mutable local khác ở ngoài vòng vẫn có thể bị capture chung. Luôn hỏi “lambda đang giữ storage nào?”, đừng học thuộc một mẹo theo tên vòng lặp.
 
@@ -335,7 +378,45 @@ Lambda chỉ là cú pháp tạo anonymous function để convert sang delegate/
 
 Capturing lambda thường cần closure state và delegate; non-capturing lambda có thể được cache. JIT/compiler có quyền tối ưu nếu không đổi observable behavior. Khi hot path quan trọng, đo allocation bằng profiler/benchmark thay vì kết luận chỉ từ dấu `=>`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| capture biến sống | đọc giá trị mới khi biến đổi | hợp cấu hình live |
+| capture local copy | snapshot có chủ đích | phải giữ copy không đổi |
+| static lambda | không capture local/this | vẫn có thể đọc static mutable state |
+
+### Misconception check
+
+**Đúng hay sai?** static lambda luôn là pure function.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể đọc/sửa static state hoặc gây I/O.
+
+</details>
+
+**Đúng hay sai?** Mỗi factory call chia sẻ một count static.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: local count riêng cho mỗi invocation.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace capture storage.
+
+- **Working Developer — dùng khi làm việc:** lifetime và snapshot.
+
+- **Deep Dive — có thể quay lại sau:** allocation/concurrency theo driver.
 
 ### Capture value type và reference type
 
@@ -382,7 +463,17 @@ Hai expression thường tạo delegate khác nên phép trừ không tìm đún
 
 Cảnh báo đó đang cho biết behavior phụ thuộc state ngoài. Quyết định có chủ đích: truyền state thành parameter, hoặc chấp nhận closure và tài liệu hóa lifetime; đừng đổi keyword mà không hiểu ownership.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng closure mutable như global state ẩn. Không dùng hai lambda viết giống nhau để subscribe/unsubscribe; lưu handler cần tháo.
+
+## 8. Production notes & scale check
+
+Demo chạy tuần tự, count++ không atomic. Test live threshold, counter isolation và for capture bằng giá trị; không assert số allocation hoặc delegate identity do compiler có thể cache.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Filter theo khoảng giá
 
@@ -414,7 +505,23 @@ Chuyển ba lambda sang `static`; ghi lại lambda nào compile và state nào p
 
 **Gợi ý:** static lambda chỉ dùng parameter/local bên trong thân của chính nó và static member phù hợp.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh capture C++ Module03 và C# closure: lifetime biến local sau return được xử lý khác thế nào? Chọn snapshot hay live configuration theo requirement.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Capture parameter product không?
+2. Tại sao factory return rồi count còn sống?
+3. Static lambda cấm gì, không cấm gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi viết được expression lambda và statement lambda theo delegate target.
 - [ ] Tôi chỉ ra parameter nào local và variable nào bị capture.

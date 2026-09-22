@@ -1,5 +1,16 @@
 # Cancellation, timeout và exception bất đồng bộ
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Cancellation là tín hiệu hợp tác; timeout giới hạn chờ; fault là lỗi operation.
+- Truyền token theo lifecycle và quan sát mọi fault cần chẩn đoán.
+- WaitAsync timeout không dừng task gốc hoặc rollback side effect.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bỏ đợi phiếu hẹn không hủy công việc ở quầy. Muốn quầy dừng cần gửi yêu cầu và quầy kiểm tra tại điểm an toàn; việc đã làm trước đó không tự biến mất.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| token | giá trị quan sát yêu cầu hủy | CancellationToken |
+| source | object phát tín hiệu | Cancel |
+| timeout | hạn thời gian bên chờ | WaitAsync |
+| aggregate fault | các lỗi được task tổng giữ | WhenAll.Exception |
+
+### Ví dụ nhỏ — tính tay trước
+
+Generate5 trang, cancel trong callback trang2 → thấy2callback, không trang3. WaitAsync0 trên TCS pending ném timeout; TCS vẫn có thể complete7 sau đó.
+
 Một tác vụ sinh báo cáo có năm trang. Người dùng bấm hủy sau trang thứ hai. Ở luồng khác, API gateway chỉ muốn chờ một dependency đến deadline; quá deadline, request phải trả về nhưng dependency có thể vẫn đang chạy. Cuối cùng, hai tác vụ nền cùng thất bại và ta cần chẩn đoán đủ cả hai nguyên nhân.
 
 Ba tình huống này không cùng nghĩa:
@@ -25,7 +53,9 @@ Ba tình huống này không cùng nghĩa:
 
 Nếu bắt tất cả bằng `catch (Exception)` rồi ghi “error”, hệ thống sẽ báo hủy hợp lệ như sự cố và có thể bỏ mất exception thứ hai.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -188,7 +218,20 @@ Faults recorded by WhenAll: 2
 
 Demo timeout dùng `TimeSpan.Zero` trên task chắc chắn chưa complete, nên không phụ thuộc tốc độ máy. Trong code thật, timeout là khoảng dương lấy từ requirement/configuration.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Token được copy nhưng cùng quan sát source.
+2. Trước mỗi trang, ThrowIfCancellationRequested quyết định dừng; page callback chạy sau trang.
+3. Timeout của waiting task không sửa underlying TCS.
+4. WhenAll chờ hai fault và giữ cả hai. Source/registration cần Dispose, task và pages chiếm memory theo work còn sống.
+
+### Mini-check
+
+Cancel sau trang cuối có bắt buộc task canceled không, nếu không có checkpoint tiếp theo?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Cancellation là cooperative protocol
 
@@ -229,7 +272,45 @@ Nếu operation hỗ trợ token và requirement là dừng cả operation, call
 
 Khi nhiều task fault, `Task.WhenAll` hoàn thành Faulted và property `combined.Exception` là `AggregateException` chứa các lỗi. `await` không cung cấp lần lượt mọi inner exception qua nhiều catch; nếu cần chẩn đoán đủ batch, sau khi catch hãy inspect task tổng như sample. Không dựa vào message hoặc “exception nào được chọn để ném” làm business contract.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Cancel | yêu cầu operation hợp tác dừng | không abort/rollback |
+| WaitAsync timeout | bên chờ hết hạn | underlying cần owner theo dõi |
+| Dispose source | dọn timer/registration | không thay Cancel |
+
+### Misconception check
+
+**Đúng hay sai?** Cancel bảo đảm không còn instruction nào chạy.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: code phải tới điểm quan sát token.
+
+</details>
+
+**Đúng hay sai?** await WhenAll trả từng lỗi qua nhiều catch.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: inspect task tổng nếu cần đủ fault.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** cancel/timeout/fault.
+
+- **Working Developer — dùng khi làm việc:** token ownership và boundary.
+
+- **Deep Dive — có thể quay lại sau:** linked source/deadline khi cần.
 
 ### Truyền token xuyên call chain
 
@@ -314,7 +395,17 @@ Caller cancellation và deadline nội bộ có ý nghĩa vận hành khác nhau
 
 Batch nhiều task có thể có nhiều fault. Inspect `combined.Exception.InnerExceptions` sau khi task hoàn thành faulted nếu mọi nguyên nhân đều cần chẩn đoán; tránh log trùng cùng exception ở mọi tầng.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không log cancellation dự kiến thành sự cố hệ thống. Không bỏ task gốc sau timeout nếu nó còn resource/effect cần theo dõi.
+
+## 8. Production notes & scale check
+
+Demo timeout0 chỉ để tái hiện ổn định. Gate pre-cancel không callback, cancel sau2, underlying completion sau timeout. Task.Yield không mô phỏng throughput I/O; không suy ra deadline production từ demo.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Hủy import theo dòng
 
@@ -346,7 +437,23 @@ Cho ba task fault với ba custom exception; await `WhenAll` và in type của m
 
 Gợi ý: collect rồi sort tên type/job ID khi output phải deterministic.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với exit code capstone Module04, thiết kế mã phân biệt caller cancel, lỗi input và file failure. Nêu điểm cuối còn nhận cancellation trước commit report.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Dispose có phát cancel không?
+2. Token copy có copy source không?
+3. Task tổng fault và cancel đồng thời ưu tiên gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi biết cancellation là cooperative, không phải thread abort.
 - [ ] Tôi truyền token tới API thấp nhất và kiểm tra ở điểm giữ invariant.
@@ -359,3 +466,5 @@ Gợi ý: collect rồi sort tên type/job ID khi output phải deterministic.
 Bài prerequisite: [`async`, `await`, `Task` và state machine](./09-async-await-task-va-state-machine.md).
 
 Bài tiếp theo: [Parallelism, concurrency và thread safety](./11-parallelism-concurrency-va-thread-safety.md).
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/02-timeout.md) · [Review](./reviews/review-02.md).

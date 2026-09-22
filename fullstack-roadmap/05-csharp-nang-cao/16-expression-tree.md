@@ -1,5 +1,16 @@
 # Expression tree
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Expression tree biểu diễn code bằng dữ liệu có cấu trúc.
+- Dùng khi cần inspect hoặc dịch rule, không chỉ thực thi.
+- Compile chạy .NET trong process; không tự dịch sang SQL hay làm input an toàn.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 - không thực thi expression đến từ nguồn chưa tin cậy nếu chưa validate.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một công thức có thể là máy tính đã chạy được, hoặc sơ đồ ghi rõ phép so sánh và các đầu vào. Delegate là cách gọi máy; expression tree cho bạn đọc sơ đồ trước khi quyết định chạy hoặc dịch.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| node | một phần tử mô tả phép toán | GreaterThanOrEqual |
+| parameter identity | định danh biến trong cây | cùng ParameterExpression |
+| Compile | tạo callable từ cây | Func<Order,bool> |
+| translation | chuyển cây sang ngôn ngữ khác | cần provider hỗ trợ |
+
+### Ví dụ nhỏ — tính tay trước
+
+Total1200000 active →true;2000000 inactive→false. Tree threshold750000 nhận800000→true, không cần sửa source lambda ban đầu.
 
 Một hệ thống duyệt đơn có rule:
 
@@ -30,7 +58,9 @@ Nếu rule chỉ là `Func<Order, bool>`, ta gọi được nhưng khó đi qua 
 
 Bài này giới thiệu expression tree trực tiếp, không yêu cầu kiến thức LINQ query.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -185,7 +215,20 @@ Runtime rule: order => (order.Total >= 750000)
 Runtime rule A-03: True
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Compiler tạo graph Lambda/AndAlso/member/constant cho target Expression.
+2. PrintNode duyệt graph; Compile tạo delegate thực thi.
+3. Factory dựng threshold mới với cùng parameter node trong body và parameter list.
+4. Tree và delegate có allocation; build/compile có cost riêng, invocation đọc Order trong process. Không có database trong sample.
+
+### Mini-check
+
+Đổi local threshold sau Compile có thay kết quả không nếu tree capture storage đó?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Cùng cú pháp lambda, hai target type khác nhau
 
@@ -250,7 +293,45 @@ Tree không tự parse C# và không tự serializable. Một engine có thể d
 
 Không nhận tree hoặc cấu hình method/type tùy ý từ nguồn chưa tin cậy rồi compile. Allowlist member/operator, giới hạn độ sâu/kích thước và tách authorization khỏi parsing.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Func | gọi behavior | đủ khi không inspect |
+| Expression | đọc cấu trúc rồi compile/dịch | thêm graph và chi phí xây |
+| source string | text chưa có contract tree | không nhận C# tùy ý để chạy |
+
+### Misconception check
+
+**Đúng hay sai?** Hai parameter cùng tên là cùng biến.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: binding cần đúng node identity.
+
+</details>
+
+**Đúng hay sai?** Tree immutable thì delegate không thể thấy state đổi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tree có thể giữ closure mutable.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đọc node graph.
+
+- **Working Developer — dùng khi làm việc:** parameter binding và closure.
+
+- **Deep Dive — có thể quay lại sau:** provider/visitor khi có driver.
 
 ### Các node thường gặp
 
@@ -314,7 +395,17 @@ Compiled delegate có thể giữ closure sống lâu và đọc state thay đ�
 
 Tree có thể chứa method/constructor/member access. Validate allowlist, độ sâu và resource limits trước interpretation/compilation từ input ngoài.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không Compile lại mỗi record. Không dùng ToString làm structural cache key hoặc compile tree không tin cậy mà chưa validate.
+
+## 8. Production notes & scale check
+
+Gate so compiled/interpreted predicate ở dưới/đúng/trên cận, parameter identity và closure live. Chưa kiểm chứng SQL translation hoặc Native AOT; chỉ khẳng định runtime JIT baseline.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Rule trạng thái
 
@@ -346,7 +437,23 @@ Viết visitor chỉ chấp nhận parameter, constant decimal, property `Order.
 
 **Gợi ý:** giới hạn độ sâu; ném lỗi khi gặp `MethodCallExpression` thay vì bỏ qua.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với closure bài04 và callback Module02, khi nào callable đủ, khi nào cần graph? Một rule cố định chỉ dùng trong process có cần expression tree không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Tree khác delegate ở đâu?
+2. AndAlso khác And thế nào?
+3. Compile có tự tạo SQL không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt delegate executable với expression object graph.
 - [ ] Tôi đọc được node tree của một lambda đơn giản.

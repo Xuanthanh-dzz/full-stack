@@ -1,5 +1,16 @@
 # Parallelism, concurrency và thread safety
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Concurrency cho operation chồng lifetime; parallelism cho CPU chạy cùng lúc.
+- Dùng lock cho invariant nhiều bước, Interlocked cho update scalar phù hợp.
+- Atomic read/write riêng lẻ không làm cả read-modify-write atomic.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Hai người cùng nhìn sổ có0 rồi mỗi người ghi1; hai lần tăng chỉ còn1. Cần một protocol giữ trọn việc đọc-tính-ghi, không chỉ đổi loại bút ghi.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| race | kết quả phụ thuộc xen kẽ không bảo vệ | lost update |
+| critical section | vùng thao tác cần loại trừ lẫn nhau | lock body |
+| atomic | operation không bị tách như nhiều bước quan sát | Interlocked.Increment |
+| visibility | quy tắc quan sát write giữa thread | Volatile.Read |
+
+### Ví dụ nhỏ — tính tay trước
+
+Hai reader cùng snapshot0, chờ gate rồi đều ghi1 → đúng lỗi tái hiện1. Locked/Atomic tăng20000lần →20000, không phụ thuộc số worker.
+
 Hai worker cùng tăng bộ đếm số đơn đã xử lý. Code `_value++` trông như một statement, nhưng có thể bị tách thành đọc, cộng, ghi:
 
 ```text
@@ -25,7 +53,9 @@ Worker A ghi 1          Worker B ghi 1
 
 Kết quả cuối là `1` dù có hai lần tăng. Một demo dựa vào chạy loop thật nhiều có lúc tái hiện, lúc không; đó không phải test ổn định. Ta sẽ ép hai operation cùng đọc trước khi cho phép ghi, rồi sửa bằng `lock` và `Interlocked`. Sau đó dùng `Parallel.For` để chạy CPU iterations mà kết quả vẫn deterministic.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -175,7 +205,20 @@ Interlocked counter: 20000
 
 `Parallel.For` được phép dùng nhiều worker nhưng runtime có thể chọn mức parallelism theo máy. Correctness/output không phụ thuộc số thread thực tế.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Hai IncrementAsync đọc trước await, báo đủ reader rồi chờ writes.
+2. Main release gate; cả hai continuation ghi snapshot+1.
+3. Parallel.For gọi counter an toàn; getter và writer dùng protocol tương ứng.
+4. State nằm ở counter dùng chung; lock có contention, Interlocked vẫn có cost đồng bộ. Không dùng timing làm correctness assertion.
+
+### Mini-check
+
+Tại sao WaitAsync phải nằm trước try/finally Release của semaphore, thay vì Release cả khi acquire bị hủy?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Concurrency khác parallelism
 
@@ -230,7 +273,45 @@ Mỗi lần `new LockedCounter()` tạo object counter và object `_gate` riêng
 
 Khi invariant trải trên nhiều field, một Interlocked riêng cho từng field có thể không đủ. Dùng lock hoặc thiết kế immutable snapshot/CAS loop có chủ đích.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| local/ownership | tránh chia sẻ mutable state | đơn giản khi chia việc độc lập |
+| lock | bảo vệ nhiều bước/field | cần cùng gate mọi đường |
+| Interlocked | update scalar hỗ trợ | không làm transaction nhiều field |
+
+### Misconception check
+
+**Đúng hay sai?** volatile int làm ++ an toàn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: ++ vẫn nhiều bước.
+
+</details>
+
+**Đúng hay sai?** ConcurrentDictionary bảo vệ mọi field Order bên trong.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ các operation container có contract thread-safe.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace lost update.
+
+- **Working Developer — dùng khi làm việc:** protocol và bounded concurrency.
+
+- **Deep Dive — có thể quay lại sau:** contention/ordering khi đo.
 
 ### Thread safety là property của toàn bộ protocol
 
@@ -303,7 +384,17 @@ Thread A giữ gate 1 đợi gate 2, thread B giữ gate 2 đợi gate 1 tạo d
 
 Scheduling và contention thay đổi theo máy/lần chạy. Dùng test deterministic cho correctness như sample; benchmark Release nhiều iteration bằng công cụ phù hợp cho performance.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không khóa this/string hoặc giữ monitor quanh I/O/callback ngoài. Không tạo nhiều worker chỉ vì input nhiều khi CPU/downstream không đủ capacity.
+
+## 8. Production notes & scale check
+
+Test lịch đọc trước ghi deterministic và tổng counter. C#13 cũng có System.Threading.Lock, nhưng sample dùng object/Monitor; không tổng quát cách lowering này cho mọi loại lock. Counter có cận int và chưa có policy overflow dài hạn.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Lost update có kiểm soát
 
@@ -335,7 +426,23 @@ Với cache read-heavy, queue công việc và batch CPU, đề xuất immutable
 
 Gợi ý: ghi thao tác atomic cần có, ownership và giới hạn concurrency trước khi chọn API.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với BankAccount Module04, hai phép gán sau validation đủ cho single-thread nhưng còn thiếu gì khi hai caller chuyển đồng thời? Chọn một private gate thay vì Interlocked từng số dư.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Concurrency có cần hai core không?
+2. Volatile khác atomic compound update thế nào?
+3. Ai phải dùng cùng lock?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt concurrency với parallelism và async với parallel CPU work.
 - [ ] Tôi tách được `_value++` thành read-modify-write và giải thích lost update.

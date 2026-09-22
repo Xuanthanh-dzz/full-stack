@@ -1,5 +1,16 @@
 # Extension method
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Extension method là static method với cú pháp gọi qua receiver.
+- Dùng cho operation đọc gần type mà không sửa source type.
+- Binding compile-time; dấu chấm không tạo polymorphism hoặc wrapper.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn thêm một thao tác trong sổ hướng dẫn dùng món đồ, không gắn động cơ mới vào chính món đồ. Compiler biết tra hướng dẫn nào từ kiểu và namespace lúc build.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| receiver | đối tượng viết trước dấu chấm | order |
+| extension | static helper có parameter this | Total |
+| binding | chọn method được gọi | lookup compile-time |
+| defensive copy | copy để caller không sửa container sở hữu | Order.Lines |
+
+### Ví dụ nhỏ — tính tay trước
+
+Order hai line600000+100000 → Total700000. WithMinimumTotal500000 trả list mới chứa cùng Order đầu; clear list kết quả không clear list nguồn.
+
 Ứng dụng bán hàng có class `Order` tập trung bảo vệ dữ liệu order. Nhiều màn hình lại cần các operation đọc:
 
 - tính tổng từ các line;
@@ -25,7 +53,9 @@ Ta không muốn nhét mọi format/report theo từng UI vào domain class. Ta 
 
 Extension method cho phép viết `order.Total()` hoặc `orders.WithMinimumTotal(...)` trong khi implementation vẫn là static method bình thường. Nó là công cụ tổ chức API ở compile time, không thay đổi object hay CLR type gốc.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -209,7 +239,20 @@ Static call total: 700000
 Orders empty: False
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Compiler hạ order.Total() thành OrderExtensions.Total(order).
+2. Total duyệt Lines, WithMinimumTotal duyệt orders rồi tổng từng đơn.
+3. Constructor Order copy container line, wrapper chặn sửa cấu trúc qua API.
+4. Result giữ reference order cũ. Chi phí lọc theo tổng số line, thêm list kết quả; cú pháp extension không tạo wrapper riêng.
+
+### Mini-check
+
+Đổi runtime object derived nhưng giữ static receiver base: extension được chọn lại lúc runtime không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Ba điều kiện cú pháp
 
@@ -299,7 +342,45 @@ ArgumentNullException.ThrowIfNull(order);
 
 đưa lỗi về đúng boundary. Kiểm tra ở compile time được học trong bài kế tiếp sẽ giúp phát hiện sớm, nhưng không thay runtime validation của public API.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| instance operation | thuộc contract type | có thể dùng private state |
+| extension static | helper trên public API | không override, không vào private |
+| service workflow | nhiều dependency/effect | rõ hơn extension giấu database/email |
+
+### Misconception check
+
+**Đúng hay sai?** Null receiver không bao giờ vào thân extension.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: static call có thể nhận null; guard vẫn cần.
+
+</details>
+
+**Đúng hay sai?** Extension tên giống instance sẽ override nó.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: instance khả dụng được ưu tiên.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** static-call model.
+
+- **Working Developer — dùng khi làm việc:** ownership và lookup.
+
+- **Deep Dive — có thể quay lại sau:** API compatibility khi thư viện đổi.
 
 ### Namespace quyết định khả năng khám phá
 
@@ -343,7 +424,17 @@ Compiler warning không bảo vệ mọi caller runtime. Public extension nên f
 
 Các tên như `Get`, `Map`, `Convert` trên type quá rộng dễ mơ hồ với namespace khác. Thu hẹp receiver/namespace và đặt tên theo domain.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm extension Get/Map lên object cho mọi thứ. Không giấu lưu database sau query-looking helper; giữ dependency và side effect rõ.
+
+## 8. Production notes & scale check
+
+Hai đơn đủ để học lookup/ownership. Test null receiver, min âm, defensive copy và result identity. LineTotal/Total vẫn có thể overflow, list input chứa null cũng chưa được validate từng phần tử; nullable annotation không phải sanitizer dữ liệu ngoài.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Chuẩn hóa SKU
 
@@ -375,7 +466,23 @@ Phân loại các candidate: `customer.FullName()`, `order.SaveToDatabase()`, `n
 
 **Gợi ý:** operation thuần theo receiver phù hợp hơn workflow I/O có dependency.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với method Module04, đâu là behavior phải ở type để giữ invariant, đâu là format thuần có thể tách extension? Nêu cost duyệt lặp khi vừa lọc vừa format.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Extension có xuất hiện như instance reflection không?
+2. Result list và Order có được clone cùng nhau không?
+3. Namespace ảnh hưởng lookup thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi khai báo đúng static class/static method/`this` parameter.
 - [ ] Tôi hạ được `receiver.Method()` thành static call tương đương.
@@ -390,3 +497,5 @@ Phân loại các candidate: `customer.FullName()`, `order.SaveToDatabase()`, `n
 - Bài tiên quyết: [Lambda, closure và bộ nhớ](./04-lambda-closure-va-bo-nho.md)
 - Ôn static/instance member: [Class, object và constructor](../04-csharp-co-ban/07-class-object-constructor.md)
 - Bài tiếp theo: [Nullable reference type](./06-nullable-reference-type.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/01-capture.md) · [Review](./reviews/review-01.md).

@@ -1,5 +1,16 @@
 # Đo lường và tối ưu hiệu năng
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Đo hiệu năng cần baseline đúng và vùng đo được định nghĩa.
+- Dùng Release, warmup, nhiều sample và correctness oracle trước tối ưu.
+- Một số đo không chứng minh hiệu năng production hoặc mọi workload.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Hai người đóng cùng một kiện hàng mới so thời gian công bằng. Nếu một người bỏ bớt hàng, kết quả nhanh hơn không phải tối ưu. Đồng hồ cũng phải đo cùng phần việc.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| baseline | phiên bản làm mốc | nối string |
+| candidate | phiên bản đề xuất | StringBuilder |
+| warmup | chạy chuẩn bị trước đo | giảm ảnh hưởng khởi đầu |
+| median | giá trị giữa dãy đã sắp | 7sample |
+| allocation | lượng memory được cấp | B/op trên thread hiện tại |
+
+### Ví dụ nhỏ — tính tay trước
+
+CSV3 phần tử phải là1,2,3, ở cả hai bên. Input0 phải rỗng. Chỉ sau equality mới so số đo; không đặt test candidate luôn nhanh hơn trên mọi máy.
+
 Một endpoint tạo chuỗi CSV `1,2,3,...` nhiều lần. Phiên bản đầu nối string trong loop; review đề xuất `StringBuilder`. Không được kết luận chỉ vì “StringBuilder luôn nhanh hơn”. Ta cần trả lời bằng dữ liệu:
 
 - hai phiên bản có tạo **đúng cùng output** không;
@@ -24,7 +53,9 @@ Một endpoint tạo chuỗi CSV `1,2,3,...` nhiều lần. Phiên bản đầu 
 
 Sample dưới đây là harness học tập không package ngoài. Với quyết định production nghiêm túc, dùng profiler và benchmark framework chuyên dụng sau khi đã xác định hotspot.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -277,7 +308,20 @@ StringBuilder median: <giá trị đo> ns/op, <giá trị đo> B/op
 
 Trên workload này, `StringBuilder` thường cấp phát ít hơn rõ rệt vì không tạo lại toàn bộ prefix string ở mỗi vòng. Không sao chép con số của máy khác thành cam kết production.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main so output ordinal rồi warmup hai implementation.
+2. Measure đọc allocation/timer trước và sau100operation cùng checksum consumer.
+3. Bảy sample đảo thứ tự; sort riêng time/allocation để lấy median.
+4. String concat copy prefix lặp; builder có buffer rồi tạo output. Cost checksum nằm trong timing; counter thread-local không đo toàn process.
+
+### Mini-check
+
+Có nên tính Console.WriteLine trong timed region khi production operation không in console?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Correctness đứng trước tốc độ
 
@@ -371,7 +415,45 @@ kiểm thử tải/end-to-end + theo dõi production
 
 Microbenchmark là một bằng chứng cục bộ, không thay profile toàn request.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| correctness test | kết quả và biên | deterministic gate |
+| microbenchmark | chi phí vùng hẹp | nhạy môi trường/workload |
+| end-to-end profile | bottleneck toàn luồng | cần trước kết luận production |
+
+### Misconception check
+
+**Đúng hay sai?** Allocated bytes là lượng memory còn sống.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: object đã chết vẫn tính bytes từng cấp.
+
+</details>
+
+**Đúng hay sai?** Warmup30 bảo đảm JIT mọi máy ổn định.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tiering và môi trường có thể khác.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đo đúng đơn vị.
+
+- **Working Developer — dùng khi làm việc:** baseline công bằng và noise.
+
+- **Deep Dive — có thể quay lại sau:** profiler/load test theo requirement.
 
 ### Metric phải gắn với mục tiêu
 
@@ -444,7 +526,17 @@ Code phức tạp hơn có chi phí bảo trì và bug. Nếu metric không cả
 
 Database, serialization, lock, network hoặc queue có thể là bottleneck thật. Sau microbenchmark, chạy workload tích hợp và theo dõi production metric.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tối ưu method chưa có evidence hotspot. Không dùng Debug timing hoặc forced GC mỗi sample làm lời hứa production.
+
+## 8. Production notes & scale check
+
+Gate kiểm output CSV bằng oracle độc lập cho0/1/9/10/100/300 và schema số đo; không chấm tốc độ hoặc bytes cố định. Kết quả local chỉ minh họa, không là regression benchmark thống kê.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm min/max sample
 
@@ -476,7 +568,23 @@ Profile một console app xử lý nhiều file hoặc JSON, xác định top CP
 
 **Gợi ý:** ghi baseline end-to-end, một screenshot/trace evidence, giả thuyết, thay đổi và kết quả sau sửa.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So span bài14 với Split: nếu downstream cần string, cả hai phải trả ownership gì để benchmark công bằng? Liên hệ cost copy C++ Module03.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vùng đo gồm checksum không?
+2. B/op bỏ sót allocation nào?
+3. Vì sao phải kiểm output trước đo?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi kiểm tra output giống nhau trước khi so tốc độ.
 - [ ] Tôi chạy Release ngoài debugger và warm up cả hai phía.

@@ -1,5 +1,16 @@
 # Dự án C# nâng cao: xử lý batch đơn hàng bất đồng bộ
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Capstone xử lý JSON async có giới hạn concurrency và policy lỗi rõ.
+- Dùng cho batch hữu hạn một process, giữ thứ tự báo cáo sau khi thu kết quả.
+- Semaphore giới hạn active work, không giới hạn số task đã tạo hoặc làm queue bền.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 - build, chạy và kiểm tra failure path của một project `net9.0` không dùng package ngoài.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Nhiều phiếu chờ đọc nhưng chỉ hai cửa mở file cùng lúc. Phiếu lỗi dữ liệu được ghi riêng; yêu cầu hủy dừng operation chung. Báo cáo chỉ thay bản cũ khi file mới đã ghi và đóng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| permit | quyền vào vùng xử lý giới hạn | SemaphoreSlim |
+| input-level failure | lỗi một file được chuyển thành result | JSON sai |
+| commit point | bước công bố output mới | File.Move |
+| backpressure | làm producer chậm khi consumer đầy | chưa có trong task-per-file demo |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ba file:650000,3000000 vàquantity0 →2success,1failure,total3650000,3events,exit1. Pre-cancel phải đi lên caller, không trở thành ba dòng lỗi input.
 
 Một hệ thống bán hàng cũ xuất mỗi đơn hàng thành một file JSON. Cuối ngày, chương trình cần:
 
@@ -58,7 +86,9 @@ Program
 - Báo cáo chỉ thay file đích sau khi serialize và đóng file tạm thành công.
 - Build bật nullable và coi compiler warning là error.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ### 3.1. Tạo project
 
@@ -814,9 +844,22 @@ Usage: dotnet run -- demo
 2
 ```
 
-Project đã được build và chạy bằng .NET SDK `9.0.119`, target `net9.0`, C# 13, nullable bật và không dùng NuGet package ngoài.
+Project đã được build và chạy bằng .NET SDK `9.0.121`, target `net9.0`, C# 13, nullable bật và không dùng NuGet package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Program tạo đúng ba path; processor validate toàn bộ path trước schedule.
+2. Mỗi task acquire permit, await deserialize rồi validate/calculate; finally release sau acquire thành công.
+3. WhenAll thu result; sort theo FileName, tính report và ghi temp/flush/close.
+4. Token được kiểm lần cuối trước move. Memory gồm O(n) tasks/results, active file buffers giới hạn; sort O(n log n), dữ liệu file vẫn có thể lớn.
+
+### Mini-check
+
+Event handler ném: permit có được trả và batch tiếp theo còn chạy được không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Luồng thời gian của một batch
 
@@ -970,7 +1013,45 @@ Consumer ít có khả năng thấy nửa JSON hơn cách mở thẳng report đ
 
 Pattern này phù hợp bài console một máy. Database transaction, idempotency và distributed consistency sẽ được học ở các module sau.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| tuần tự | ít task/state | đủ batch nhỏ không cần overlap |
+| semaphore + tasks | giới hạn active I/O | vẫn O(n) pending tasks |
+| bounded producer/consumer | giới hạn work chờ | chỉ thêm khi input lớn/stream cần backpressure |
+
+### Misconception check
+
+**Đúng hay sai?** WhenAll trả theo thứ tự hoàn thành.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: kết quả theo thứ tự task input; sample sort thêm theo tên.
+
+</details>
+
+**Đúng hay sai?** Cancel tự phục hồi mọi file đã ghi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: checkpoint hợp tác, không rollback effect trước đó.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chạy batch và trace.
+
+- **Working Developer — dùng khi làm việc:** cancellation/failure/resource ownership.
+
+- **Deep Dive — có thể quay lại sau:** backpressure/durability khi có driver.
 
 ### Các abstraction được ghép lại
 
@@ -1086,7 +1167,17 @@ Event phù hợp notification trong process; publisher thường không biết s
 
 I/O và scheduler dao động. Test invariant như số file, tổng tiền, exit code và thứ tự sort; benchmark hiệu năng phải warm-up, chạy Release, lặp nhiều lần và báo phân phối như bài 18.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng event cho lưu report bắt buộc. Không tạo một triệu task rồi gọi semaphore là giới hạn memory. Không dispose processor trước khi await tất cả work sở hữu.
+
+## 8. Production notes & scale check
+
+Gate JSON/null/missing/overflow, pre-cancel, validation trước schedule, handler/validator lỗi, permit reuse, report cũ giữ khi cancel và cleanup sau move lỗi. Chưa chứng minh crash durability hoặc concurrent writers; hai path cùng FileName có tie sort chưa có thứ tự phụ.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm lỗi JSON cú pháp
 
@@ -1118,7 +1209,23 @@ Tạo test chạy project trong thư mục tạm, kiểm tra exit code `1`, `rep
 
 **Gợi ý:** bài này chỉ lập tiêu chí và thử thủ công; xUnit/process integration test chính thức nằm ở module 14. Không dùng thư mục source làm fixture có thể ghi đè.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với candidate+Save Module04, điểm commit file và memory khác nhau ở đâu? Cho100file và1triệufile, chọn thay đổi tối thiểu theo handle/memory/latency evidence.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Release ghép với acquire nào?
+2. Lỗi nào phải đi lên toàn batch?
+3. Chi phí O(n) còn ở đâu dù maxConcurrency2?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 
@@ -1138,3 +1245,7 @@ Bạn hoàn thành bài khi có thể tự trả lời:
 **Ôn lại project nền:** [Module 04, bài 16 — Dự án console C# quản lý công việc](../04-csharp-co-ban/16-du-an-console-csharp-quan-ly-cong-viec.md)
 
 **Bài tiếp theo theo lộ trình:** [Module 06, bài 1 — Mô hình hóa đối tượng](../06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/04-cancel.md) · [Review](./reviews/review-04.md).
+
+**Trước Module06:** [PR Review](./pr-review-labs/01-batch.md) · [C# Foundation](./career-checkpoint/index.md).

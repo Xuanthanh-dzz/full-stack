@@ -1,5 +1,16 @@
 # Event và event handler
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Event cho bên ngoài đăng ký/hủy đăng ký một notification do publisher phát.
+- Dùng khi kho báo đã qua ngưỡng và nhiều subscriber độc lập quan tâm.
+- Handler chạy đồng bộ; lỗi notification không rollback stock đã commit.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Kho rung chuông khi hàng vừa xuống thấp. Người nghe được ghi tên hoặc rút tên khỏi danh sách nghe, nhưng không được tự rung chuông thay kho hoặc xóa tên mọi người.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| publisher | object phát sự kiện | InventoryItem |
+| subscriber | object đăng ký nhận | StockDashboard |
+| event data | dữ liệu lúc phát | StockLowEventArgs |
+| subscription | mối liên hệ gọi handler | += / -= |
+
+### Ví dụ nhỏ — tính tay trước
+
+10→3 phát một lần;3→2 không phát lại;restock về10 rồi bán xuống3 phát lần mới. Đăng ký cùng handler hai lần sẽ gọi hai lần.
+
 Một kho hàng cần phát tín hiệu khi tồn kho đi từ mức an toàn xuống ngưỡng thấp. Hiện có hai nơi quan tâm:
 
 - dashboard cập nhật cảnh báo;
@@ -23,7 +51,9 @@ Một kho hàng cần phát tín hiệu khi tồn kho đi từ mức an toàn xu
 
 Ta cần publisher công bố rằng “một sự kiện đã xảy ra”, cho subscriber đăng ký/hủy đăng ký nhưng giữ quyền raise bên trong publisher. C# cung cấp keyword `event` cho đúng ranh giới đó.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -204,7 +234,20 @@ Stock changed: 10 -> 3
 DASHBOARD: KB-01 has 3 item(s).
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main đăng ký dashboard rồi email; backing delegate giữ hai target.
+2. Sell validate rồi giảm Stock, kiểm tra chuyển ngưỡng.
+3. Invoke gọi lần lượt trên cùng call stack, truyền this và một snapshot data chung.
+4. Sau unsubscribe, event không còn giữ email qua entry đó. Cost mỗi phát theo số/công việc handler; subscriber có thể làm chậm Sell.
+
+### Mini-check
+
+Handler đầu ném sau Sell7: Stock là bao nhiêu và dashboard sau nó đã chạy chưa?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Publisher, subscriber và event data
 
@@ -297,7 +340,45 @@ H1 giữ backing delegate; delegate giữ target reference H2/H3. Vì vậy mộ
 
 Event không tự tạo background thread, queue hay retry. Những nhu cầu đó cần thiết kế riêng bằng async, channel hoặc message broker ở các module sau.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| event | bên ngoài chỉ thêm/bớt handler | hợp notification |
+| public delegate field | bên ngoài gán/invoke | quyền rộng, dễ phát giả |
+| service call | kết quả bắt buộc rõ | hợp precondition trước commit |
+
+### Misconception check
+
+**Đúng hay sai?** Event tự chạy background.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample gọi đồng bộ.
+
+</details>
+
+**Đúng hay sai?** Một -= xóa mọi lần đăng ký trùng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: bỏ một matching occurrence.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** subscribe/raise.
+
+- **Working Developer — dùng khi làm việc:** lifetime và committed-state errors.
+
+- **Deep Dive — có thể quay lại sau:** concurrency policy khi cần.
 
 ### Event là notification, không phải command hai chiều
 
@@ -347,7 +428,17 @@ Invocation mặc định đồng bộ, tuần tự.
 
 `catch { }` làm mất lỗi và che trạng thái thiếu notification.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng static event như global bus tiện tay. Không giấu payment hoặc lưu bắt buộc trong subscriber không có failure contract.
+
+## 8. Production notes & scale check
+
+Một publisher, hai handler console; không gửi email thật. Test crossing, duplicate/unsubscribe và state sau handler lỗi. Publisher sống lâu giữ subscriber qua delegate; cập nhật subscription thread-safe không làm Stock thread-safe.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Nhiệt độ vượt ngưỡng
 
@@ -379,7 +470,23 @@ Phân tích: “Order đã tạo” gửi analytics và “Order phải được
 
 **Gợi ý:** notification phụ trợ có thể dùng event; precondition bắt buộc cần workflow trực tiếp/transaction rõ.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ alias Module04, vẽ đường root→publisher→delegate→target. Đặt unsubscribe tại lifecycle nào của màn hình đóng/mở?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Ai được Invoke event?
+2. Tại sao3→2 không phát?
+3. Unsubscribe có bảo đảm object được GC ngay không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt publisher, subscriber, handler và event data.
 - [ ] Tôi khai báo/raise event theo `EventHandler<TEventArgs>`.

@@ -4,7 +4,7 @@ Các checkpoint chính trong roadmap:
 
 | Mốc | Checkpoint | Artifact |
 |---|---|---|
-| Module 05 | C# Foundation | sẽ retrofit |
+| Module 05 | C# Foundation | [Checkpoint](../05-csharp-nang-cao/career-checkpoint/index.md); đánh giá người học và maintainer review riêng |
 | Module 09 | Junior Data/Backend | được publish cùng Module 09 khi branch nội dung merge |
 | Module 13 | Full-stack Junior | sẽ tạo khi Module 13 hoàn thành |
 | Module 15 | Production-ready Developer | sẽ tạo khi Module 15 hoàn thành |

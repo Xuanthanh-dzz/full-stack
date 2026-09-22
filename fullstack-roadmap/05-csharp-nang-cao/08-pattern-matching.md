@@ -1,5 +1,16 @@
 # Pattern matching trong C#
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Pattern matching kiểm tra shape/type và bind biến để phân loại dữ liệu.
+- Dùng cho pricing rule nhỏ, có nhánh lỗi và fallback rõ.
+- Arm đầu tiên khớp thắng; thứ tự policy có thể đổi kết quả.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn đọc phiếu giao hàng theo các tiêu chí từ cụ thể tới chung: kiện không hợp lệ bị loại trước, kiện đặc biệt có bảng giá riêng, phần còn lại phải có quyết định rõ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| pattern | mẫu điều kiện dữ liệu cần khớp | WeightKg: >0 |
+| arm | một nhánh switch expression | Domestic Express |
+| guard | điều kiện thêm sau pattern | when IsSupportedCountry |
+| deconstruction | tách component theo contract | positional record |
+
+### Ví dụ nhỏ — tính tay trước
+
+Domestic Express2kg →55000;2.01kg chưa được rule hỗ trợ nên throw. Bulk[1,2]→70000;[1,-1] bị từ chối trước rule hai kiện.
+
 Dịch vụ vận chuyển nhận nhiều loại kiện hàng. Giá và thời gian phụ thuộc đồng thời vào runtime type, cân nặng, cờ giao nhanh, quốc gia và hình dạng danh sách kiện con.
 
 Nếu viết một chuỗi dài `if`, cast rồi lặp lại truy cập property, code dễ gặp ba lỗi:
@@ -23,9 +51,11 @@ Nếu viết một chuỗi dài `if`, cast rồi lặp lại truy cập property
 2. nhánh tổng quát đặt trước che nhánh đặc biệt;
 3. thêm subtype mới nhưng vô tình trả mức giá mặc định không hợp lệ.
 
-Ta sẽ mô hình hóa mỗi loại shipment bằng record bất biến từ bài trước và dùng pattern matching để vừa kiểm tra hình dạng dữ liệu, vừa bind biến cần tính giá.
+Ta sẽ mô hình hóa mỗi loại shipment bằng record từ bài trước (BulkShipment giữ array mutable, nên chỉ bất biến nông) và dùng pattern matching để vừa kiểm tra hình dạng dữ liệu, vừa bind biến cần tính giá.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -202,7 +232,20 @@ D-001 is an express domestic shipment
 
 Phân cách hàng nghìn phụ thuộc locale.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Quote nhận một Shipment và chọn arm khớp đầu theo semantics source.
+2. Pattern kiểm tra type/null/property, bind cùng reference, không clone.
+3. Guard kiểm tra toàn mảng khi shape đơn giản chưa đủ.
+4. Quote mới là object kết quả. Bulk validation O(n), có nhánh quét lại; compiler có thể chia sẻ kiểm tra nên getter phải không có side effect.
+
+### Mini-check
+
+Insured TH giá trị cao có cận weight20kg giống nhánh international thường không? Đọc đúng arm trước khi giả định policy chung.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Pattern kiểm tra rồi bind trong một bước
 
@@ -227,7 +270,7 @@ Pattern không clone object. `shipment` và `domestic` cùng trỏ một `Domest
 
 ### `switch` expression chọn arm đầu tiên khớp
 
-Runtime đánh giá input một lần rồi thử arm theo thứ tự source. Vì vậy nhánh invalid/cụ thể phải đứng trước nhánh rộng hơn. Với `InternationalShipment` từ Thái Lan có giá trị cao, arm insured khớp trước arm international thông thường.
+Semantics chọn arm đầu tiên khớp theo thứ tự source. Compiler có thể chia sẻ/sắp xếp kiểm tra property trong cây quyết định; không dựa vào số lần hay thứ tự gọi getter có side effect. Vì vậy nhánh invalid/cụ thể phải đứng trước nhánh rộng hơn. Với `InternationalShipment` từ Thái Lan có giá trị cao, arm insured khớp trước arm international thông thường.
 
 Mỗi arm trả một `ShippingQuote`, nên toàn biểu thức có một kết quả. Compiler kiểm tra type của các kết quả, phát hiện một số arm không thể tới và cảnh báo khi switch trên type đóng như enum chưa exhaustive. Với hierarchy class mở, `_` vẫn cần policy rõ ràng.
 
@@ -242,7 +285,45 @@ Mỗi arm trả một `ShippingQuote`, nên toàn biểu thức có một kết 
 
 Pattern nên diễn tả **shape**. Điều kiện phải lặp toàn bộ array được đặt trong guard `when AllPositive(...)` vì không có pattern ngắn gọn để nói “mọi phần tử đều dương”.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| if/switch | phân nhánh tường minh | đủ cho vài rule đơn giản |
+| pattern expression | shape và result cạnh nhau | hợp mapping nhỏ |
+| virtual operation | hành vi gắn với subtype | chọn khi contract thay thế tự nhiên, không ép |
+
+### Misconception check
+
+**Đúng hay sai?** Pattern variable là clone object.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cùng reference được nhìn theo kiểu cụ thể.
+
+</details>
+
+**Đúng hay sai?** _ chỉ khớp non-null.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: discard khớp cả null.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** shape/type và binding.
+
+- **Working Developer — dùng khi làm việc:** cận policy và fallback.
+
+- **Deep Dive — có thể quay lại sau:** decision DAG chỉ khi cần hiểu compiler.
 
 ### Nhóm pattern cốt lõi
 
@@ -298,7 +379,17 @@ Discard `_` khớp cả `null`. Nếu `null` cần lỗi riêng, đặt `null =>
 
 `when x.Weight > 0 && x.Weight <= 10` chạy được nhưng property/relational pattern diễn tả shape rõ hơn. Giữ `when` cho điều kiện gọi method hoặc quan hệ khó biểu diễn bằng pattern.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không giấu I/O hoặc mutation trong getter/guard. Không return phí0 cho subtype chưa hỗ trợ; cần fail rõ hoặc result validation.
+
+## 8. Production notes & scale check
+
+Test null, weight0/2/2.01, bulk rỗng/âm và fallback. BulkShipment chứa array mutable; positional record chưa validate mọi field. Insured TH hiện ưu tiên theo value và chỉ guard weight>0, không tự áp cận20 của nhánh khác.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Phân loại điểm số
 
@@ -330,7 +421,23 @@ Cố tình đặt pattern rộng trước pattern hẹp, đọc compiler error/w
 
 Gợi ý: kiểm tra đúng các mốc `0`, `1`, `10`, `10.01` thay vì chỉ giá trị giữa khoảng.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với bảng if Module01 và inheritance Module04, chọn biểu diễn dễ review cho5rule shipping. Nêu cận và trường hợp chưa hỗ trợ trước khi chọn pattern.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Arm nào thắng khi cùng khớp?
+2. when false khác throw thế nào?
+3. List pattern[a,b] nhận ba phần tử không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi dùng `is` pattern mà không cast lặp lại.
 - [ ] Tôi giải thích được switch chọn arm đầu tiên khớp.

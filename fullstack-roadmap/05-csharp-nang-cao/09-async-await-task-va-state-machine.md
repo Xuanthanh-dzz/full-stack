@@ -1,5 +1,16 @@
 # `async`, `await`, `Task` và state machine
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Task biểu diễn completion; await phối hợp mà không giữ thread ngồi chờ.
+- Khởi động các I/O độc lập trước rồi await WhenAll khi phù hợp capacity.
+- Async không tự tạo thread và không làm CPU work nhanh hơn.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,13 +26,33 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn nhận hai phiếu hẹn giá rồi làm việc khác; phiếu không phải một nhân viên đứng đợi riêng. Khi cả hai phiếu có kết quả, bạn tiếp tục tính tổng từ state đã giữ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| Task | handle trạng thái/kết quả operation | firstPriceTask |
+| await | tiếp tục khi awaitable hoàn tất | WhenAll |
+| continuation | phần chạy tiếp sau chờ | tính subtotal |
+| state machine | cơ chế giữ điểm chạy và local cần thiết | CalculateAsync |
+| producer | phía hoàn thành kết quả | TaskCompletionSource |
+
+### Ví dụ nhỏ — tính tay trước
+
+B hoàn thành2 trước A3; calculation vẫn pending tới A xong. WhenAll trả theo thứ tự input[A,B], subtotal5,tax0.5,total5.5.
+
 Checkout cần lấy giá của hai SKU từ một nguồn bất đồng bộ rồi tính tổng. Hai yêu cầu lấy giá độc lập; nếu chờ giá bàn phím xong mới bắt đầu lấy giá chuột, latency bị cộng dồn.
 
 Ta cũng cần trả control cho caller trong lúc chưa có giá, thay vì giữ một thread chỉ để ngồi chờ. Vì bài học phải chạy ổn định không phụ thuộc network hay tốc độ máy, nguồn giá demo dùng `TaskCompletionSource<T>`: code test chủ động quyết định khi nào từng `Task<T>` hoàn thành.
 
 Mục tiêu không phải “làm mọi code chạy song song”. Mục tiêu là biểu diễn một thao tác chưa hoàn thành, tạm dừng method mà không block caller, rồi tiếp tục đúng state khi kết quả sẵn sàng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -168,7 +199,20 @@ Total: 1,210,000 VND
 
 Phân cách hàng nghìn có thể khác theo locale. Không có delay/network nên thứ tự và giá trị không phụ thuộc timing máy.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. CalculateAsync chạy ngay validation và tạo hai request trước await chưa hoàn tất.
+2. State cần thiết được giữ; Main nhận task pending.
+3. CompleteB rồiA; continuation tính tổng và complete task ngoài.
+4. TCS/dictionary giữ pending tasks, không có thread riêng cho mỗi giá. Latency chờ độc lập có thể chồng; task/state và I/O vẫn có cost.
+
+### Mini-check
+
+Complete chỉ B có đủ để tính không? Nếu source thứ hai ném đồng bộ, ai còn sở hữu request A đang pending?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### `Task` không phải thread
 
@@ -231,7 +275,45 @@ Console application thường không có custom `SynchronizationContext`, nên c
 
 - `ValueTask<T>` chỉ nên dùng khi API/performance profile chứng minh có lợi; nó có quy tắc consumption phức tạp hơn.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| await tuần tự | operation sau chờ trước | đúng khi có dependency |
+| WhenAll | phối hợp tasks đã tạo | đúng khi độc lập, cần capacity |
+| Task.Run | queue work lên pool | không cần cho I/O async đã có |
+
+### Misconception check
+
+**Đúng hay sai?** Mỗi await chắc chắn đổi thread.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: awaitable đã xong có thể tiếp tục đồng bộ.
+
+</details>
+
+**Đúng hay sai?** WhenAll tự bắt đầu hai method chưa gọi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: nó nhận tasks của operation đã tạo.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** Task/await trace.
+
+- **Working Developer — dùng khi làm việc:** ownership và async all the way.
+
+- **Deep Dive — có thể quay lại sau:** context/scheduler khi có driver.
 
 ### Chữ ký async chuẩn
 
@@ -302,7 +384,17 @@ Operation có thể fault sau khi request kết thúc, mất exception hoặc d�
 
 Sample chứng minh task có thể hoàn tất hoàn toàn nhờ producer gọi `SetResult`, không tạo worker. Muốn chạy CPU work trên thread pool là một quyết định riêng, không phải semantics của `await`.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng .Result/.Wait trong async chain. Không đưa ControlledPriceSource single-owner vào production nhiều producer; sample chưa có failure/cancel cleanup protocol cho mọi request.
+
+## 8. Production notes & scale check
+
+Test pending trước completion, chỉ một giá chưa đủ, kết quả và fault validation khi await. Không assert threadID hoặc milliseconds. TCS dùng RunContinuationsAsynchronously để không inline consumer trong SetResult; vẫn không hứa dedicated thread.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Một kết quả bất đồng bộ
 
@@ -334,7 +426,23 @@ Thiết kế interface queue nhận một công việc gửi email thay vì bỏ
 
 Gợi ý: xác định ai await/monitor, cách báo exception và lúc application shutdown.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với callback Module02 và delegate Module05, Task bổ sung contract completion/error nào? Với hai giá phụ thuộc nhau, giải thích vì sao sequential await lại đúng.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Task có phải thread không?
+2. Phần nào chạy trước await?
+3. Local cần sau suspend sống nhờ đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi hiểu Task là trạng thái operation, không phải một thread.
 - [ ] Tôi mô tả được phần async method chạy trước incomplete await.

@@ -1,5 +1,16 @@
 # Nullable reference type
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Nullable reference annotations mô tả chỗ nào được phép thiếu dữ liệu.
+- Dùng string? cho email tùy chọn, giữ Name bắt buộc với constructor guard.
+- Dấu ! chỉ đổi điều compiler tin, không làm null biến mất.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Phiếu khách hàng có ô tên bắt buộc và ô email có thể trống. Đánh dấu ô tùy chọn giúp người đọc biết phải xử lý trường hợp thiếu; nó không tự điền dữ liệu vào ô lúc chạy.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| annotation | thông tin cho compiler/tooling | string? |
+| flow analysis | theo dõi khả năng null qua nhánh | is string email |
+| null-forgiving | yêu cầu compiler tin non-null | ! |
+| runtime guard | kiểm tra khi chạy | ThrowIfNullOrWhiteSpace |
+
+### Ví dụ nhỏ — tính tay trước
+
+Binh.Email=null → nhãn(missing); fallbackA được gán, fallbackB sau đó không thay A. string?[2] là hai ô reference null, không có hai wrapper Nullable<string>.
+
 Một chức năng import customer nhận dữ liệu không đồng đều:
 
 - `Name` bắt buộc;
@@ -25,7 +53,9 @@ Nếu khai báo mọi thứ là `string`, `Address`, rồi hy vọng dữ liệu
 
 Ta cần đưa khả năng `null` vào đúng vị trí của type contract, để compiler theo dõi flow trước khi dereference. Runtime guard vẫn cần ở boundary vì caller cũ, reflection, serializer hoặc dữ liệu ngoài không bị compiler của project hiện tại kiểm soát.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -196,7 +226,20 @@ Unknown search: not found
 Binh fallback: binh@fallback.invalid
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Constructor normalize whitespace email thành null và guard Name.
+2. ?. dừng truy cập khi Address null; ?? chỉ tính fallback nếu bên trái null.
+3. Pattern cho local đã biết non-null trong nhánh đúng; scope khác definite assignment.
+4. Object giữ reference/null như trước annotation; normalize có cost theo độ dài, search quét O(n).
+
+### Mini-check
+
+Vì sao customer.Email is string email an toàn hơn đọc lại một property mutable sau callback?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Nullable context là compile-time contract
 
@@ -234,7 +277,7 @@ if (customer.Email is string email)
 }
 ```
 
-pattern chỉ gán `email` khi value là một `string` non-null. Trong nhánh đó, flow state của `email` là not-null nên dereference an toàn. Ra khỏi nhánh, variable pattern hết scope.
+pattern chỉ gán `email` khi value là một `string` non-null. Trong nhánh đó, flow state của `email` là not-null nên dereference an toàn. Ngoài nhánh đúng, không được giả định `email` đã được gán. Scope của pattern variable có thể bao trùm block chứa `if`; definite assignment (đã chắc chắn được gán hay chưa) là quy tắc riêng với scope.
 
 Flow analysis theo đường điều khiển chứ không chạy chương trình. Với field/property mutable hoặc lời gọi method có side effect, compiler đôi khi thận trọng vì value có thể đổi giữa hai lần đọc. Lưu property vào local hoặc thiết kế immutable khi cần reasoning ổn định.
 
@@ -323,7 +366,45 @@ Main local / collection                      Managed heap
 
 Flow state “maybe-null/not-null” tồn tại trong phân tích compiler, không phải một field boolean gắn cạnh reference ở runtime.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| string? | reference optional theo compiler | không thêm wrapper runtime |
+| int? | Nullable<int> value type | có HasValue/Value |
+| guard | chặn input sai runtime | bổ sung annotation, không thay thế |
+
+### Misconception check
+
+**Đúng hay sai?** x! ném lỗi ngay nếu x null.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: không chèn kiểm tra runtime.
+
+</details>
+
+**Đúng hay sai?** required string tự kiểm tra tên không trắng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần domain validation.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** optional contract.
+
+- **Working Developer — dùng khi làm việc:** flow và runtime validation.
+
+- **Deep Dive — có thể quay lại sau:** annotations generic khi viết thư viện.
 
 ### Nullable reference khác nullable value type
 
@@ -394,7 +475,17 @@ Public boundary vẫn có caller/dữ liệu không chịu nullable analysis c�
 
 Nullable reference chỉ annotation trên reference type hiện có. Không vẽ object `Nullable<string>`; hãy vẽ một reference slot chứa pointer logic hoặc null.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm ? vào mọi field chỉ để hết warning. Không dùng ?. che lỗi thiếu customer bắt buộc; sửa boundary/invariant.
+
+## 8. Production notes & scale check
+
+Test thiếu email, fallback không overwrite, lookup không thấy và guard khi null! bypass compiler. Normalize email chỉ là policy minh họa trim/lowercase, không kiểm chứng địa chỉ tồn tại hay xử lý mọi quy tắc email quốc tế.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Hồ sơ nhân viên
 
@@ -426,7 +517,23 @@ Vẽ một `Customer` có email, một customer không email. Ghi reference slot
 
 **Gợi ý:** không vẽ boolean `HasValue` cho `string?`; boolean đó chỉ phù hợp khi mô tả `Nullable<T>` value type.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ null pointer C và reference C# Module04, phân biệt lỗi runtime với bằng chứng compiler. Map DTO thiếu dữ liệu sang domain có trường bắt buộc ở đâu?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. ? của string và int khác gì?
+2. ?? có luôn chạy fallback không?
+3. ! có thêm runtime code không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt `string` bắt buộc với `string?` tùy chọn theo contract.
 - [ ] Tôi xử lý warning bằng flow check/thiết kế thay vì thêm `?` hoặc `!` máy móc.
