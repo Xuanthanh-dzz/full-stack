@@ -21,6 +21,29 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Relationship trong EF có hai lớp:
+
+1. **relational layer:** foreign key trong database;
+2. **object layer:** navigation property giúp code đi từ object này sang object liên quan.
+
+Foreign key là sự thật lưu trong database. Navigation là cách EF/C# biểu diễn mối quan hệ đó thành object graph.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| principal | entity có key được tham chiếu |
+| dependent | entity chứa FK trỏ sang principal |
+| foreign key | column/key biểu diễn quan hệ |
+| reference navigation | navigation tới một object |
+| collection navigation | navigation tới nhiều object |
+| cascade delete | xóa principal kéo theo dependent |
+| join entity | entity biểu diễn row trong bảng nối |
+
+Cardinality phải đến từ nghiệp vụ, không phải từ API EF nào viết ngắn hơn.
+
 Order có Customer, Items, Payments; Product có Stock và nhiều OrderItems. Nếu cardinality hoặc cascade sai, một thao tác delete có thể làm mất lịch sử hoặc schema sinh FK không mong muốn.
 
 ## 3. Lời giải chạy được
@@ -48,7 +71,74 @@ modelBuilder.Entity<OrderItem>(entity =>
 });
 ~~~
 
+### Walkthrough `Customer 1 → many Orders`
+
+Database:
+
+~~~text
+sales.Customers
+CustomerId=10
+
+sales.Orders
+OrderId=1001 CustomerId=10
+OrderId=1002 CustomerId=10
+~~~
+
+C# object model:
+
+~~~text
+Customer
+  CustomerId = 10
+  Orders = [Order1001, Order1002]
+
+Order1001
+  CustomerId = 10   ← FK value
+  Customer = Customer10  ← navigation
+~~~
+
+`CustomerId` và `Customer` liên quan nhưng không phải cùng thứ: một cái là key state, một cái là object reference/navigation.
+
 ## 4. Cơ chế hoạt động
+
+### Ba cardinality chính
+
+| Quan hệ | Ví dụ | FK thường nằm ở |
+|---|---|---|
+| one-to-one | Product ↔ Stock | dependent |
+| one-to-many | Customer → Orders | many/dependent side |
+| many-to-many | Products ↔ Categories | join table/entity |
+
+### Khi nào many-to-many cần join entity?
+
+Nếu row nối chỉ có hai FK, skip navigation có thể đủ.
+
+Nếu row có:
+
+~~~text
+ProductId
+CategoryId
+CreatedAt
+SortOrder
+AssignedBy
+~~~
+
+thì row này có state/lifecycle riêng → explicit join entity thường rõ hơn.
+
+### Misconception check
+
+**Đúng hay sai?** Có navigation property nghĩa là database không cần FK.
+
+**Đáp án:** Sai. Relational relation vẫn dựa trên key/constraint.
+
+**Đúng hay sai?** Cascade delete luôn tiện nên nên bật rộng.
+
+**Đáp án:** Sai. Với order/history, nó có thể xóa dữ liệu cần giữ.
+
+### Mini-check
+
+Nếu OrderItem cần lưu `Quantity` và `UnitPriceSnapshot`, nó có nên chỉ là hidden many-to-many join không?
+
+Đáp án: không; nó rõ ràng là entity có payload.
 
 Principal là phía key được tham chiếu; dependent chứa foreign key.
 
@@ -57,6 +147,14 @@ Navigation chỉ là object graph view của relationship; FK mới là dữ li�
 Many-to-many không payload có thể dùng skip navigation để EF quản lý join table. Khi join row có business data, entity explicit làm lifecycle/invariant rõ hơn.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** FK, navigation, cardinality.
+
+**Working developer:** delete behavior, optionality, explicit join entity.
+
+**Deep dive:** relationship fix-up, shadow FK, alternate key và ownership patterns.
 
 Module 08 ER modeling/cardinality là prerequisite trực tiếp.
 
