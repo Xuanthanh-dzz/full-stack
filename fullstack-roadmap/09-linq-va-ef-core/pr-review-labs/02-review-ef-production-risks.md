@@ -4,7 +4,7 @@ PR này cố gắng thêm job cancel order cũ và search product bằng raw SQL
 
 ## Diff
 
-Source diff: [`samples/module-09/pr-review-labs/02-ef-production-risks.diff`](../../../samples/module-09/pr-review-labs/02-ef-production-risks.diff).
+Source diff: [`02-ef-production-risks.diff`](./diffs/02-ef-production-risks.diff).
 
 ~~~diff
 diff --git a/OrderAdminService.cs b/OrderAdminService.cs
