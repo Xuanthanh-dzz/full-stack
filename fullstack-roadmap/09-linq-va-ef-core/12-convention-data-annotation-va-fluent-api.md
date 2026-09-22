@@ -21,6 +21,29 @@
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+EF cần biết C# model map xuống database thế nào. Có ba nguồn thông tin:
+
+1. **Convention** — EF đoán theo quy tắc mặc định.
+2. **Data Annotation** — bạn gắn attribute lên class/property.
+3. **Fluent API** — bạn cấu hình model bằng code trong `ModelBuilder`.
+
+Không phải chọn đúng một. Model cuối cùng có thể nhận thông tin từ cả ba.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản |
+|---|---|
+| convention | quy tắc mặc định EF tự suy ra |
+| annotation | attribute gắn trên CLR type/property |
+| Fluent API | cấu hình bằng chain method |
+| model metadata | mô tả mapping EF giữ trong memory |
+| precision | số chữ số tổng/thập phân của decimal |
+| delete behavior | điều xảy ra với dependent khi principal bị xóa |
+
+Mapping là nơi nối hai thế giới: C# object model và schema relational.
+
 Nếu chỉ để convention, `string` có thể thành column rộng hơn business cần; decimal precision hoặc delete behavior cũng có thể không đúng invariant CommerceLab.
 
 ## 3. Lời giải chạy được
@@ -48,7 +71,69 @@ modelBuilder.Entity<Product>(entity =>
 
 Xem implementation: `samples/module-09/CommerceLab.Data/CommerceDbContext.cs`.
 
+### Walkthrough mapping `Product.Price`
+
+CLR property:
+
+~~~csharp
+public decimal Price { get; set; }
+~~~
+
+Nếu chỉ nhìn C#, ta chưa biết database cần precision bao nhiêu.
+
+Fluent API:
+
+~~~csharp
+entity.Property(product => product.Price)
+    .HasPrecision(19, 4);
+~~~
+
+Ý nghĩa:
+
+~~~text
+C# decimal
+  ↓ model configuration
+EF metadata: precision 19, scale 4
+  ↓ migration/provider
+SQL Server decimal(19,4)
+~~~
+
+Mapping này giúp schema thể hiện chính xác invariant tiền tệ mà Module 08 đã thiết kế.
+
 ## 4. Cơ chế hoạt động
+
+### Khi nào dùng nguồn nào?
+
+| Nhu cầu | Convention | Annotation | Fluent API |
+|---|---:|---:|---:|
+| Id theo tên chuẩn | ✅ | có thể | có thể |
+| Required/length đơn giản | có | ✅ | ✅ |
+| composite index/key | hạn chế | hạn chế | ✅ |
+| delete behavior | mặc định | hạn chế | ✅ |
+| schema/table/provider detail | hạn chế | một phần | ✅ |
+| giữ domain class sạch EF concern | ✅ | ❌ | ✅ |
+
+### Vì sao không explicit mọi thứ?
+
+Vì verbosity cũng có cost. Nếu convention rõ và đúng, lặp lại nó bằng 100 dòng Fluent API không tạo thêm correctness.
+
+Ngược lại, invariant quan trọng như precision, unique index, FK delete behavior nên explicit để reviewer nhìn thấy.
+
+### Misconception check
+
+**Đúng hay sai?** Fluent API luôn tốt hơn annotation.
+
+**Đáp án:** Không. Nó phù hợp hơn khi mapping phức tạp hoặc muốn tách persistence concern; annotation vẫn tiện cho constraint đơn giản.
+
+**Đúng hay sai?** Nếu migration build được thì mapping chắc chắn đúng business.
+
+**Đáp án:** Sai. Compile chỉ chứng minh syntax/model hợp lệ, không chứng minh delete behavior/precision/invariant đúng.
+
+### Mini-check
+
+Vì sao tiền nên cấu hình precision rõ thay vì để provider/default tự quyết?
+
+Đáp án: để schema và business precision nhất quán, tránh rounding/scale bất ngờ.
 
 Convention tạo model mặc định từ CLR shape/naming.
 
@@ -59,6 +144,14 @@ Fluent config có thể diễn đạt composite key/index, delete behavior, sche
 Model cuối được EF dùng cho migration, query translation và materialization.
 
 ## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+**Beginner core:** hiểu ba nguồn cấu hình model.
+
+**Working developer:** explicit invariant quan trọng và review migration.
+
+**Deep dive:** model conventions custom, value converters, provider-specific metadata.
 
 Module 08 đã xác định type, constraint, PK/FK, index. Mapping EF phải phản ánh lại các invariant đó — không được để ORM 'đoán' trái schema.
 
