@@ -1,0 +1,18 @@
+diff --git a/OrderService.cs b/OrderService.cs
+--- a/OrderService.cs
++++ b/OrderService.cs
+@@ -1,10 +1,10 @@
+ public sealed class OrderService(IOrderStore store, INotifier notifier)
+ {
+     public void Place(Order order)
+     {
+-        if (store.Exists(order.Id)) return;
+-        store.Save(order);
+-        notifier.Send(order);
++        try { store.Save(order); }
++        catch (IOException) { }
++        notifier.Send(order);
+     }
+-    public IReadOnlyList<Order> List() => store.Snapshot();
++    public IReadOnlyList<Order> List() => store.MutableOrders;
+ }

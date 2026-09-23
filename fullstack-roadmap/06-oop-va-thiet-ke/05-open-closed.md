@@ -1,5 +1,16 @@
 # Open/closed
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- OCP mở một trục biến đổi đã quan sát được.
+- Dùng rule khi campaign thay thường xuyên nhưng engine giữ cách cộng và trần.
+- Đăng ký và dữ liệu contract vẫn có thể đổi; OCP không cấm sửa lỗi.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - tránh abstraction đầu cơ khi trục biến đổi chưa xuất hiện.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Quầy cộng tiền giữ một cách tổng kết; marketing đưa thêm phiếu giảm theo cùng mẫu. Thêm phiếu không bắt người tổng kết viết lại cách cộng, nhưng nếu luật cộng đổi thì vẫn phải sửa engine.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| extension point | điểm cho behavior mới | IDiscountRule |
+| policy | quyết định áp dụng chung | cap của engine |
+| registration | danh sách behavior được dùng | rules ở Main |
+| closed set | tập lựa chọn hữu hạn ổn định | OrderStatus phù hợp switch |
+
+### Ví dụ nhỏ — tính tay trước
+
+Gold2triệu,6items,July:100000+60000+100000=260000; cap200000. Mã capped giải thích vì sao tổng giảm khác tổng rule.
 
 Tiếp tục từ `PricingPolicy` ở [bài 4](./04-single-responsibility.md). Marketing bắt đầu ra khuyến mãi liên tục, và code chiết khấu tiến hóa theo kiểu quen thuộc:
 
@@ -50,7 +78,9 @@ Mỗi chương trình khuyến mãi mới là một lần sửa đúng method n�
 
 Điều đáng chú ý: **cấu trúc của bài toán không đổi** — luôn là “xét giỏ hàng, trả ra một khoản giảm”. Chỉ có **danh sách quy tắc** là đổi. Đó chính là trục biến đổi cần được mở ra.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -204,6 +234,7 @@ public sealed class DiscountEngine
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentOutOfRangeException.ThrowIfNegative(maxRate);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maxRate, 1m);
 
         _rules = rules;
         _maxRate = maxRate;
@@ -212,6 +243,8 @@ public sealed class DiscountEngine
     public DiscountResult Apply(Cart cart)
     {
         ArgumentNullException.ThrowIfNull(cart);
+        ArgumentOutOfRangeException.ThrowIfNegative(cart.Subtotal);
+        ArgumentOutOfRangeException.ThrowIfNegative(cart.ItemCount);
 
         decimal total = 0m;
         var codes = new List<string>();
@@ -228,7 +261,7 @@ public sealed class DiscountEngine
             codes.Add(rule.Code);
         }
 
-        decimal cap = decimal.Round(cart.Subtotal * _maxRate, 0);
+        decimal cap = Math.Min(cart.Subtotal, decimal.Round(cart.Subtotal * _maxRate, 0));
         if (total > cap)
         {
             total = cap;
@@ -323,9 +356,22 @@ new customer: 30,000 [first-order, capped]
 gold again: 200,000 [tier-gold, volume-5, july-sale, capped]
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main dựng rules và engine giữ cùng list, chưa tính giá.
+2. Apply gọi tất cả rule theo thứ tự, bỏ amount<=0 theo policy hiện tại.
+3. Engine cộng rồi cắt trần; bảo vệ subtotal/itemcount không âm và maxRate0–1.
+4. List rule là live alias, codes là list mới mỗi lần. O(r) calls và O(r) output codes; decimal overflow vẫn có thể xảy ra trước cap.
+
+### Mini-check
+
+MaxRate1, subtotal0.6: vì sao Math.Min subtotal cần thiết khi cap làm tròn đến số nguyên?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Cái gì mở, cái gì đóng
 
@@ -391,7 +437,45 @@ Nguyên tắc thực dụng: chờ tới lần thay đổi thứ hai hoặc th�
 
 Nếu một campaign cần kiểm tra “khách đã mua bao nhiêu đơn trước đây”, quy tắc đó cần dữ liệu mà `Cart` không có. Hai hướng: mở rộng dữ liệu đầu vào (thêm field vào một record ngữ cảnh), hoặc để quy tắc nhận collaborator qua constructor. Hướng thứ hai kéo theo phụ thuộc vào hạ tầng — [bài 8](./08-dependency-inversion.md) sẽ chỉ cách giữ chiều phụ thuộc đúng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| switch tập đóng | các trường hợp hữu hạn | dễ đọc và ít type |
+| rule interface | danh sách behavior mở | cần test contract từng rule |
+| cấu hình tham số | cùng công thức khác rate | không cần class mới |
+
+### Misconception check
+
+**Đúng hay sai?** Engine giữ IReadOnlyList nên Main.Add không có tác dụng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: object thật vẫn là list do Main giữ.
+
+</details>
+
+**Đúng hay sai?** Có trần nghĩa là phép cộng trước đó không thể overflow.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: overflow có thể xảy ra trước khi cắt trần.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** mở/đóng theo trục.
+
+- **Working Developer — dùng khi làm việc:** contract và cap.
+
+- **Deep Dive — có thể quay lại sau:** snapshot config khi có concurrency.
 
 ### Ba cách mở một trục biến đổi trong C#
 
@@ -453,7 +537,17 @@ Sửa lỗi, đổi tên cho rõ, tối ưu hiệu năng đều là sửa file c
 
 Nếu kết quả đổi khi đảo thứ tự phần tử trong `rules`, thứ tự đó là một phần hợp đồng và phải được ghi rõ hoặc kiểm soát bằng một trường sắp xếp. Sample cộng dồn nên thứ tự chỉ ảnh hưởng danh sách `AppliedCodes`, không ảnh hưởng số tiền.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo factory/provider nhiều tầng khi chỉ có hai nhánh ổn định. Không chuyển mọi enum thành class chỉ để loại bỏ switch.
+
+## 8. Production notes & scale check
+
+Demo tuần tự,3–4rules. Cap chặn vượt subtotal cả với phần lẻ; rounding là ToEven. Rules/code/result list không deep immutable; cấu hình và input phải ổn định trong Apply. Test ngoài/đúng biên campaign, cap, zero và rule thêm không đổi engine.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Campaign theo mã giảm giá
 
@@ -485,7 +579,23 @@ Thiết kế `LoyaltyDiscountRule` cần biết số đơn hàng trước đây 
 
 **Gợi ý:** đừng chỉ đếm dòng thêm mới; đếm cả số dòng cũ nằm trong vùng rủi ro của thay đổi.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So generic store Module05 với rule OCP: khác nhau ở tái sử dụng kiểu và thay behavior nào? Với hai trạng thái cố định, chọn switch hay interface và ghi chi phí.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Phần nào phải sửa khi thêm rule?
+2. Rules.Add ảnh hưởng engine cũ không?
+3. Cap bảo vệ điều gì và không bảo vệ gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi chỉ ra được phần nào mở, phần nào đóng trong một thiết kế.
 - [ ] Tôi xác định trục biến đổi từ lịch sử thay đổi thật, không từ phỏng đoán.
@@ -500,3 +610,8 @@ Thiết kế `LoyaltyDiscountRule` cần biết số đơn hàng trước đây 
 - Bài prerequisite: [Single responsibility](./04-single-responsibility.md)
 - Ôn lại nền tảng: [Pattern matching](../05-csharp-nang-cao/08-pattern-matching.md)
 - Bài tiếp theo: [Liskov substitution](./06-liskov-substitution.md)
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/01-view.md)
+- [Spaced Review](./reviews/review-01.md)

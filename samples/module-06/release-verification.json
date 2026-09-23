@@ -1,0 +1,209 @@
+{
+  "verified_on": "2026-09-22",
+  "sdk": "9.0.121",
+  "target": "net9.0",
+  "language": "C#13",
+  "configuration": "Release",
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/01-mo-hinh-hoa-doi-tuong.md",
+      "files": {
+        "Program.cs": "96f59105334f3f88d15c93f1181d634097422ececad4456c340302dd8c1ee396",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "expected compiler rejection of invalid type, access or lifetime contract",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/02-encapsulation-abstraction-inheritance-polymorphism.md",
+      "files": {
+        "Program.cs": "38240fed1f6715ad9cd2f15cf0f618a1cf0a2f7d9d8d3aa83ac68024d503bec9",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "expected compiler rejection of invalid type, access or lifetime contract",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/03-composition-over-inheritance.md",
+      "files": {
+        "Program.cs": "39e8bfd7d9ffcb4eae2f850ff62df24391ed2feb2e02a0cc7e3aebaf8bb8fd90",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/04-single-responsibility.md",
+      "files": {
+        "Program.cs": "a7e31c35d6c807f478f259e58799947ce38500c35d378e707710ea466641553b",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/05-open-closed.md",
+      "files": {
+        "Program.cs": "2d04714761ed73756c4112e28d2c54b2e370440505b7a426b637980cd5499290",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/06-liskov-substitution.md",
+      "files": {
+        "Program.cs": "842f36142164954a2b151ab10d8656ab6bd8e34ef679f69d0e841ae58c4c68a0",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "expected compiler rejection of invalid type, access or lifetime contract",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/07-interface-segregation.md",
+      "files": {
+        "Program.cs": "982781dc2a27f316782e17c7c22c52de058b8a212e0162990a28e14b820a8ab6",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "expected compiler rejection of invalid type, access or lifetime contract",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/08-dependency-inversion.md",
+      "files": {
+        "Program.cs": "eb2d18931d06419f9c7c731ae67489017deab8e7d5191f90a0053c6b66620758",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/09-coupling-va-cohesion.md",
+      "files": {
+        "Program.cs": "ddfd179d16a684e13c9f669f30f4937c8d74ffc49d9476625b2debcec050e716",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/10-dependency-injection-va-inversion-of-control.md",
+      "files": {
+        "Program.cs": "b95f6da70506d081979afbafa92ebf356ba0ca42b63abfcb3afa1e533d17b20c",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/11-clean-code-ten-ham-va-cau-truc.md",
+      "files": {
+        "Program.cs": "9f4d247c243df392e4ea288cc31ce8be8e044294f575d78f6ec8c92bebd84341",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/12-code-smell-va-refactoring.md",
+      "files": {
+        "Program.cs": "c7b0495b08db95536140b7195ab1e8443dc59f7406f8e023b67fa108fe7d8f64",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/13-design-by-contract-va-invariant.md",
+      "files": {
+        "Program.cs": "d4502d8d520f6bcd1785ae53d5c085d1e5574ee2d8421f3a360a0e606c2900a1",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "expected compiler rejection of invalid type, access or lifetime contract",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/06-oop-va-thiet-ke/14-du-an-refactor-ung-dung-csharp.md",
+      "files": {
+        "Legacy/LegacyOrderProcessor.cs": "9d55311267994213fed21838fd7c68cd6ea8f0f3204f10a58d7491bd5dcea15d",
+        "Domain/Money.cs": "c625a7264ef4bd41b44e6c6be05838cff10ac0f1be712d954d6f9a7b5e67d03a",
+        "Domain/Order.cs": "9142654da79a79bf342382531bd50df5e9ee33d630b1c05c99825b487d8ce4b3",
+        "Domain/Pricing/DiscountRules.cs": "6dc799d5ebaf72c0f7fc1a7ba84fd080c06fea333cdb5a2f8d7473243a773c83",
+        "Domain/Pricing/PricingService.cs": "df1a8ccfbb2bbb187d1ea5b91f4ca03d1cb35fe5bfd9c857ba86de927fcdd09b",
+        "Application/OrderParser.cs": "cb9cf70c030aabcb57c1549105e70f5ce9656bcf0bbaca2f520afb8594e96c20",
+        "Application/ProcessOrdersUseCase.cs": "40124275b7b5342398316d0cf6f169437b7443191fe5162c5d800e1276aadf52",
+        "Presentation/ReportBuilder.cs": "331010d6b429bc4c14a7cd245855c0e419111d7c2673ea65fe054946ad6f96bc",
+        "Infrastructure/Adapters.cs": "e4247ae7e98d1279ae8771b2e713edf6bf7b856ed6709d51cf4c884fef821a8a",
+        "Testing/CharacterizationHarness.cs": "72f1c0029c622f14ec00c98146bd5c6a784148510e1e27a88ca56363845969a1",
+        "Program.cs": "be641a358b4ae6f859215da85f1b511a2cd6897d5f089832897dffff03fda7bc",
+        "Sample.csproj": "940b04a361f6f4040c4f50cec38caf1192e3ac9a0221d1cd79746806cd54a10a"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "exact published stdout, empty stderr and exit zero",
+        "independent boundary/lifetime/failure contract assertions"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/06-oop-va-thiet-ke/failure-labs/01-view.md",
+      "source_sha256": "4fa5bf0895a2594b07b74a3253afd4a3fc3f07b9fd5c249f9835d2769e7923ec",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/06-oop-va-thiet-ke/failure-labs/02-captive.md",
+      "source_sha256": "a3503852efe4d8998b4cf7ecd8daf284315e4c78a850789ba340e0a79c2b2127",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/06-oop-va-thiet-ke/failure-labs/03-rounding.md",
+      "source_sha256": "d59f7ffa1d56c04f606ea72270058df7b401f19ff9336109cdd486c56c9ad381",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

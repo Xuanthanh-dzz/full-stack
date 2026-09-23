@@ -1,5 +1,16 @@
 # Dependency injection và inversion of control
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- DI truyền phụ thuộc từ ngoài; lifetime quyết định tái sử dụng object.
+- Dùng composition root và scope khi state dùng chung khác state theo yêu cầu.
+- Transient không tự chết sau call; singleton không tự thread-safe.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Hai yêu cầu dùng chung tủ đơn hàng nhưng mỗi yêu cầu có nhãn theo dõi riêng. Người lắp ứng dụng quyết định vật nào dùng chung, vật nào tạo mới; handler chỉ dùng vật được giao.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| composition root | nơi nối các collaborator | Main và CompositionRoot |
+| singleton | một instance trong root/provider | store/log |
+| scoped | một instance trong đơn vị công việc | RequestContext |
+| transient | instance mới mỗi lần tạo | CreateHandler |
+
+### Ví dụ nhỏ — tính tay trước
+
+CreateHandler hai lần trong req1 →hai handler khác nhau, cùng audit. req2 →audit/context khác nhưng cùng store; duplicate ORD1 vẫn được thấy.
+
 Sau [bài 8](./08-dependency-inversion.md), các class nghiệp vụ đã nhận phụ thuộc qua constructor. Câu hỏi kế tiếp rất thực tế: **ai tạo ra chúng, và tạo bao nhiêu lần?**
 
 Ứng dụng xử lý nhiều yêu cầu đặt hàng trong một lần chạy. Với mỗi yêu cầu, ta cần:
@@ -26,7 +54,9 @@ Nếu để mỗi class tự `new` phụ thuộc của mình, ba yêu cầu trê
 
 Câu trả lời là tách hẳn việc **tạo object** ra khỏi việc **dùng object**, rồi đặt việc tạo vào đúng một nơi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -263,15 +293,28 @@ Same audit writer across scopes: False
   [req-2] placed ORD-002
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. CompositionRoot tạo một store/log, nhận clock từ ngoài.
+2. BeginRequest tạo context/audit, giữ reference tới store/clock chung.
+3. Mỗi CreateHandler new handler; Handle ghi store rồi ghi audit theo context của scope.
+4. References quyết định object còn sống; RequestScope không tự dispose hay hết hiệu lực trong sample. State log/store O(số đơn + số calls); transient có allocation mỗi lần.
+
+### Mini-check
+
+Giữ firstHandler sau khi biến first ra khỏi scope C#: RequestContext có tự biến mất không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Ba lifetime chỉ là ba quy ước về `new`
 
 | Lifetime | Ai gọi `new` | Bao nhiêu lần | Trong sample |
 |---|---|---|---|
-| Singleton | composition root | một lần cho cả chương trình | `InMemoryOrderStore`, `AuditLog`, `FixedClock` |
+| Singleton | composition root | một lần cho mỗi composition root | `InMemoryOrderStore`, `AuditLog`, `FixedClock` |
 | Scoped | scope | một lần cho mỗi yêu cầu | `RequestContext`, `ScopedAuditWriter` |
 | Transient | mỗi lời gọi factory | mỗi lần được hỏi | `PlaceOrderHandler` |
 
@@ -296,7 +339,7 @@ Vị trí của composition root là **entry point** của ứng dụng: `Main` 
 
 ### IoC, DI và DIP là ba thứ khác nhau
 
-- **IoC (inversion of control)** là ý tưởng rộng: quyền điều khiển được chuyển từ code của bạn sang một bên khác. Một `foreach` gọi `IReceiptFormatter` cũng là IoC, template method ở [bài 2](./02-encapsulation-abstraction-inheritance-polymorphism.md) cũng là IoC. Câu thường được nhắc là “đừng gọi chúng tôi, chúng tôi sẽ gọi bạn”.
+- **IoC (inversion of control)** là ý tưởng rộng: quyền điều khiển được chuyển từ code của bạn sang một bên khác. Một vòng lặp gọi interface tự nó chỉ minh họa dispatch; khung xử lý gọi lại implementation do người dùng cung cấp mới thể hiện quyền điều khiển được đảo. Template method ở [bài 2](./02-encapsulation-abstraction-inheritance-polymorphism.md) cũng là IoC. Câu thường được nhắc là “đừng gọi chúng tôi, chúng tôi sẽ gọi bạn”.
 - **DI (dependency injection)** là một dạng IoC hẹp: object không tự tạo phụ thuộc mà nhận từ ngoài.
 - **DIP** nói về **chiều** của phụ thuộc: nghiệp vụ không phụ thuộc chi tiết.
 
@@ -330,7 +373,7 @@ Singleton  ──giữ──>  Scoped
    └── sống suốt        └── đáng lẽ chết theo yêu cầu
 ```
 
-Nếu `AuditLog` (singleton) giữ thẳng một `RequestContext` (scoped), thì mọi yêu cầu về sau đều ghi mã tương quan của yêu cầu **đầu tiên**. Sample tránh điều này bằng cách để `ScopedAuditWriter` — object sống ngắn — giữ `RequestContext`, còn singleton chỉ nhận `string` đã dựng sẵn. Chiều giữ reference luôn phải từ **sống ngắn → sống dài**.
+Nếu `AuditLog` (singleton) giữ thẳng một `RequestContext` (scoped), thì mọi yêu cầu về sau đều ghi mã tương quan của yêu cầu **đầu tiên**. Sample tránh điều này bằng cách để `ScopedAuditWriter` — object sống ngắn — giữ `RequestContext`, còn singleton chỉ nhận `string` đã dựng sẵn. Không giữ dependency theo request vượt quá lifetime đã cam kết. Object sống lâu có thể tạo và sở hữu scope ngắn qua factory, nhưng phải kết thúc và không giữ lại dependency của scope đó.
 
 #### Singleton phải an toàn khi dùng đồng thời
 
@@ -346,7 +389,45 @@ Với ứng dụng nhỏ, nối dây thủ công là hoàn toàn hợp lệ và 
 
 Nếu một phụ thuộc là `IDisposable` — kết nối database, file stream — thì ai tạo nó phải chịu trách nhiệm giải phóng. Trong sample không có tài nguyên nào như vậy; với scope thật, `RequestScope` thường implement `IDisposable` và dispose các object nó đã tạo, theo đúng quy tắc ở [module 05, bài 12](../05-csharp-nang-cao/12-idisposable-gc-va-quan-ly-tai-nguyen.md).
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| singleton per root | reuse cùng instance | cần bảo vệ nếu nhiều thread |
+| scoped | reuse theo đơn vị công việc | phải xác định ai kết thúc scope |
+| transient | tạo mới khi resolve/factory | giữ lâu vẫn sống lâu, không tự cleanup |
+
+### Misconception check
+
+**Đúng hay sai?** Có một singleton cho toàn máy dù tạo hai root.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample mỗi root có store riêng.
+
+</details>
+
+**Đúng hay sai?** DI bắt buộc dùng container.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: constructor/factory thủ công đã là DI.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** new và reference identity.
+
+- **Working Developer — dùng khi làm việc:** scope owner, disposal.
+
+- **Deep Dive — có thể quay lại sau:** container validation khi có ứng dụng thật.
 
 ### Ba cách inject
 
@@ -391,7 +472,7 @@ Vấn đề:
 
 ### Không phải thứ gì cũng cần inject
 
-Giá trị cấu hình, hàm thuần, type ổn định của thư viện chuẩn — không cần abstraction, không cần inject. Hãy inject những thứ mà bạn muốn **thay được**: hạ tầng, thời gian, ngẫu nhiên, và các quy tắc có nhiều biến thể.
+Hàm thuần và type ổn định của thư viện chuẩn thường không cần abstraction. Giá trị cấu hình vẫn nên truyền từ ngoài khi thay đổi theo môi trường, như các tham số policy trong module. Hãy inject những thứ mà bạn muốn **thay được**: hạ tầng, thời gian, ngẫu nhiên, và các quy tắc có nhiều biến thể.
 
 ## 6. Lỗi thường gặp
 
@@ -423,7 +504,17 @@ Nhận `IServiceProvider` rồi tự `GetService` bên trong là service locator
 
 Khi có hai `IOrderStore`, phải nói rõ ai dùng cái nào — bằng tên, bằng cấu hình, hoặc bằng một wrapper quyết định. Để mặc “cái nào cũng được” là nguồn bug rất khó tái hiện.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không inject IServiceProvider vào mọi service để giấu phụ thuộc. Không chọn singleton chỉ để tránh new khi object chứa request state; cũng không chọn transient cho store cần giữ dữ liệu xuyên request.
+
+## 8. Production notes & scale check
+
+Demo chạy tuần tự, List/Dictionary chưa thread-safe. Không có IDisposable dependency nên RequestScope không đóng tài nguyên; bản mở rộng cần owner và using rõ. Test identity trong/cross scope, root isolation và correlation IDs; không suy ra lifecycle ASP.NET đã được kiểm chứng.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Bảng lifetime
 
@@ -455,7 +546,23 @@ Cho `RequestScope` implement `IDisposable` và giải phóng một tài nguyên 
 
 **Gợi ý:** `using` và `try/finally` đã học ở [module 05, bài 12](../05-csharp-nang-cao/12-idisposable-gc-va-quan-ly-tai-nguyen.md).
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ closure và IDisposable Module05, vẽ đường giữ context khi singleton giữ scoped writer. Sửa bằng thay chiều ownership hay factory scope nào mà không thêm container?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Ai tạo handler và khi nào?
+2. Transient có bảo đảm lifetime ngắn không?
+3. Hai root có cùng store không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt được IoC, DI và DIP bằng ví dụ cụ thể.
 - [ ] Tôi dùng constructor injection làm mặc định và biết ngoại lệ.
@@ -470,3 +577,8 @@ Cho `RequestScope` implement `IDisposable` và giải phóng một tài nguyên 
 - Bài prerequisite: [Coupling và cohesion](./09-coupling-va-cohesion.md)
 - Ôn lại nền tảng: [Delegate, Action, Func và Predicate](../05-csharp-nang-cao/02-delegate-action-func-predicate.md), [IDisposable, GC và quản lý tài nguyên](../05-csharp-nang-cao/12-idisposable-gc-va-quan-ly-tai-nguyen.md)
 - Bài tiếp theo: [Clean code: tên, hàm và cấu trúc](./11-clean-code-ten-ham-va-cau-truc.md)
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/02-captive.md)
+- [Spaced Review](./reviews/review-02.md)

@@ -1,5 +1,16 @@
 # Encapsulation, abstraction, inheritance và polymorphism
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Bốn trụ cột giải quyết quyền sửa state và khả năng thay hành vi.
+- Dùng interface theo caller, base class khi phần khung thực sự chung.
+- Inheritance không cần có trong mọi thiết kế; virtual và method hiding khác nhau.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Người mua chỉ yêu cầu “in chứng từ”, không cần biết máy dùng text hay CSV. Ví tiền chỉ mở cửa nạp và thanh toán, không mở ô số dư cho mọi người gõ tùy ý.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| encapsulation | giới hạn cách sửa dữ liệu | StoreCredit |
+| abstraction | hợp đồng caller cần biết | IReceiptFormatter |
+| inheritance | lớp con dùng khung của lớp cha | ReceiptFormatterBase |
+| dispatch | chọn thân method để chạy | FormatLine override |
+
+### Ví dụ nhỏ — tính tay trước
+
+Nạp100, trả40 →60 với hai dòng lịch sử. Trả90 →false, vẫn60 và không thêm lịch sử. Hai formatter nhận cùng receipt nhưng sinh chuỗi khác.
+
 Tiếp tục hệ thống đặt hàng ở [bài 1](./01-mo-hinh-hoa-doi-tuong.md). Cửa hàng cần thêm hai việc:
 
 1. In chứng từ của một đơn hàng theo nhiều định dạng: dạng text cho khách xem trên màn hình, dạng CSV cho kế toán nhập vào bảng tính. Danh sách định dạng sẽ còn tăng.
@@ -23,7 +51,9 @@ Nếu viết theo kiểu thẳng tay, ta sẽ có một `if (format == "text") .
 
 Bốn trụ cột OOP tồn tại để trả lời chính xác hai vấn đề đó: giấu cái gì, lộ ra cái gì, dùng chung cái gì và thay thế được cái gì.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -129,11 +159,13 @@ public sealed class CsvReceiptFormatter : ReceiptFormatterBase
 public sealed class StoreCredit
 {
     private readonly List<string> _history = new();
+    private readonly IReadOnlyList<string> _historyView;
     private decimal _balance;
 
     public StoreCredit(string customerId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
+        _historyView = _history.AsReadOnly();
         CustomerId = customerId.Trim().ToUpperInvariant();
     }
 
@@ -141,7 +173,7 @@ public sealed class StoreCredit
 
     public decimal Balance => _balance;
 
-    public IReadOnlyList<string> History => _history;
+    public IReadOnlyList<string> History => _historyView;
 
     public void Deposit(decimal amount)
     {
@@ -239,9 +271,22 @@ Balance: 600,000
   pay 400,000 -> balance 600,000
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main tạo receipt và hai formatter rồi gọi qua interface.
+2. Format chạy khung ở base, các virtual call chọn override của object thật.
+3. TryPay validate, kiểm đủ tiền rồi đổi balance và thêm history.
+4. Receipt/Lines là dữ liệu tin cậy của demo, có thể alias array; formatter không deep-copy. Format tạo StringBuilder/string O(n dòng + độ dài output); history tăng theo giao dịch thành công.
+
+### Mini-check
+
+Base b=new Shadowing(): vì sao b.Describe không giống lời gọi qua biến Shadowing?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Encapsulation là bảo vệ invariant, không phải bọc field
 
@@ -256,7 +301,7 @@ _balance là private: không có con đường thứ hai.
 
 So sánh với `public decimal Balance { get; set; }`: property đó vẫn “bọc field”, nhưng không bảo vệ gì cả. Bất kỳ ai cũng có thể `credit.Balance = -5_000_000m` và lịch sử không có gì. Encapsulation nằm ở việc **thu hẹp tập thao tác hợp lệ**, không nằm ở việc gõ chữ `private` rồi sinh cặp getter/setter công khai.
 
-Chú ý `History` trả `IReadOnlyList<string>` — cùng lý do với `Order.Lines` ở bài 1: nếu trả `List<string>`, caller thêm được dòng lịch sử giả.
+Chú ý `History` trả wrapper `AsReadOnly()` dưới kiểu `IReadOnlyList<string>` — cùng lý do với `Order.Lines` ở bài 1: nếu trả `List<string>`, caller thêm được dòng lịch sử giả.
 
 ### Abstraction là hợp đồng nhìn từ phía caller
 
@@ -315,9 +360,47 @@ Một thiết kế tốt có thể chỉ dùng encapsulation và abstraction, kh
 - **Parametric polymorphism**: generics; một `Repository<T>` chạy với nhiều `T` (đã học ở [module 05, bài 1](../05-csharp-nang-cao/01-generics-va-constraints.md)).
 - **Ad-hoc polymorphism**: overload; compiler chọn method theo type của argument ngay lúc biên dịch.
 
-Chỉ dạng đầu tiên quyết định lúc chạy. Hai dạng còn lại được compiler chốt lúc biên dịch.
+Overload thông thường được chọn theo kiểu tĩnh lúc biên dịch (khác lời gọi dùng `dynamic`). Generics giữ thông tin kiểu tại runtime và vẫn có thể gọi interface/virtual; không nên kết luận mọi hoạt động generic đều được chốt hoàn toàn lúc compile.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| interface | caller thấy contract | nhiều implementation không cần base chung |
+| abstract base | chia sẻ khung + extension points | thêm coupling với base |
+| new method | che tên theo kiểu khai báo | không thay virtual slot; tránh dùng để sửa lỗi override |
+
+### Misconception check
+
+**Đúng hay sai?** Nonvirtual Format khiến subclass không thể khai báo tên Format khác.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vẫn có thể hide; lời gọi qua base/interface dùng contract đã định nghĩa.
+
+</details>
+
+**Đúng hay sai?** Private balance làm cả giao dịch tự atomic với mọi lỗi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: history allocation có thể lỗi sau thay balance; sample không là sổ tài chính bền.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** bốn mục đích.
+
+- **Working Developer — dùng khi làm việc:** dispatch và public contract.
+
+- **Deep Dive — có thể quay lại sau:** exception safety cùng lifecycle.
 
 ### Bốn trụ cột phát biểu theo mục đích
 
@@ -384,7 +467,7 @@ Cùng một ý tưởng áp dụng cho namespace, project và module: chỉ mộ
 
 ### Gọi method `virtual` trong constructor
 
-Constructor base chạy trước phần khởi tạo của lớp con, nên override có thể chạm vào field chưa gán. Hãy để việc gọi virtual sau khi object đã dựng xong, hoặc truyền dữ liệu cần thiết qua parameter của constructor.
+Khi constructor base gọi virtual, thân constructor lớp con chưa hoàn tất; field initializer của lớp con có thể đã chạy, nhưng state do thân constructor thiết lập thì chưa. Hãy để việc gọi virtual sau khi object đã dựng xong, hoặc truyền dữ liệu cần thiết qua parameter của constructor.
 
 ### Dùng `new` khi định `override`
 
@@ -406,13 +489,23 @@ Mỗi type mới lại thêm một nhánh, và các nhánh đó nằm rải rác
 
 Ba tầng trở lên thì việc đọc một method phải nhảy qua nhiều file, và không ai chắc `virtual` nào còn được override ở đâu. Ưu tiên một tầng base mỏng cộng composition.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo interface 1–1 cho mọi class. Không ép JSON vào khung nối header/dòng/footer chỉ để tái sử dụng loop; interface trực tiếp có thể đơn giản hơn.
+
+## 8. Production notes & scale check
+
+CSV demo chỉ nhận SKU tin cậy không dấu phẩy/nháy/newline và culture đã nêu. Dữ liệu ngoài cần escaping, culture invariant và chính sách spreadsheet. Wallet chạy tuần tự, không có durability; test thiếu tiền không đổi balance/history và wrapper từ chối Clear.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Formatter thứ ba
 
-Viết `JsonReceiptFormatter` sinh JSON thủ công bằng `StringBuilder` và thêm vào mảng trong `Main`.
+Viết `JsonReceiptFormatter : IReceiptFormatter` dùng `System.Text.Json` đã học ở Module 05 và thêm vào mảng trong `Main`. JSON có cấu trúc riêng, không cần ép vào khung header/dòng/footer.
 
-**Gợi ý:** không sửa `ReceiptFormatterBase`; nếu buộc phải sửa, hãy ghi lại lý do — đó là dấu hiệu khung chung chưa đúng.
+**Gợi ý:** dùng serializer để xử lý dấu nháy và ký tự xuống dòng; giữ caller dùng interface, giải thích vì sao không cần kế thừa base cho định dạng này.
 
 ### Bài 2 — Bịt lỗ hổng encapsulation
 
@@ -446,7 +539,23 @@ Với ba tình huống sau, quyết định dùng inheritance, composition hay c
 
 **Gợi ý:** với (c), hỏi xem việc ghi log có thuộc trách nhiệm của formatter không; hãy để dành câu trả lời đầy đủ tới bài 3 và bài 4 rồi so lại.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ delegate Module05, khi một formatter chỉ có một operation thì delegate có đủ không? So chi phí giữ base khung và interface riêng khi thêm định dạng JSON.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Encapsulation bảo vệ điều gì?
+2. Ai chọn FormatLine lúc chạy?
+3. Receipt record có deep immutable không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phát biểu được bốn trụ cột theo mục đích thiết kế.
 - [ ] Tôi chỉ ra được invariant nào đang được encapsulation bảo vệ trong một class.

@@ -1,5 +1,16 @@
 # Composition over inheritance
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Composition ghép các object qua contract thay vì tạo class cho mọi tổ hợp.
+- Dùng cho kênh gửi, retry và log có các chiều thay đổi độc lập.
+- Thứ tự wrapper thay ý nghĩa log; retry không tự an toàn với side effect.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - biết khi nào kế thừa vẫn là lựa chọn hợp lý.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Thêm lớp ghi nhật ký quanh máy gửi và thêm lớp thử lại là hai lựa chọn riêng. Ta lắp từng lớp, không sản xuất một loại máy mới cho mọi tổ hợp.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| composition | object dùng object khác để làm việc | OrderNotifier có channel |
+| delegation | chuyển lời gọi sang collaborator | _inner.Send |
+| wrapper | bọc cùng hợp đồng để thêm behavior | LoggingChannel |
+| fan-out | gọi nhiều đích | CompositeChannel |
+
+### Ví dụ nhỏ — tính tay trước
+
+Email false,false,true: Log(Retry(email,3)) ghi1 dòng; Retry(Log(email),3) ghi3 dòng. Composite vẫn gọi SMS dù email đã true.
 
 Hệ thống đặt hàng cần báo cho khách khi đơn được đặt. Ban đầu chỉ có email:
 
@@ -30,7 +58,9 @@ Với 2 kênh và 2 khả năng bổ sung, cây kế thừa đã cần tới 8 c
 
 Vấn đề không nằm ở việc viết thêm class. Vấn đề là **các khả năng này độc lập với nhau**, còn kế thừa lại buộc phải chọn một đường duy nhất trong cây. Composition xử lý đúng dạng bài này: mỗi khả năng là một object nhỏ, và ta ghép chúng lúc chạy.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -117,7 +147,7 @@ public sealed class RetryingChannel : INotificationChannel
 
     public bool Send(string recipient, string message)
     {
-        for (int attempt = 1; attempt <= _maxAttempts; attempt++)
+        for (int attempt = 0; attempt < _maxAttempts; attempt++)
         {
             if (_inner.Send(recipient, message))
             {
@@ -265,9 +295,22 @@ Broken email: False
   retry(email) -> an@example.com: failed
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main ghép object graph một lần; tất cả wrapper dùng interface.
+2. Retry gọi inner tối đa maxAttempts khi nhận false, dừng ngay khi true; exception đi lên.
+3. Log ghi sau khi inner trả về nên inner ném thì không có dòng log của lần đó.
+4. Composite dùng |= nên không short-circuit; giữ mảng caller và log dùng chung. Cost xấp xỉ số attempts nhân chi phí gửi, cộng wrapper/log allocation.
+
+### Mini-check
+
+Đổi |= thành anySucceeded = anySucceeded || channel.Send(...): kênh nào có thể không chạy?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Mỗi khả năng là một object, ghép lại lúc chạy
 
@@ -349,7 +392,45 @@ Với hầu hết ứng dụng nghiệp vụ, chi phí này không đáng kể s
 
 `CompositeChannel` giữ trực tiếp mảng do caller truyền. Nếu caller còn giữ mảng đó và sửa phần tử sau này, `CompositeChannel` sẽ thấy thay đổi. Với code thư viện, hãy sao chép mảng vào một `List<T>` bên trong — đúng bài học “không để dữ liệu bên trong bị sửa từ ngoài” ở bài 1.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| inheritance theo tổ hợp | khóa nhánh type | bùng nổ khi nhiều chiều độc lập |
+| composition | ghép các behavior | nhiều object/stack frame hơn |
+| delegate | một callable nhỏ | đủ khi không cần Name và nhóm operation |
+
+### Misconception check
+
+**Đúng hay sai?** Composite chỉ gọi đến kênh thành công đầu tiên.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample fan-out tới mọi kênh nếu không có exception.
+
+</details>
+
+**Đúng hay sai?** Retry bắt mọi exception rồi thử tiếp.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: code chỉ retry kết quả false.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** vẽ chuỗi gọi.
+
+- **Working Developer — dùng khi làm việc:** thứ tự wrapper và fault.
+
+- **Deep Dive — có thể quay lại sau:** retry budget/idempotency khi có I/O thật.
 
 ### Bốn câu hỏi trước khi kế thừa
 
@@ -412,7 +493,7 @@ Năm tầng wrapper thì việc debug trở nên khó chịu không kém cây k�
 
 ### Wrapper giữ state khiến không dùng lại được
 
-`FlakyEmailChannel` trong sample có `_attempts` nên mỗi lần dùng phải tạo instance mới. Nếu một wrapper có state như vậy được chia sẻ giữa nhiều luồng, kết quả sẽ sai. Khi một object được dùng chung, hãy giữ nó không có state thay đổi — bài [module 05, bài 11](../05-csharp-nang-cao/11-parallelism-concurrency-va-thread-safety.md) đã nói về ràng buộc này.
+`FlakyEmailChannel` trong sample giữ `_attempts` tích lũy qua nhiều lần gửi. Chỉ tạo instance mới khi muốn khởi động lại kịch bản lỗi giả lập. Nếu một wrapper có state như vậy được chia sẻ giữa nhiều luồng, kết quả sẽ sai. Khi một object được dùng chung, hãy giữ nó không có state thay đổi — bài [module 05, bài 11](../05-csharp-nang-cao/11-parallelism-concurrency-va-thread-safety.md) đã nói về ràng buộc này.
 
 ### Composition mà vẫn `new` bên trong
 
@@ -420,13 +501,23 @@ Năm tầng wrapper thì việc debug trở nên khó chịu không kém cây k�
 public OrderNotifier() => _channel = new SmsChannel(); // vẫn dính chặt
 ```
 
-Tự tạo collaborator bên trong thì mọi lợi ích ghép nối biến mất: không thay được trong test, không đổi được lúc chạy. Hãy nhận collaborator qua constructor — [bài 8](./08-dependency-inversion.md) và [bài 10](./10-dependency-injection-va-inversion-of-control.md) sẽ đi sâu.
+Tự tạo một collaborator cố định bên trong làm giảm khả năng thay thế tại điểm đó: không thay được trong test, không đổi được lúc chạy. Hãy nhận collaborator qua constructor — [bài 8](./08-dependency-inversion.md) và [bài 10](./10-dependency-injection-va-inversion-of-control.md) sẽ đi sâu.
 
 ### Tạo interface cho mọi mảnh ghép
 
 Không phải mọi thành phần đều cần abstraction. `StringBuilder` không cần `IStringBuilder`. Chỉ tách interface ở nơi thật sự cần thay implementation.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không retry thanh toán hoặc gửi không idempotent mà chưa xác định kết quả lần trước. Không thêm wrapper “dự phòng” khi một kênh cố định đã đủ.
+
+## 8. Production notes & scale check
+
+Kênh giả lập không gửi mạng, dùng tuần tự. Composite giữ array alias và chưa validate từng phần tử; caller phải cung cấp kênh không null và không thay mảng khi đang Send. Production cần ownership rõ, failure policy và retry budget/backoff theo driver.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Wrapper giới hạn số lần gửi
 
@@ -458,7 +549,23 @@ Với ba tình huống: (a) `AdminUser` và `User`; (b) `CachedProductRepository
 
 **Gợi ý:** với (a), hỏi xem admin có phải chỉ là user có thêm quyền hay không, và quyền có đổi lúc chạy không.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So callback Module02 và delegate Module05: wrapper giữ state nào sống qua lời gọi? Đặt log ở đâu nếu cần đếm attempt thay vì số thông báo?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Outer wrapper thấy bao nhiêu calls?
+2. False và exception có cùng retry policy không?
+3. Mảng channels có copy không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi nhận ra bùng nổ tổ hợp khi có từ hai chiều biến đổi độc lập.
 - [ ] Tôi phân biệt “là một” và “có một” trước khi chọn công cụ.
