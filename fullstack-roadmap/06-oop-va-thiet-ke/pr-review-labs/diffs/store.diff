@@ -1,0 +1,25 @@
+diff --git a/OrderService.cs b/OrderService.cs
+--- a/OrderService.cs
++++ b/OrderService.cs
+@@ -2,18 +2,15 @@
+ {
+     public void Place(Order order)
+     {
+-        if (string.IsNullOrWhiteSpace(order.Id)) throw new ArgumentException("Id required");
+-        if (order.Total <= 0) throw new ArgumentOutOfRangeException(nameof(order.Total));
+-        if (store.Exists(order.Id)) return;
+-        store.Save(order);
++        try { store.Save(order); }
++        catch (IOException) { }
+         notifier.Send(order);
+     }
+
+-    public IReadOnlyList<Order> List() => store.Snapshot();
++    public IReadOnlyList<Order> List() => store.MutableOrders;
+
+     public bool Cancel(string id)
+     {
+-        if (!store.Exists(id)) return false;
+         store.Remove(id);
+         return true;
+     }

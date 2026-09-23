@@ -1,5 +1,16 @@
 # Dependency inversion
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- DIP đặt contract theo nhu cầu nghiệp vụ và cho adapter phụ thuộc contract đó.
+- Dùng ở ranh giới file, mạng, thời gian để policy kiểm thử được độc lập.
+- Interface không tự tạo transaction, chống trùng đồng thời hay bảo đảm gửi thông báo.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - tránh interface “đảo hình thức” chỉ sao chép API của thư viện hạ tầng.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Người xử lý đơn đưa ra yêu cầu “lưu đơn này”, thay vì dặn tên file và cách nối chuỗi. Người giữ kho chọn cách thực hiện; thay kho không bắt người xử lý học lại công nghệ lưu.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| policy | quy tắc quyết định nghiệp vụ | PlaceOrderService |
+| detail | cách giao tiếp với bên ngoài | SystemClock/store |
+| adapter | implementation nối contract với chi tiết | ConsoleNotifier |
+| dependency direction | chiều code cần biết type nào | adapter biết interface |
+
+### Ví dụ nhỏ — tính tay trước
+
+Place A lần1 →Save rồi Notify. Lần2 cùng A →Duplicate, không đọc clock hay Notify nữa. Notifier ném sau Save: A vẫn có thể đã lưu.
 
 Luồng đặt hàng được viết như sau:
 
@@ -42,7 +70,9 @@ Quy tắc nghiệp vụ ở đây rất nhỏ: không nhận đơn trùng, lưu 
 
 Dependency Inversion Principle nói: hãy để cả hai phía cùng phụ thuộc vào một abstraction, và abstraction đó phải được định nghĩa theo nhu cầu của phía nghiệp vụ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -200,7 +230,7 @@ public sealed class ConsoleNotifier : ICustomerNotifier
 
 public sealed class FixedClock : IClock
 {
-    public FixedClock(DateTimeOffset now) => UtcNow = now;
+    public FixedClock(DateTimeOffset now) => UtcNow = now.ToUniversalTime();
 
     public DateTimeOffset UtcNow { get; }
 }
@@ -245,7 +275,7 @@ internal static class Program
 
         // SystemClock dành cho môi trường thật; demo không in giá trị của nó.
         IClock production = new SystemClock();
-        Console.WriteLine($"Production clock is ahead of fixed clock: {production.UtcNow > clock.UtcNow}");
+        Console.WriteLine($"Production clock uses UTC offset: {production.UtcNow.Offset == TimeSpan.Zero}");
     }
 
     private static void Print(PlaceResult result) =>
@@ -273,12 +303,25 @@ Stored: 2, notified: 2
 --- cùng service, notifier khác ---
   [notify] CUS-010: order ORD-010 confirmed
 Placed: ORD-010 placed at 2026-07-31T09:00:00.0000000+00:00.
-Production clock is ahead of fixed clock: True
+Production clock uses UTC offset: True
 ```
 
-Dòng cuối so sánh đồng hồ thật với mốc `2026-07-31T09:00Z`; nó là `True` khi bạn chạy sau thời điểm đó. Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Dòng cuối chỉ kiểm tra offset UTC bằng 0, không phụ thuộc ngày chạy. Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main cấp store, notifier và fixed clock; service không tạo adapter.
+2. Place validate và từ chối vượt limit trước khi hỏi Exists.
+3. Chưa trùng thì đọc clock một lần, Save rồi OrderPlaced.
+4. Dictionary/list giữ state trong process; lookup trung bình O(1). Network/file thực tế có latency và lỗi riêng, không được suy từ in-memory success.
+
+### Mini-check
+
+Clock ném, Save ném, notifier ném: ở mỗi điểm, những side effect nào đã có thể xảy ra?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Chiều mũi tên trước và sau
 
@@ -328,7 +371,7 @@ project App           : Main, nối dây  ──> tham chiếu cả hai
 
 ### Thời gian là một phụ thuộc
 
-`IClock` trông thừa cho tới khi bạn cần kiểm tra “đơn quá 30 ngày thì lưu trữ”. Với `DateTimeOffset.UtcNow` nằm rải rác trong code nghiệp vụ, cách duy nhất để kiểm tra là đổi giờ hệ thống. Với `IClock`, bạn truyền vào bất kỳ thời điểm nào.
+`IClock` trông thừa cho tới khi bạn cần kiểm tra “đơn quá 30 ngày thì lưu trữ”. Với `DateTimeOffset.UtcNow` nằm rải rác trong code nghiệp vụ, việc kiểm tra biên thời gian khó kiểm soát nếu không tách nguồn thời gian ra khỏi quy tắc. Với `IClock`, bạn truyền vào bất kỳ thời điểm nào.
 
 Trong sample, cả hai đơn thành công đều có cùng dấu thời gian — chính xác vì `FixedClock` trả một giá trị cố định. Output vì thế lặp lại được ở mọi máy.
 
@@ -347,13 +390,51 @@ Mỗi abstraction là một lần gián tiếp. Nếu một chi tiết gần nh�
 
 #### .NET đã có sẵn trừu tượng cho thời gian
 
-Từ .NET 8, lớp `TimeProvider` trong `System` đóng đúng vai của `IClock` và có sẵn bản dùng cho test. Bài này tự viết `IClock` để bạn thấy rõ cơ chế; trong dự án thật, dùng `TimeProvider` giúp bạn khớp với các thư viện khác. Nguyên tắc không đổi: nghiệp vụ nhận thời gian từ ngoài.
+Từ .NET 8, lớp `TimeProvider` trong `System` đóng đúng vai của `IClock` ; bản giả lập `FakeTimeProvider` được cung cấp qua package `Microsoft.Extensions.TimeProvider.Testing`, không phải type sẵn có trong thư viện nền `System`. Bài này tự viết `IClock` để bạn thấy rõ cơ chế; trong dự án thật, dùng `TimeProvider` giúp bạn khớp với các thư viện khác. Nguyên tắc không đổi: nghiệp vụ nhận thời gian từ ngoài.
 
 #### Adapter cũng cần hợp đồng đúng
 
 Một `SqlOrderStore` trả `false` từ `Exists` khi mất kết nối là vi phạm Liskov: nghiệp vụ sẽ tạo đơn trùng. Đảo phụ thuộc không tự làm adapter đúng; hợp đồng vẫn phải được tôn trọng như đã học ở [bài 6](./06-liskov-substitution.md).
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| DI concrete detail | truyền collaborator từ ngoài | vẫn phụ thuộc công nghệ cụ thể |
+| DIP contract nghiệp vụ | policy không biết adapter | thêm contract cần duy trì |
+| hàm thuần trực tiếp | không có external dependency | đơn giản khi không cần seam thay thế |
+
+### Misconception check
+
+**Đúng hay sai?** Exists rồi Save ngăn trùng khi hai caller chạy đồng thời.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có khoảng giữa hai thao tác; cần atomic contract nếu có concurrency.
+
+</details>
+
+**Đúng hay sai?** Đổi notifier không ảnh hưởng lỗi service có thể gặp.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: adapter mới phải giữ failure contract; Save có thể đã thành công trước lỗi gửi.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** policy/detail.
+
+- **Working Developer — dùng khi làm việc:** failure boundary và test doubles.
+
+- **Deep Dive — có thể quay lại sau:** project references khi hệ thống lớn.
 
 ### Nhận diện policy và detail
 
@@ -431,7 +512,17 @@ Với hợp đồng đã đảo, phần nghiệp vụ được kiểm thử dễ
 
 Interface nghiệp vụ mà có method trả `DataTable`, `HttpResponseMessage` hay `JsonDocument` thì chi tiết đã lọt lên trên. Hợp đồng chỉ nên dùng type của chính domain.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không bọc Math/StringBuilder bằng interface riêng theo phản xạ. Không đưa file path hoặc JsonDocument vào contract nghiệp vụ chỉ vì adapter đang dùng chúng.
+
+## 8. Production notes & scale check
+
+Demo một caller tuần tự và clock UTC cố định. FixedClock chuẩn hóa offset; SystemClock kiểm offset thay vì ngày tương lai. Test thứ tự Save/Notify, duplicate không gửi lại, clock đọc một lần và failure propagation. Exactly-once, outbox hoặc retry cần yêu cầu riêng.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Adapter ghi file
 
@@ -463,7 +554,23 @@ Viết hai phiên bản: một dùng DI nhưng vi phạm DIP (constructor nhận
 
 **Gợi ý:** đếm số file phải sửa trong mỗi phiên bản; đó là thước đo trực tiếp nhất.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So Save trước commit trong project Module04 với Save rồi Notify ở đây: nếu notify lỗi, caller nên retry toàn bộ hay cần contract mới? Chọn theo side effect thực tế, không tự thêm broker.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Compile dependency và runtime call khác gì?
+2. IClock thuộc phía nào?
+3. Notifier lỗi có rollback Save không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt được policy và detail trong một hệ thống cụ thể.
 - [ ] Tôi vẽ được chiều mũi tên phụ thuộc trước và sau khi đảo.

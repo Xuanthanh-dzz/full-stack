@@ -1,0 +1,14 @@
+SET NOCOUNT ON;
+IF (SELECT Stock FROM dbo.Products WHERE ProductId=1)<>2 OR (SELECT COUNT(*) FROM dbo.Orders)<>1 THROW 52019,'committed checkout',1;
+SET XACT_ABORT ON;
+BEGIN TRY
+ BEGIN TRAN;INSERT dbo.Orders(Status) VALUES('Pending');UPDATE dbo.Products SET Stock=Stock-10 WHERE ProductId=1 AND Stock>=10;
+ IF @@ROWCOUNT<>1 THROW 50001,'Not enough stock.',1;
+ COMMIT;
+END TRY
+BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ IF ERROR_NUMBER()<>50001 THROW;
+END CATCH;
+IF (SELECT Stock FROM dbo.Products WHERE ProductId=1)<>2 OR (SELECT COUNT(*) FROM dbo.Orders)<>1 OR @@TRANCOUNT<>0 THROW 52019,'rollback state',1;
+SELECT 'CONTRACT_OK';

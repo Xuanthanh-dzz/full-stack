@@ -1,5 +1,16 @@
 # Trie
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Trie chia sẻ đường ký tự chung để tìm prefix.
+- Dùng khi prefix query lặp lại là operation chính.
+- Nhiều node/dictionary và string copy có thể tốn memory lớn.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,23 @@ Sau bài này, bạn có thể:
 - phân biệt trie với hash table.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Các từ product/program cùng đi qua cổng p,r,o rồi rẽ. Đi tới cổng pro giúp bỏ toàn bộ từ order mà không đọc từng từ, nhưng vẫn phải đi tiếp để thu kết quả.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| prefix | đoạn đầu chuỗi | pro |
+| terminal marker | đánh dấu đường là từ hoàn chỉnh | IsWord |
+| alphabet | tập đơn vị ký tự làm cạnh | char UTF-16 |
+| normalization | quy tắc đưa chuỗi về dạng so sánh | Trim/ToLowerInvariant |
+
+### Ví dụ nhỏ — tính tay trước
+
+Add product: Contains prod=false nhưng prefix prod trả product. Add prod rồi marker tại node đó true; prefix prod trả prod trước product.
 
 Autocomplete cần trả về từ bắt đầu bằng:
 
@@ -47,7 +75,9 @@ root
 
 Prefix `pro` đưa ta trực tiếp tới subtree chứa các kết quả phù hợp.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir TrieDemo
@@ -56,6 +86,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace TrieDemo;
@@ -203,7 +250,20 @@ program
 project
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Add normalize rồi tạo node còn thiếu theo từng char.
+2. Contains tìm path và còn kiểm IsWord, không chỉ node tồn tại.
+3. FindByPrefix tới node bắt đầu rồi Collect theo child key tăng dần đến limit.
+4. Lookup average O(L); Collect còn sort child và nối string mỗi cạnh. Memory nodes/dictionaries theo tổng prefix khác nhau, recursion depth theo độ dài từ.
+
+### Mini-check
+
+Normalize cùng viết thường có làm hai cách viết Unicode composed/decomposed tự bằng nhau không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Mỗi cạnh tương ứng một ký tự
 
@@ -279,7 +339,45 @@ nên `Contains("prod")` là false.
 
 Đây là lý do node cần marker kết thúc từ.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| HashSet string | exact lookup | hash đọc key, prefix phải scan |
+| Trie | chia sẻ prefix và subtree | thêm nhiều object, hợp autocomplete |
+| sorted strings | binary range prefix | ít node overhead, update cần cân nhắc |
+
+### Misconception check
+
+**Đúng hay sai?** Giới hạn 10 kết quả bảo đảm chỉ thăm 10 node.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể đi sâu nhiều node mới gặp một từ.
+
+</details>
+
+**Đúng hay sai?** char là một ký tự người dùng nhìn thấy.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: một đơn vị mã UTF-16 khác một Unicode scalar hoặc một ký tự người dùng nhìn thấy.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** path và marker.
+
+- **Working Developer — dùng khi làm việc:** normalization/output cost.
+
+- **Deep Dive — có thể quay lại sau:** compressed trie khi có driver.
 
 ### Trie và HashSet
 
@@ -303,7 +401,7 @@ Sample dùng:
 Dictionary<char, Node>
 ```
 
-linh hoạt cho Unicode/character set rộng.
+lưu từng code unit UTF-16. Một Unicode scalar ngoài BMP có hai char; sample chưa chuẩn hóa Unicode composed/decomposed và không sắp theo ngôn ngữ người dùng.
 
 Nếu alphabet nhỏ cố định, có thể dùng array child để giảm lookup overhead nhưng tăng memory cho slot trống.
 
@@ -341,7 +439,17 @@ Nếu autocomplete lớn, cần profiling và có thể dùng buffer/StringBuild
 
 Nếu chỉ exact lookup, `Dictionary`/`HashSet` thường đơn giản và tiết kiệm memory hơn.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dựng trie cho lookup exact nhỏ khi HashSet đủ. Không dùng recursion Collect cho từ dài không kiểm soát hoặc trả mọi kết quả không có budget.
+
+## 8. Production notes & scale check
+
+Gate normalization, duplicate, prefix-only marker, limit, missing và thứ tự ordinal char. Prefix rỗng bị từ chối theo contract hiện tại. Chưa làm accent-insensitive, ranking theo frequency hay Unicode normalization; không gọi limit là giới hạn tổng memory.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Count prefix
 
@@ -371,7 +479,23 @@ Mô phỏng route:
 
 và tìm các route có prefix `/api/`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ string/rune ở Module 04 và phép đo allocation ở Module 05, chỉ ra chi phí nối `current + ch` trên một nhánh dài. Chọn duyệt 100 từ hay dựng trie cho 100.000 lần tìm dựa trên cách sử dụng thực tế.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. IsWord giữ thông tin gì?
+2. Chi phí tìm prefix khác thu output ra sao?
+3. Policy prefix rỗng là gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi mô tả được trie theo prefix.
 - [ ] Tôi hiểu cần marker `IsWord`.

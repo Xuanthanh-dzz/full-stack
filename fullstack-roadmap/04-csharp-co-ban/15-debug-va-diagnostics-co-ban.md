@@ -1,5 +1,16 @@
 # Debug và diagnostics cơ bản trong C#
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Debug quan sát lần chạy; diagnostics để lại bằng chứng qua log và thời gian.
+- Đặt breakpoint tại phép tính và theo call stack thay vì đoán từ output cuối.
+- Debug.Assert không thay guard runtime; log che email một phần vẫn có dữ liệu cá nhân.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Kết quả hóa đơn sai giống tổng trên phiếu sai: cần dừng tại từng bước để xem input và phép tính. Khi chương trình đã chạy ở máy khác, log có mã lô giúp nối các bước liên quan.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| breakpoint | điểm debugger tạm dừng execution | CalculateSubtotal |
+| call stack | chuỗi lời gọi dẫn tới điểm hiện tại | Main→Run→CalculateTotal |
+| watch | biểu thức debugger đánh giá để quan sát | subtotal |
+| correlation ID | mã gắn các sự kiện cùng công việc | batch_id |
+| Stopwatch | đo khoảng thời gian trôi qua | invoice_duration |
+
+### Ví dụ nhỏ — tính tay trước
+
+2×750000+350000=1850000; giảm10%=185000; còn1665000. Nếu tính quantity sai ở dòng đầu, xem lineTotal trước khi xem discount.
+
 Một batch tính hóa đơn trả tổng tiền thấp hơn dự kiến. Đoạn code có nhiều bước: cộng dòng hàng, áp dụng giảm giá, làm tròn và trả kết quả. Việc chèn `Console.WriteLine` vào mọi dòng vừa ồn, vừa dễ vô tình in email/token, lại không cho thấy chuỗi lời gọi.
 
 Ta cần hai khả năng khác nhau:
@@ -24,7 +53,9 @@ Ta cần hai khả năng khác nhau:
 
 Ví dụ dưới đây đặt các vị trí breakpoint rõ ràng, đồng thời dùng `Debug`, `Trace` và `Stopwatch` theo vai trò riêng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -237,7 +268,20 @@ Mở folder/project trong Visual Studio, Rider hoặc VS Code có C# tooling, ch
 
 Tên nút/phím tắt khác nhau giữa IDE; semantics của các thao tác vẫn giống nhau.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main cấu hình Trace listener ra console rồi tạo hai InvoiceItem.
+2. BatchRunner log batch_started với email đã che, service validate input.
+3. for cộng lineTotal, ApplyDiscount làm tròn; log invoice_calculated.
+4. finally ghi duration cả đường thành công hoặc exception. Object/input sống trong process; log I/O có cost và có thể lộ dữ liệu; timing một lần không đại diện performance.
+
+### Mini-check
+
+Nếu discountRate=1.1 trong Release, guard nào còn hoạt động khi Debug.Assert bị bỏ?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Breakpoint dừng trước statement
 
@@ -292,7 +336,45 @@ Mỗi `new InvoiceItem(...)` tạo một object riêng trên heap. Array là obj
 
 `Stopwatch` đo elapsed time bằng nguồn thời gian đơn điệu phù hợp đo duration. `DateTime.Now` có thể nhảy khi đồng hồ hệ thống đồng bộ và không phải lựa chọn tốt để benchmark thời lượng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Breakpoint/Watch | quan sát phiên đang chạy | cần debugger, có thể làm thay timing |
+| Trace log | bằng chứng sau sự kiện | cần correlation và policy dữ liệu |
+| Debug.Assert | kiểm tra giả định lúc debug | có thể bị bỏ ở Release; không thay validation |
+
+### Misconception check
+
+**Đúng hay sai?** Release vẫn chạy mọi Debug.Assert như Debug.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: lời gọi conditional có thể bị compiler bỏ.
+
+</details>
+
+**Đúng hay sai?** Một elapsed_ms thấp đủ chứng minh thuật toán tối ưu.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: startup/JIT/cache/I/O và workload ảnh hưởng phép đo.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** breakpoint và call stack.
+
+- **Working Developer — dùng khi làm việc:** log an toàn, guard và repro.
+
+- **Deep Dive — có thể quay lại sau:** measurement khi có vấn đề thực.
 
 ### Debugger là công cụ kiểm tra giả thuyết
 
@@ -382,7 +464,17 @@ Gọi `queue.Dequeue()` hoặc method ghi database từ Watch làm đổi chươ
 
 Message có thể thiếu context hoặc chứa input nhạy cảm. Ở boundary phù hợp, ghi event/correlation/type và giữ exception cho logger có policy; không nuốt lỗi.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không log toàn bộ object khách hàng để sửa một lỗi tổng tiền. Không dùng Watch gọi method có side effect khi đang tìm lỗi state; việc quan sát có thể làm đổi lần chạy.
+
+## 8. Production notes & scale check
+
+Gate tự động chạy Debug/Release, kiểm tra tổng, guard và log không chứa email đầy đủ. Breakpoint, Step Into và Watch trong IDE vẫn là bài thực hành cần người học/reviewer làm; verifier không chứng nhận thao tác UI đã xảy ra.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Theo dõi phép tính sai
 
@@ -414,7 +506,23 @@ Dùng `Stopwatch` so sánh hai cách nối chuỗi ở Debug và Release, có wa
 
 Gợi ý: không in console trong vùng đo; ghi nhận GC/allocation và giải thích vì sao đây vẫn chưa phải benchmark chuẩn.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu trace tay Module01 và debugger C/C++ Module03: chọn ba giá trị cần quan sát khi tổng lệch10%. Thu thập bằng chứng trước khi sửa công thức.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Step Over khác Step Into thế nào?
+2. Guard nào tồn tại trong Release?
+3. Mã batch giúp ghép log ra sao?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi đặt breakpoint dựa trên giả thuyết thay vì dừng ngẫu nhiên.
 - [ ] Tôi phân biệt Continue, Step Over, Step Into và Step Out.

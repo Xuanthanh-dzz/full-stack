@@ -39,7 +39,7 @@ int main(void)
 
 ## Triệu chứng
 
-Output ok=0 quantity=0 trái yêu cầu giữ quantity=7. Parser này còn chưa từ chối tiền tố 12x hoặc số âm.
+Output ok=0 quantity=0 trái yêu cầu giữ quantity=7. Parser này còn chưa từ chối tiền tố `12x` hoặc số âm.
 
 ## Cách tái hiện
 
@@ -53,7 +53,7 @@ Ghi compiler, lệnh, exit status, stdout/stderr. Chạy bản lỗi trước kh
 ## Acceptance criteria
 
 - File hỏng/thiếu giữ nguyên output, file hợp lệ mới commit.
-- Từ chối 12x, số âm và số vượt miền; ghi rõ contract whitespace.
+- Từ chối `12x`, số âm và số vượt miền; ghi rõ contract whitespace.
 - Đóng file trên mọi đường đã mở; thêm regression test trạng thái trước/sau.
 
 ## Hints

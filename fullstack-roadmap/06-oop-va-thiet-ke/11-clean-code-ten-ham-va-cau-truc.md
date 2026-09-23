@@ -1,5 +1,16 @@
 # Clean code: tên, hàm và cấu trúc
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Clean code làm ý định rõ qua tên, mức trừu tượng và dữ liệu có cấu trúc.
+- Dùng guard clause và tách format khỏi quyết định khi giảm công đọc có thể chỉ ra.
+- Bốn output khớp không chứng minh mọi đầu vào tương đương.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - kiểm chứng rằng một lần dọn code không làm đổi hành vi.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một phiếu ghi “P:120” buộc người sau đoán ý nghĩa và cắt chuỗi. Trả hạng và điểm riêng giúp người hiển thị chọn câu chữ mà không đụng quy tắc tính điểm.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| guard clause | kiểm trường hợp đặc biệt rồi thoát | null/không chi tiêu |
+| query | trả dữ liệu không đổi state quan sát | Evaluate |
+| command | thao tác có chủ đích đổi state | Save ở bài trước |
+| characterization | ghi hành vi hiện tại để đối chiếu | legacy/clean outputs |
+
+### Ví dụ nhỏ — tính tay trước
+
+4999999 →Silver49;5000000 →Gold50;10000000 →Platinum100. DoublePoints nhân điểm, không thay ngưỡng hạng.
 
 Hệ thống có method xếp hạng khách hàng thân thiết, viết cách đây vài năm:
 
@@ -48,7 +76,9 @@ Method này chạy đúng. Vấn đề là mọi câu hỏi về nó đều tố
 
 Clean code không phải chuyện thẩm mỹ. Mỗi vấn đề trên đều biến thành thời gian đọc, thời gian dò lỗi và rủi ro sửa nhầm. Bài này dọn đúng method đó và **chứng minh hành vi không đổi**.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -269,11 +299,25 @@ CUS-003: legacy=S:9, clean=S:9, match=True
           Hạng Silver, 9 điểm.
 CUS-004: legacy=N:0, clean=N:0, match=True
           Chưa phát sinh chi tiêu.
+Behaviour preserved: True
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Legacy trộn tính và format; bản mới Evaluate trả LoyaltyStatus.
+2. Guard chặn null, chi tiêu<=0 trả None0 trước tính tier.
+3. Formatter ánh xạ enum sang mã/câu; không sửa policy state.
+4. Policy không giữ mutable state; O(1) arithmetic và allocation record/string mỗi call. Int điểm có giới hạn, không dùng test nhỏ để hứa an toàn mọi decimal.
+
+### Mini-check
+
+Test ngay dưới/đúng/trên ngưỡng hạng bắt được lỗi nào mà bốn sample giữa khoảng không bắt?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Tên nói ý định, không nói kiểu dữ liệu
 
@@ -315,7 +359,7 @@ Bản cũ trả `"P:120"` nên bộ phận cần con số phải cắt chuỗi �
 
 ### Kiểm chứng hành vi không đổi
 
-Vòng lặp trong `Main` chạy cả hai phiên bản trên cùng dữ liệu và so sánh từng kết quả. Dòng `Behaviour preserved: True` là bằng chứng, không phải niềm tin.
+Vòng lặp trong `Main` chạy cả hai phiên bản trên cùng dữ liệu và so sánh từng kết quả. Dòng `Behaviour preserved: True` là bằng chứng cho bốn ca đã chạy, không chứng minh tương đương trên mọi input. Bản cũ nhận null và trả chuỗi rỗng; API mới từ chối null. Với số điểm rất lớn, phép nhân int vẫn có thể overflow như bản cũ; cần đặt miền chi tiêu trước khi tuyên bố tương đương.
 
 Đây chính là ý tưởng của **characterization test**: chốt hành vi hiện tại trước, rồi mới dọn. [Bài 12](./12-code-smell-va-refactoring.md) sẽ dùng lại kỹ thuật này một cách hệ thống, và [module 14](../PROGRESS.md#14-testing-chat-luong) sẽ thay `Main` bằng test framework thật.
 
@@ -344,7 +388,45 @@ Với API công khai của thư viện, XML doc (`/// <summary>`) lại có giá
 
 Đừng tranh luận thủ công về dấu cách và thứ tự `using`. Dùng `.editorconfig` cùng `dotnet format`, và bật cảnh báo compiler thành lỗi như mọi project trong bộ tài liệu này. Phần cấu hình đầy đủ nằm ở [module 14](../PROGRESS.md#14-testing-chat-luong).
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| chuỗi làm kết quả nghiệp vụ | phải parse lại để dùng số | khó đổi presentation |
+| record kết quả + formatter | tách data và display | thêm type có ý nghĩa |
+| tách mọi biểu thức | nhiều method một dòng | không dùng nếu tên không thêm thông tin |
+
+### Misconception check
+
+**Đúng hay sai?** Guard clause luôn giữ hành vi của null như trước.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: legacy trả rỗng, bản mới ném; đây là thay đổi contract.
+
+</details>
+
+**Đúng hay sai?** Behaviour preserved True là chứng minh toán học.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ chứng nhận ca đã đối chiếu.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** tên và guard.
+
+- **Working Developer — dùng khi làm việc:** oracle và miền tương đương.
+
+- **Deep Dive — có thể quay lại sau:** culture/overflow ngoài miền.
 
 ### Bộ quy tắc đặt tên dùng được ngay
 
@@ -410,7 +492,17 @@ Method một dòng chỉ để đặt tên cho một biểu thức đơn giản 
 
 Viết lại một module cũ mà không có cách kiểm chứng hành vi là cách chắc chắn nhất để đánh mất các trường hợp đặc biệt đã được xử lý qua nhiều năm. Hãy chốt hành vi trước, dọn từng bước sau.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không rename và đổi business rule trong cùng bước khó review. Không áp số dòng hàm cứng; tách khi có khái niệm và mức trừu tượng cần đặt tên.
+
+## 8. Production notes & scale check
+
+Verifier đối chiếu1000ca seed cố định và các biên trong miền không tràn điểm; kiểm null contract riêng. Bản cũ/ mới dùng culture khác trong một số format; gate chạy culture đã nêu và không hứa tương đương mọi locale.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Đặt lại tên
 
@@ -442,7 +534,23 @@ Sinh 1.000 giá trị chi tiêu ngẫu nhiên có seed cố định, chạy cả
 
 **Gợi ý:** `new Random(12345)` cho kết quả lặp lại; in ra trường hợp đầu tiên khác nhau nếu có.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So policy pure ở SRP với delegate predicate Module05: effect nào khiến “query” khó cache? Dọn tên một method thực tế, nêu cách kiểm chứng behavior trước khi sửa.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. DoublePoints đổi tier không?
+2. Null xử lý giống nhau không?
+3. Kết quả policy giữ gì ngoài string?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi đặt tên theo ý định và theo từ vựng nghiệp vụ.
 - [ ] Tôi dùng guard clause thay cho lồng ghép sâu.

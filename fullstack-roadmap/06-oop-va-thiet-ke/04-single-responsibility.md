@@ -1,5 +1,16 @@
 # Single responsibility
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- SRP nhóm code theo lý do thay đổi có thật.
+- Tách parse, tính tiền, trình bày và lưu khi chúng đổi độc lập.
+- Nhiều class không tự tạo trách nhiệm rõ; tách quá nhỏ cũng tăng cost đọc.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - tránh tách quá tay tới mức mỗi thay đổi phải chạm mười file.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Người sửa mẫu hóa đơn không nên phải chạm vào phép tính thuế. Người thay nơi lưu không nên phải hiểu chiết khấu. Tách theo quyết định mà mỗi bên sở hữu, rồi giữ một người điều phối trình tự.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| responsibility | nhóm quyết định cùng lý do đổi | PricingPolicy |
+| use case | một quy trình người dùng cần | PlaceOrderUseCase |
+| side effect | thay đổi quan sát ngoài phép tính | store.Save |
+| cohesion | mức liên quan trong một thành phần | quy tắc tiền đi cùng nhau |
+
+### Ví dụ nhỏ — tính tay trước
+
+Subtotal1000000, discount5%=50000, taxable950000, tax8%=76000, total1026000. Parse quantity0 lỗi trước khi Save.
 
 Sau vài tháng, phần xử lý đặt hàng của cửa hàng gom về một class duy nhất:
 
@@ -44,7 +72,9 @@ Bốn nhóm người khác nhau, bốn lịch thay đổi khác nhau, nhưng cù
 
 Single Responsibility Principle nói đúng về tình huống này: **một module chỉ nên có một lý do để thay đổi**, và “lý do” gắn với một nhóm người dùng/nghiệp vụ, không phải với số dòng code.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -110,7 +140,7 @@ public sealed class OrderLineParser
             int quantity = int.Parse(parts[1], CultureInfo.InvariantCulture);
             decimal unitPrice = decimal.Parse(parts[2], CultureInfo.InvariantCulture);
 
-            if (quantity <= 0 || unitPrice < 0m)
+            if (sku.Length == 0 || quantity <= 0 || unitPrice < 0m)
             {
                 throw new FormatException($"Invalid numbers in entry '{entry}'.");
             }
@@ -139,6 +169,7 @@ public sealed class PricingPolicy
         ArgumentOutOfRangeException.ThrowIfNegative(taxRate);
         ArgumentOutOfRangeException.ThrowIfNegative(discountThreshold);
         ArgumentOutOfRangeException.ThrowIfNegative(discountRate);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(discountRate, 1m);
 
         _taxRate = taxRate;
         _discountThreshold = discountThreshold;
@@ -310,9 +341,22 @@ No discount under threshold: 0
 Rejected by parser: Invalid numbers in entry 'keyboard:0:750000'.
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Execute gọi parser để tạo danh sách, chưa ghi store.
+2. Pricing cộng subtotal rồi giảm, tính thuế và trả PriceBreakdown.
+3. Formatter tạo text; store lưu sau khi mọi bước trước thành công.
+4. List/string giữ trong process; parse/format O(n + số ký tự). Store overwrite cùng ID và không phải persistence qua lần chạy.
+
+### Mini-check
+
+Store ném: Execute trả receipt thành công không? Parser lỗi: store được gọi bao nhiêu lần?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### “Lý do để thay đổi” gắn với một nhóm người
 
@@ -380,7 +424,45 @@ Chỉ phần chạm tới thế giới bên ngoài mới cần thay được: �
 
 Tách tạo thêm file, thêm tên phải nhớ, thêm chỗ nối dây trong `Main`. Với một script dùng một lần, chi phí đó không đáng bỏ ra. SRP có giá trị khi code còn sống lâu và có nhiều người cùng sửa.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| một method mọi việc | ít file lúc đầu | khó test policy không I/O |
+| bốn collaborator + use case | đổi mỗi trách nhiệm tại chỗ | cần nối dây và đọc vài type |
+| mỗi phép toán một interface | nhiều điểm thay giả định | không dùng nếu chưa có driver |
+
+### Misconception check
+
+**Đúng hay sai?** Class một method chắc chắn đạt SRP.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: method vẫn có thể trộn nhiều lý do đổi.
+
+</details>
+
+**Đúng hay sai?** SRP buộc thuế và discount tách ngay.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tách tiếp khi nguồn và nhịp đổi cho thấy cần.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trách nhiệm theo thay đổi.
+
+- **Working Developer — dùng khi làm việc:** pure logic và effect.
+
+- **Deep Dive — có thể quay lại sau:** lịch sử change coupling.
 
 ### Dấu hiệu quan sát được của god class
 
@@ -446,7 +528,17 @@ Nếu `PricingPolicy` và `ReceiptFormatter` cùng đọc/ghi một `static` chu
 
 Không cần tách một file chỉ vì nó dài. Hãy đợi tới khi có lý do thay đổi thứ hai xuất hiện thật, hoặc khi bạn thấy hai nhóm người liên tục đụng cùng một chỗ.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tách script ngắn dùng một lần chỉ để đạt số file. Không đổi tên thư mục thành Domain/Service rồi coi như đã tách trách nhiệm.
+
+## 8. Production notes & scale check
+
+Rate mẫu là policy giả lập, không khẳng định thuế pháp lý. DiscountRate được giới hạn0–1; parser từ chối SKU rỗng. Pricing nhận dữ liệu nội bộ hợp lệ, không validate mọi OrderLine tạo trực tiếp. Test biên discount và Save không xảy ra khi parse lỗi.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Lập bảng nguồn thay đổi
 
@@ -478,7 +570,23 @@ Tìm trong code cũ của bạn (hoặc project ở module 04/05) một class c�
 
 **Gợi ý:** dùng lịch sử Git để xem ai đã sửa file đó và vì sao.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ project Module04, chỉ ra một lý do đổi UI không nên kéo công thức nghiệp vụ theo. Chọn một điểm tách nhỏ nhất có thể kiểm chứng output trước/sau.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Ai sở hữu thứ tự Execute?
+2. Taxable tính trước hay sau discount?
+3. Khi nào nên tách PricingPolicy tiếp?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phát biểu SRP theo lý do thay đổi và gắn nó với một nhóm người.
 - [ ] Tôi lập được bảng “nguồn thay đổi → file phải sửa”.

@@ -1,0 +1,7 @@
+Status: Confirmed
+Options: SignatureRequired, Fragile
+Fee: 52,000 VND; estimated days: 3
+Original fee: 52,000 VND
+Changed copy: 62,000 VND
+Has fragile option: True
+Unboxed fee: 52,000 VND

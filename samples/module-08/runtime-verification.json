@@ -1,0 +1,351 @@
+{
+  "verified_on": "2026-09-23",
+  "engine_version": "17.0.5005.3",
+  "edition": "Enterprise Developer Edition (64-bit)",
+  "image_id": "sha256:78eb6a93ef20501bd754282cc216188a0acee1cfa6119c33eef0b21599c1f726",
+  "compatibility_level": 170,
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md",
+      "sql_blocks_sha256": [
+        "81cb8aed25a0b8087f3e119a5df7debdf1c35feeb99d3fd2f21937ac4220b71e"
+      ],
+      "contract_sha256": "599456a2608abd6daeda410d5dcfd5046107b25ee8d3f57e9379432db449a612",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/02-thiet-ke-schema-table-key-constraint.md",
+      "sql_blocks_sha256": [
+        "2eb8b3a061ced6b0514ed0748ddcfebae87c8031bebc75eaecd511e9aea2ad24"
+      ],
+      "contract_sha256": "404d927d929500e3a936baad3df4d85fd1481ad8edc3520b06f0a32cf2ab8e13",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "3 expected SQL constraint/permission/semantics errors"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/03-kieu-du-lieu-va-null.md",
+      "sql_blocks_sha256": [
+        "98eaf6aee0c3a25d04b23b669f9f03c24a671a2b6089b8c11315706a752d7500"
+      ],
+      "contract_sha256": "bc5b3532ae9e846be203d26a6a002952e8a8f227f882760fa23f8f2b60961716",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "1 expected SQL constraint/permission/semantics errors"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/04-crud-select-insert-update-delete.md",
+      "sql_blocks_sha256": [
+        "c76ce92c7755fe79dbe99cb5b8e0ef99e713a4387a1328c353d0958857c51649"
+      ],
+      "contract_sha256": "91fb006375597d286842c75274e2440704e7dcd427eec3a81ed2f0d29e6a8fcc",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/05-filter-sort-va-pagination.md",
+      "sql_blocks_sha256": [
+        "54c96a7d166a3285a2ff2a007ac4b0e06f416bcf03c1327599efd550c14a0f36"
+      ],
+      "contract_sha256": "ca173906951b4244aab23f7693289bb46d2cf4cb7f4ede291cf8baf1da3a6abf",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/06-ham-scalar-case-va-xu-ly-null.md",
+      "sql_blocks_sha256": [
+        "389a3be6be42eaa6afb4e389315f28abb7bc9846839bfd792c3100fff463ab89"
+      ],
+      "contract_sha256": "4c3e04d762bbdd13c0aca4072d643ff1fc149bc0b0dda04f05d673a5cb61214c",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/07-group-by-aggregate-va-having.md",
+      "sql_blocks_sha256": [
+        "7e2cda790403f7abf86cb1411c947f8ad2a652c5c50e96876d0c7fdb5c4a68db"
+      ],
+      "contract_sha256": "a5fa8bf3628ca85685aa35c04470d202db28f42cca28feb062506265c7522247",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/08-inner-left-right-full-cross-join.md",
+      "sql_blocks_sha256": [
+        "0f89f8fcb612ed30bf109068914fa14ae496806950b99487e5006c2a9f72d7fd"
+      ],
+      "contract_sha256": "7ec46600914ebaef8f8d3b9cb5a5d98683eb4cb2997e29c800205f1931be408a",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/09-subquery-va-correlated-subquery.md",
+      "sql_blocks_sha256": [
+        "d27955abafa9ec962d89cc32ed39bcbc1e13b6961398f67ae3bf6e46ed151a54"
+      ],
+      "contract_sha256": "369030c61dd9fbce10e4816fef00d9e819ad4593ca08699f862374e647585287",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "1 expected SQL constraint/permission/semantics errors"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/10-set-operator-union-intersect-except.md",
+      "sql_blocks_sha256": [
+        "d0b2b510487b1655fa02a1958e201e04493df6f4a2fa98aa8e641a79f979827b"
+      ],
+      "contract_sha256": "a1fdbc98d954e8d93547f7ef8a63193b7070a22a94cf08105e623b65b3fa073b",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/11-cte-va-recursive-cte.md",
+      "sql_blocks_sha256": [
+        "7da150c9c17a56112aed516d26dc2e23fdab8b171f37612ec952320926f9f0d5"
+      ],
+      "contract_sha256": "3c0ddce9e9b7dd320f1c38548e6461e20354ad944c19570099f05f05b77db48e",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "1 expected SQL constraint/permission/semantics errors"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/12-window-function.md",
+      "sql_blocks_sha256": [
+        "5ef8f7252ec2cbfcd75f889b74ab4254111c0908fdf67a8df8df4a5de6147ae4"
+      ],
+      "contract_sha256": "d7258439d1a2a46489fff3ce7f419581a34703d73eeddd0e5a5f727460f42764",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/13-view-stored-procedure-function-trigger.md",
+      "sql_blocks_sha256": [
+        "7d2e150ca79a507671f30311f33f6887b64471a4c6c8e33f5cf04f37decdce37"
+      ],
+      "contract_sha256": "a5adee3b5d7ac0d88121316e4233ff80b6b4220accd334b25eb2e03402c0a423",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/14-mo-hinh-er-va-quan-he.md",
+      "sql_blocks_sha256": [
+        "c88e5e7ccd4b82a3baae0615b687d79ecb2c034cea6246ef272fdbee34095b03"
+      ],
+      "contract_sha256": "d474fac3932c1b24f72482dfb3d031e8bafd492632e3d2bb668f114bd6dd1561",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "2 expected SQL constraint/permission/semantics errors"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/15-chuan-hoa-1nf-2nf-3nf-bcnf.md",
+      "sql_blocks_sha256": [
+        "73d51cd08306747a56c029d2d4ffcddd72b8732085cab15adafc9685dddeb922"
+      ],
+      "contract_sha256": "64dabd1211b88a18c727dcad578a1a48cc754fe4a85b81933db60250172cce0b",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/16-denormalization-va-du-lieu-lich-su.md",
+      "sql_blocks_sha256": [
+        "36c01eb28d94b7bd0d316ec6fa795fa29ff95efd703254724db080606bf8c113"
+      ],
+      "contract_sha256": "5eba9d5df36d3787fd620e10c13e0d236b1c8049337620aec013f0a408761011",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/17-index-btree-clustered-nonclustered.md",
+      "sql_blocks_sha256": [
+        "2ea0c9fa985f1bc5c91ab2d0c0d2622b55b73fabfd8681bdb7299bc64b7d9dc8"
+      ],
+      "contract_sha256": "32dfccf4a21fc4ba541e29a4d521f02da18310ba87efd1641bcc9191fd919f1c",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/18-covering-filtered-composite-index.md",
+      "sql_blocks_sha256": [
+        "1d3f157b2ff2d73bc9fe77f8496dbef9b4accb6b9f2b2f039e045775936221c8"
+      ],
+      "contract_sha256": "f0bee593ae7a156efa41e8c99b9c2ed6e3ef9fbcd9377e13619df22c25fbee4b",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/19-transaction-va-acid.md",
+      "sql_blocks_sha256": [
+        "8abb982d652adc41895bce5d63aadd188301ec1ced578e567199e6e43e88d532"
+      ],
+      "contract_sha256": "12ac0483ba8199b0c129bfb9fb0bc55b74514a59590a12c91fc8e5127e6c6fe9",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/20-isolation-level-mvcc-lock-deadlock.md",
+      "sql_blocks_sha256": [
+        "df288c8e066f2ae53f7b579bb05351650ca778d96f71e312be97a85cc03de337",
+        "4bab843273f2814a0c1fd16dc9c8ee6bf32b86cec13654a71c7141f54090d270",
+        "d3c85ab78236400317899b378560832d73ba9fe54255e4b8574a3ee78daec4d1"
+      ],
+      "contract_sha256": "b5e89731697436aede02dde1cdf5ae57c2fe9378acdb3c8fe17a938a827f591c",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "published two-session deadlock: exactly one 1205; victim rollback and survivor state",
+        "RCSI reader sees committed version while writer is active",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/21-execution-plan-va-statistics.md",
+      "sql_blocks_sha256": [
+        "1e709e90bb1549d5e25d70a1f9c942137a5eeb791e5b7236ece8a15e5a8dddd1"
+      ],
+      "contract_sha256": "02de2d02ae35408eca1942ae887a508fb48e8d9a1e1a64778fbca23162f3464f",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "actual plan XML captured without pinning physical operators"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/22-toi-uu-truy-van-va-sargability.md",
+      "sql_blocks_sha256": [
+        "bdc17a345796e81abf1a025165c3441e3d79ca62ca5539c28f5e4b0687e6e7c1"
+      ],
+      "contract_sha256": "0298aab0df358efc5d3261b1d5daedc49deed389fff7a408798598ea958c61b0",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/23-bao-mat-phan-quyen-va-sql-injection.md",
+      "sql_blocks_sha256": [
+        "cd069e56299d4402b25c111da7d65a61804ac0e4614188c1b9f01bc3b752e467"
+      ],
+      "contract_sha256": "8f4fd985334cd7752d942d81a1cca33f4803bd8f2231c23bb40eca3babb5f41b",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "1 expected SQL constraint/permission/semantics errors"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/24-backup-restore-va-migration-du-lieu.md",
+      "sql_blocks_sha256": [
+        "70b37afc229bdb0730f93d8d44bbd53a52ac63d1b72f41bf7cabc436156292ee",
+        "5abcd868739cad474193ba926bdfd707eb3838a96a2e21380310f7870e430d21",
+        "d372f967859579d2800d52379fc55ba60c3217e56614e034fd5373e931a45f53"
+      ],
+      "contract_sha256": "f3b8ae9a6a2fea5ba9f50d62e62908082b25cfc7393dd544bf84e9da5e954d36",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "published COPY_ONLY backup, VERIFYONLY, restore to separate database, CHECKDB and data equality"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/08-sql-va-csdl/25-du-an-csdl-thuong-mai-dien-tu.md",
+      "sql_blocks_sha256": [
+        "e68f55a84029cc84475b27d46f608981a5eaf0d78a89f8ce0a6b1d0be029322a"
+      ],
+      "contract_sha256": "ebd979a7ab7d2d45f0fd2722e9d00860ecad5982f7e91083b50a2419ac7bb74b",
+      "checks": [
+        "explicit published SQL manifest executes; semantic stdout rows",
+        "database compatibility 170",
+        "independent state, query and boundary assertions",
+        "published checkout variants: insufficient, zero, negative and NULL quantity roll back"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/08-sql-va-csdl/failure-labs/01-null-check.md",
+      "source_sha256": "50643658eba45a6dcdd3a0c8a325e1359c5946fea4075766f7e9c01d08b1efac",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/08-sql-va-csdl/failure-labs/02-left-join.md",
+      "source_sha256": "084ffa542b6ea26bf9e1e5a187900eed7091efc22dcd31a716789f79e8d5eccb",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/08-sql-va-csdl/failure-labs/03-rank.md",
+      "source_sha256": "c71f9e2252a6f8e1ff53c0bbdfcad6795c743fa9ed6977507fffaf7cb2c1184e",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/08-sql-va-csdl/failure-labs/04-rollback.md",
+      "source_sha256": "33876ccca0c07af92ac5e503361fb838c910d14669887389f268fc53dc1a89c8",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/08-sql-va-csdl/failure-labs/05-injection.md",
+      "source_sha256": "ea6ce170a3d8c278001a7be1fc464cf9f475f276e783279417eb84a87797cc05",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

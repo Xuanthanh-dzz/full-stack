@@ -1,0 +1,5 @@
+Product: Mechanical keyboard
+Quantity: 3
+Subtotal: 750,000 VND
+VAT (8%): 60,000 VND
+Grand total: 810,000 VND

@@ -1,5 +1,16 @@
 # Interface segregation
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- ISP thu hẹp contract theo vai mà client cần.
+- Dùng reader/writer/archiver khi từng client chỉ dùng một capability.
+- Một object nhiều vai vẫn chia sẻ cùng state; interface không phải quyền bảo mật.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - chọn đúng mức tách khi các nhóm method luôn được dùng cùng nhau.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Ba nhân viên cùng dùng một tủ hồ sơ nhưng cần ba bảng điều khiển khác nhau: tìm, ghi và lưu trữ lịch sử. Không cần làm ba tủ riêng để có ba bảng điều khiển.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| client | code gọi contract | OrderLookupService |
+| role interface | hợp đồng theo vai | IOrderReader |
+| test double | object thay collaborator khi kiểm thử | SingleOrderReader |
+| fat interface | contract ép client biết quá nhiều | repository7methods |
+
+### Ví dụ nhỏ — tính tay trước
+
+CutoffJuly1: đơnJune30 bị archive, đơnJuly1 giữ nguyên. Chạy archive lần2 trả0; dữ liệu vẫn ở store chứ không bị xóa.
 
 Hệ thống đơn hàng có một interface duy nhất cho việc lưu trữ:
 
@@ -43,7 +71,9 @@ Không nơi nào dùng quá một hoặc hai method, nhưng cả ba đều phụ
 
 ISP giải quyết đúng điều này: **kích thước của interface do client quyết định**, không do implementation quyết định.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -204,7 +234,11 @@ public sealed class SingleOrderReader : IOrderReader
 {
     private readonly OrderSummary _order;
 
-    public SingleOrderReader(OrderSummary order) => _order = order;
+    public SingleOrderReader(OrderSummary order)
+    {
+        ArgumentNullException.ThrowIfNull(order);
+        _order = order;
+    }
 
     public OrderSummary? Find(string orderId) =>
         string.Equals(orderId, _order.OrderId, StringComparison.Ordinal) ? _order : null;
@@ -262,9 +296,22 @@ ORD-777: 99,000 VND on 2026-07-30
 ORD-001: not found
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main truyền cùng store vào ba constructor với ba kiểu interface khác nhau.
+2. Writer lưu record theo ID; reader trả cùng record tìm thấy.
+3. Archive thu keys trước, sau đó thay record bằng with Archived=true.
+4. Dictionary giữ state chung; lookup trung bình O(1), archive O(n) time và O(k) keys thêm. Role views không clone store hoặc ngăn cast.
+
+### Mini-check
+
+Giữ record lấy trước archive: record ấy có đổi Archived khi store thay bằng with không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Interface thuộc về client, không thuộc về implementation
 
@@ -278,7 +325,7 @@ InMemoryOrderStore ──┼──────────────── IOr
 
 Cùng một object được truyền vào cả ba client, nhưng mỗi client chỉ thấy phần mình cần. Không có class nào tăng lên, chỉ có ba interface nhỏ thay cho một interface lớn.
 
-Đọc `PlaceOrderHandler`, bạn biết chắc nó không xóa và không đọc dữ liệu. Thông tin đó nằm ngay trong chữ ký constructor, không cần đọc thân method.
+Đọc chữ ký `PlaceOrderHandler`, bạn thấy API được cung cấp không có thao tác xóa hay đọc. Thông tin đó nằm ngay trong chữ ký constructor, không cần đọc thân method.
 
 ### Test double nhỏ đi bao nhiêu
 
@@ -323,13 +370,51 @@ Khi một class implement nhiều interface có method trùng tên, C# cho phép
 
 #### Interface hẹp giúp kiểm soát quyền
 
-Truyền `IOrderReader` cho một module là một cách nói “module này không được ghi”. Ràng buộc nằm ở compiler chứ không ở lời dặn miệng. Ở quy mô lớn hơn, ý tưởng này trở thành ranh giới module và quyền truy cập dữ liệu giữa các bounded context ở [module 17](../PROGRESS.md#17-kien-truc-phan-mem).
+Truyền `IOrderReader` cho một module là một cách nói “module này không được ghi”. Compiler giới hạn thao tác gọi trực tiếp qua kiểu đó. Đây không phải ranh giới bảo mật: caller vẫn có thể ép kiểu sang vai khác nếu object thật implement vai ấy; adapter cũng có thể có side effect. Ở quy mô lớn hơn, ý tưởng này trở thành ranh giới module và quyền truy cập dữ liệu giữa các bounded context ở [module 17](../PROGRESS.md#17-kien-truc-phan-mem).
 
 #### Chi phí phía implementation
 
 Một class implement năm interface có thể khiến người đọc phải mở năm file mới thấy đủ hợp đồng. Đặt các role interface liên quan gần nhau trong cùng thư mục/namespace, và đặt tên theo vai (`IOrderReader`) chứ không theo công nghệ (`ISqlOrderThing`).
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| fat repository | mọi client biết mọi method | test double phải đáp ứng rộng |
+| role interface | client chỉ gọi vai cần | có thể dùng cùng implementation |
+| tách service/storage thật | state hoặc quyền riêng | chỉ cần khi ranh giới có driver, không do ISP tự yêu cầu |
+
+### Misconception check
+
+**Đúng hay sai?** Ba role cần ba store object.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample truyền cùng instance.
+
+</details>
+
+**Đúng hay sai?** IOrderReader bảo đảm caller không bao giờ ghi được.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ giới hạn API trực tiếp; cast và adapter side effect vẫn tồn tại.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** bảng client×method.
+
+- **Working Developer — dùng khi làm việc:** shared state và test double.
+
+- **Deep Dive — có thể quay lại sau:** module boundary khi cần.
 
 ### Cách phát hiện fat interface
 
@@ -395,7 +480,17 @@ Nếu `IOrderWriter.Save` và `IOrderReader.Find` có quy ước khác nhau về
 
 Tách được interface mà mỗi method lại nhận mười tham số thì client vẫn phải biết quá nhiều. Hãy gom tham số đi cùng nhau thành một record — đúng cách `OrderSummary` được dùng trong sample.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tách mỗi property thành interface khi không có client tương ứng. Không gộp lại interface tổng rồi truyền nó cho mọi nơi.
+
+## 8. Production notes & scale check
+
+IDs phân biệt hoa thường ở store, writer overwrite cùng ID, DTO do caller tin cậy. Test cutoff nghiêm ngặt <, lặp archive, record cũ không đổi, double chỉ cần reader. Client vẫn cần contract về null/normalization nhất quán.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tách từ danh sách client
 
@@ -427,7 +522,23 @@ Trong project ở [module 05, bài 19](../05-csharp-nang-cao/19-du-an-xu-ly-du-l
 
 **Gợi ý:** đánh dấu `x` vào ô client dùng method; các cụm `x` liền nhau chính là các vai.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ read-only view Module04 và variance Module05, so “API hẹp” với “bản sao dữ liệu” và “quyền truy cập”. Chọn thay đổi nhỏ để test lookup không cần file.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Archive có xóa không?
+2. Vai hẹp có copy object không?
+3. Ai quyết định cần bao nhiêu method?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phát biểu ISP từ phía client, không từ phía implementation.
 - [ ] Tôi nêu được ba chi phí cụ thể của fat interface.

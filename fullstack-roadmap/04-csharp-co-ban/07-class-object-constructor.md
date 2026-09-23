@@ -1,5 +1,16 @@
 # Class, object và constructor
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Constructor tạo state hợp lệ; class gom state và operation bảo vệ nó.
+- Dùng BankAccount để phân biệt object, reference, static và instance.
+- Chuyển tiền cần kiểm tra cả hai phía trước khi cập nhật; GC không bảo vệ số dư.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Hai thẻ chỉ cùng tài khoản thì nạp qua thẻ nào cũng đổi cùng số dư. Mở hai tài khoản tạo hai số dư. Bộ đếm số tài khoản lại thuộc ngân hàng chung, không thuộc từng số dư.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| constructor | bước khởi tạo object mới | BankAccount(owner,balance) |
+| instance field | dữ liệu riêng của object | _balance |
+| static member | dữ liệu dùng chung theo type | CreatedCount |
+| invariant | điều kiện mọi thao tác cần giữ | balance không âm |
+
+### Ví dụ nhỏ — tính tay trước
+
+A có10,B có0; chuyển7 → A3,B7. Nếu B đã decimal.MaxValue thì chuyển1 phải bị từ chối, A vẫn10,B không đổi.
+
 Một ứng dụng ngân hàng cần quản lý hai tài khoản. Mỗi tài khoản phải có:
 
 - Chủ tài khoản, loại tiền và số dư riêng.
@@ -22,7 +50,9 @@ Một ứng dụng ngân hàng cần quản lý hai tài khoản. Mỗi tài kho
 
 Nếu chỉ dùng các biến rời như `owner1`, `balance1`, `owner2`, `balance2`, rất dễ truyền nhầm số dư của người này với tên người kia. Ta cần gom dữ liệu và hành vi của một tài khoản thành một object có ranh giới rõ ràng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project .NET 9:
 
@@ -154,8 +184,17 @@ internal sealed class BankAccount
             throw new InvalidOperationException("Currencies must match.");
         }
 
-        Withdraw(amount);
-        destination.Deposit(amount);
+        EnsurePositive(amount);
+        if (amount > _balance)
+        {
+            throw new InvalidOperationException("Insufficient balance.");
+        }
+
+        // Mọi phép tính có thể ném lỗi phải xong trước hai phép gán.
+        decimal destinationBalance = destination._balance + amount;
+        decimal sourceBalance = _balance - amount;
+        _balance = sourceBalance;
+        destination._balance = destinationBalance;
     }
 
     public void PrintSummary()
@@ -188,7 +227,20 @@ So du An doc qua anAccount: 1,900,000 VND
 So object van la: 2
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Hai new tạo hai account và tăng counter chung lên2.
+2. Deposit/Withdraw sửa _balance của object nhận lời gọi.
+3. TransferTo kiểm tra identity/currency/amount/số dư, tính cả hai số dư mới rồi mới gán.
+4. aliasOfAn trỏ cùng account nên nạp100000 thấy qua anAccount. Object giữ balance; operation số cost cố định, tạo account có allocation và kiểm tra tên.
+
+### Mini-check
+
+Vì sao sample không gọi lại Withdraw/Deposit ở TransferTo sau khi chuyển sang kiểm tra trước commit?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Class, object và reference là ba khái niệm khác nhau
 
@@ -322,7 +374,45 @@ Object A                      Object B
 
 Truy cập static member qua tên type: `BankAccount.CreatedCount`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Hai new | hai object riêng | số dư độc lập |
+| Gán reference | hai đường tới một object | không tăng CreatedCount |
+| static counter | state chung cho type | không phải ID bền sau restart hoặc thread-safe |
+
+### Misconception check
+
+**Đúng hay sai?** TransferTo gọi Withdraw rồi Deposit là đủ bảo đảm rollback.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: Deposit có thể overflow sau khi nguồn đã giảm; sample tính trước cả hai.
+
+</details>
+
+**Đúng hay sai?** private tự làm các thao tác thread-safe.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ giới hạn nơi truy cập, không đồng bộ nhiều thread.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** constructor và identity.
+
+- **Working Developer — dùng khi làm việc:** invariant và commit nhiều object.
+
+- **Deep Dive — có thể quay lại sau:** concurrency/persistence khi bài toán cần.
 
 ### 5.1 Field lưu trạng thái, method thực hiện hành vi
 
@@ -405,7 +495,17 @@ Nếu class có field là array và trả thẳng array đó, caller có thể s
 
 `TransferTo` cần một destination thật. `ArgumentNullException.ThrowIfNull(destination)` làm lỗi xuất hiện ngay tại biên method với thông tin rõ, thay vì `NullReferenceException` mơ hồ ở dòng sau.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng class này làm ngân hàng thật: chưa có persistence, concurrency, audit hoặc ID bền. Không chọn inheritance chỉ để dùng chung một field balance.
+
+## 8. Production notes & scale check
+
+Chỉ một thread trong demo. Gate kiểm tra tổng bảo toàn, quá số dư, tự chuyển, khác currency, overflow đích và state không đổi. Hai phép gán không tạo transaction cho concurrent writers hoặc process crash.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — `Rectangle`
 
@@ -437,7 +537,23 @@ Mở rộng `BankAccount` để ghi nhận tổng số lần giao dịch và t�
 
 Gợi ý: kiểm tra hết điều kiện trước khi thay đổi số dư; suy nghĩ chuyện gì xảy ra nếu bước nạp destination thất bại sau khi đã rút source.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với transfer điểm trong Module03, chọn điểm commit và nêu các phép tính có thể lỗi. Khi có hai process cùng chuyển, assumption nào mất hiệu lực?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. new khác assignment thế nào?
+2. CreatedCount thuộc object nào?
+3. Overflow đích phải xảy ra trước bước nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 

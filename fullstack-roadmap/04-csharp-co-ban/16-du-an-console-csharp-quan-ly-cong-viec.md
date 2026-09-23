@@ -1,5 +1,16 @@
 # Dự án console C#: trình quản lý công việc có lưu JSON
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Capstone ghép CLI, domain và file JSON thành quản lý việc cá nhân có state qua restart.
+- Chuẩn bị state mới, lưu thành công rồi mới công bố trong service.
+- File tạm giảm nguy cơ ghi dở, chưa là transaction bền hoặc hỗ trợ nhiều writer.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,24 @@ Sau bài này, bạn có thể:
 - Giải thích object nào được tạo bởi từng lần `new`, reference nào giữ object và dữ liệu sống bao lâu.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Bạn chuẩn bị bản danh sách mới bên cạnh bản cũ. Chỉ khi cất bản mới thành công mới dùng nó làm danh sách chính. Nếu sửa thẳng tờ cũ trước khi cất, lỗi ghi sẽ làm trí nhớ ứng dụng khác file.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| domain object | dữ liệu cùng rule hợp lệ | TodoItem |
+| repository | ranh giới đọc/ghi dữ liệu | ITodoRepository |
+| snapshot | bản nhìn state tại một thời điểm | TodoItemView |
+| commit | công bố state mới sau bước cần thành công | _items = candidate |
+| DTO | dạng dữ liệu vận chuyển ở boundary | TodoDocument JSON |
+
+### Ví dụ nhỏ — tính tay trước
+
+Có việc#1 Pending. done1 tạo candidate chứa itemCompleted mới. Save ném lỗi trước ghi → service vẫn Pending; Save thành công → service mới chuyển Completed. Copy list mà sửa item chung sẽ phá điều này.
 
 Bạn cần một chương trình quản lý việc cá nhân chạy được trong terminal. Dữ liệu không được mất sau khi process kết thúc. Các lệnh cần hỗ trợ là:
 
@@ -34,12 +63,15 @@ Ta sẽ giải bài toán bằng một project duy nhất nhưng chia namespace 
 
 - Title rỗng hoặc chỉ có khoảng trắng bị từ chối.
 - `done` và `remove` báo rõ khi không tìm thấy ID.
-- Mỗi thay đổi hợp lệ được lưu ngay vào JSON.
+- Mỗi thay đổi hợp lệ được lưu ngay vào JSON; lỗi ghi trước khi thay file chính giữ nguyên state trong service.
+- JSON sai cú pháp, phần tử sai domain hoặc ID trùng bị từ chối.
 - `list` hoạt động cả khi chưa có file dữ liệu.
 - Không truyền command được coi là yêu cầu help và trả `0`; command/argument sai trả mã khác `0`.
 - Lỗi dự kiến không làm xuất hiện stack trace khó hiểu với người dùng cuối.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ### 3.1 Tạo project
 
@@ -116,7 +148,7 @@ public sealed class TodoItem
         Id = id;
         Title = NormalizeTitle(title);
         Status = status;
-        CreatedAt = createdAt;
+        CreatedAt = createdAt.ToUniversalTime();
     }
 
     public void Rename(string newTitle)
@@ -143,7 +175,7 @@ public sealed class TodoItem
         if (normalized.Length > 200)
         {
             throw new ArgumentException(
-                "Tiêu đề không được vượt quá 200 ký tự.", nameof(title));
+                "Tiêu đề không được vượt quá 200 đơn vị mã UTF-16.", nameof(title));
         }
 
         return normalized;
@@ -202,7 +234,7 @@ namespace TaskManager.Application;
 public sealed class TodoService
 {
     private readonly ITodoRepository _repository;
-    private readonly List<TodoItem> _items;
+    private List<TodoItem> _items;
 
     public TodoService(ITodoRepository repository)
     {
@@ -231,8 +263,9 @@ public sealed class TodoService
             TodoStatus.Pending,
             DateTimeOffset.UtcNow);
 
-        _items.Add(item);
-        _repository.Save(_items);
+        var candidate = new List<TodoItem>(_items) { item };
+        _repository.Save(candidate);
+        _items = candidate;
         return new TodoItemView(item);
     }
 
@@ -244,8 +277,12 @@ public sealed class TodoService
             return false;
         }
 
-        item.MarkCompleted();
-        _repository.Save(_items);
+        var candidate = new List<TodoItem>(_items);
+        // Thay object ở bản mới; shallow copy list chưa đủ để sửa item an toàn.
+        candidate[candidate.IndexOf(item)] = new TodoItem(
+            item.Id, item.Title, TodoStatus.Completed, item.CreatedAt);
+        _repository.Save(candidate);
+        _items = candidate;
         return true;
     }
 
@@ -257,8 +294,10 @@ public sealed class TodoService
             return false;
         }
 
-        _items.Remove(item);
-        _repository.Save(_items);
+        var candidate = new List<TodoItem>(_items);
+        candidate.Remove(item);
+        _repository.Save(candidate);
+        _items = candidate;
         return true;
     }
 
@@ -286,7 +325,12 @@ public sealed class TodoService
             }
         }
 
-        return checked(maxId + 1);
+        if (maxId == int.MaxValue)
+        {
+            throw new ArgumentException("Đã hết miền ID; không thể thêm công việc.");
+        }
+
+        return maxId + 1;
     }
 }
 ```
@@ -319,6 +363,11 @@ public sealed class JsonTodoRepository : ITodoRepository
 
     public List<TodoItem> Load()
     {
+        if (Directory.Exists(_filePath))
+        {
+            throw new IOException("Đường dẫn dữ liệu đang là thư mục.");
+        }
+
         if (!File.Exists(_filePath))
         {
             return [];
@@ -329,15 +378,22 @@ public sealed class JsonTodoRepository : ITodoRepository
             string json = File.ReadAllText(_filePath);
             List<TodoDocument?> documents =
                 JsonSerializer.Deserialize<List<TodoDocument?>>(
-                    json, JsonOptions) ?? [];
+                    json, JsonOptions)
+                ?? throw new InvalidDataException("JSON phải là một danh sách.");
 
             var items = new List<TodoItem>(documents.Count);
+            var ids = new HashSet<int>();
             foreach (TodoDocument? document in documents)
             {
                 if (document is null)
                 {
                     throw new InvalidDataException(
                         $"Danh sách JSON chứa phần tử null: {_filePath}");
+                }
+
+                if (!ids.Add(document.Id))
+                {
+                    throw new InvalidDataException("JSON chứa ID trùng.");
                 }
 
                 items.Add(new TodoItem(
@@ -594,7 +650,20 @@ Kết quả có cùng cấu trúc sau; timestamp sẽ khác:
 [x] #1 Hoc C# co ban (2026-07-30 08:30 UTC)
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Program chọn TASK_DATA_FILE, repository load/validate JSON và ID duy nhất.
+2. Service tìm item hoặc nextID, tạo candidate; done tạo item mới để tránh alias.
+3. Repository serialize, ghi .tmp rồi move; sau Save thành công service gán candidate.
+4. CLI in kết quả và exit code; process kết thúc, lần lệnh sau load lại file. Tìm/clone/serialize O(n), memory giữ cả bản cũ, candidate và text JSON theo dữ liệu.
+
+### Mini-check
+
+Snapshot lấy trước done1 có đổi status sau khi done thành công không? Truy ngược ai sở hữu mutable TodoItem.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Luồng thực thi một lệnh `add`
 
@@ -606,7 +675,7 @@ Program.cs
   │ tạo JsonTodoRepository và TodoService
   ▼
 TodoService.Add(title)
-  │ kiểm tra ID, tạo TodoItem, thêm vào List
+  │ kiểm tra ID, tạo TodoItem, chuẩn bị List mới
   ▼
 ITodoRepository.Save(items)
   │ map domain object -> TodoDocument -> JSON
@@ -634,7 +703,45 @@ Nếu cho serializer sửa thẳng mọi property của `TodoItem`, code lưu tr
 
 Shell và pipeline có thể dựa vào exit code thay vì phải đọc câu tiếng Việt trên màn hình.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Sửa trước Save | ít code | lỗi ghi để memory thay đổi dù file cũ |
+| Candidate rồi Save | giữ state cũ khi lỗi trước persistence | copy list/item cần thiết; đủ single-process nhỏ |
+| Database/concurrency control | quản lý nhiều writer theo contract | chỉ chọn khi requirement vượt file cá nhân |
+
+### Misconception check
+
+**Đúng hay sai?** new List<TodoItem>(old) clone mọi item.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ copy reference; phải thay item sẽ bị sửa.
+
+</details>
+
+**Đúng hay sai?** File.Move thành công là bằng chứng chống mọi mất điện/filesystem failure.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: demo chưa cam kết durability cho mọi filesystem/sự cố.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chạy chuỗi CLI và trace state.
+
+- **Working Developer — dùng khi làm việc:** failure-state, snapshot và persistence.
+
+- **Deep Dive — có thể quay lại sau:** durability/concurrency khi có driver.
 
 ### 5.1 Invariant nằm trong domain object
 
@@ -650,7 +757,7 @@ Shell và pipeline có thể dựa vào exit code thay vì phải đọc câu ti
 
 Service giữ `List<TodoItem>` vì cần `Add` và `Remove`, nhưng không trả list hay mutable item ra ngoài. `GetAll` tạo các `TodoItemView` chỉ đọc rồi bọc list kết quả; caller không thể gọi `Rename`/`MarkCompleted` trên domain object mà quên `Save`. Đây là snapshot nông an toàn vì các field value được copy và `string` là immutable. Đổi lại, mỗi lần gọi tạo allocation; hệ thống lớn có thể dùng projection/read model tối ưu hơn sau khi đo.
 
-`readonly` ở field `_items` chỉ ngăn gán field sang list khác sau constructor; nó không làm nội dung list bất biến. Quyền mutation đến từ việc service giữ kín reference mutable và chỉ công khai operation có kiểm soát.
+`_items` được thay sang list mới chỉ sau khi `Save` trả về thành công. Nếu repository báo lỗi trước khi lưu, service giữ nguyên list và các item cũ; riêng `MarkCompleted` phải tạo item mới vì copy list vẫn chia sẻ reference. Điều này không chứng minh giao dịch bền vững khi máy mất điện hoặc repository đã lưu rồi mới ném lỗi. Service tin cậy implementation repository không tự sửa các item được truyền vào.
 
 ### 5.4 UTC và thời gian hiển thị
 
@@ -738,7 +845,17 @@ Nếu không đặt `TASK_DATA_FILE`, code dùng `AppContext.BaseDirectory`, th�
 
 `int.Parse` ném exception với input thường xuyên có thể sai. `TryParse` biểu diễn đúng nhánh “hợp lệ/không hợp lệ”, sau đó code chủ động tạo thông báo phù hợp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng file này cho nhiều process ghi đồng thời. Không tách bốn project hoặc thêm service phân tán chỉ vì capstone có bốn namespace; một project đủ scale cá nhân.
+
+## 8. Production notes & scale check
+
+Vài chục đến vài trăm việc, một writer, đường dẫn tin cậy. Gate kiểm tra restart roundtrip, JSON lỗi/ID trùng, hết miền ID, lỗi ghi tạm và fake repository ném trước persistence; chưa chứng minh crash durability, concurrency hoặc repository tùy ý lưu rồi ném. Cleanup file tạm có thể báo lỗi riêng nếu filesystem không cho xóa.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Lệnh `rename`
 
@@ -770,7 +887,23 @@ Tạo solution gồm `TaskManager.Domain`, `TaskManager.Application`, `TaskManag
 
 **Gợi ý:** Domain không reference project nào; Application reference Domain; Infrastructure reference Application và Domain; Console ghép các implementation.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh load kho C Module02 và report C++ Module03 với JSON capstone: cái nào khôi phục được state qua restart? Nếu100000 việc hay hai writer xuất hiện, chọn thay đổi nhỏ nào theo bằng chứng thay vì tách nhiều tầng ngay?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vì sao done cần item mới dù đã copy list?
+2. Exit code3 và4 khác lỗi gì?
+3. State nào sống qua process và cost O(n) nằm ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 ### Checklist
 
@@ -788,3 +921,7 @@ Tạo solution gồm `TaskManager.Domain`, `TaskManager.Application`, `TaskManag
 - Bài prerequisite: [Debug và diagnostics cơ bản](./15-debug-va-diagnostics-co-ban.md).
 - Ôn lại trọng tâm memory: [Stack, heap, value type và reference type](./05-stack-heap-value-type-reference-type.md).
 - Theo dõi bài tiếp theo trong roadmap: [Module 05 — C# nâng cao](../PROGRESS.md#05-csharp-nang-cao).
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/03-shallow-copy-va-save.md) · [Review](./reviews/review-03.md).
+
+**Trước Module05:** [PR Review](./pr-review-labs/01-todo.md).

@@ -1,5 +1,16 @@
 # Searching
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Binary search loại nửa khoảng tìm kiếm khi dữ liệu đã có thứ tự.
+- Dùng lower bound để tìm vị trí đầu tiên không nhỏ hơn khóa.
+- Sai invariant hoặc bỏ chi phí sort có thể làm kết quả đúng tình cờ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,22 @@ Sau bài này, bạn có thể:
 - liên hệ search với database index và API filtering.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Tra từ điển bằng cách mở giữa, xem từ cần tìm nằm trước hay sau rồi bỏ một nửa. Cách này chỉ đúng vì trang đã sắp theo cùng quy tắc so sánh.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| search interval | khoảng chỉ số còn có thể chứa đáp án | [left,right) |
+| lower bound | vị trí đầu tiên có giá trị >= khóa | đầu nhóm số 4 |
+| invariant | điều luôn đúng qua mỗi vòng | đáp án vẫn thuộc khoảng |
+
+### Ví dụ nhỏ — tính tay trước
+
+[1, 4, 4, 4, 7]: lower bound của 4 là 1, của 5 là 4 và của 8 là 5. Kết quả 5 là vị trí chèn, không phải index có thể đọc.
 
 Danh sách 1.000.000 mã đơn đã sort:
 
@@ -39,7 +66,9 @@ Binary search mỗi bước loại một nửa:
 
 chỉ khoảng 20 lần chia đôi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir SearchingDemo
@@ -48,6 +77,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace SearchingDemo;
@@ -125,7 +171,20 @@ LowerBound(4) = 1
 LowerBound(5) = 4
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Khởi tạo khoảng chứa tất cả vị trí ứng viên.
+2. Tính mid bằng left+(right-left)/2 tránh cộng hai index lớn.
+3. So phần tử giữa với khóa rồi thu hẹp khoảng; mỗi vòng phải tiến.
+4. O(log n) so sánh, O(1) state; chuẩn bị sort có thể O(n log n), array lookup O(1) là giả định.
+
+### Mini-check
+
+Vì sao phải kiểm index<Length trước đọc phần tử ở lower bound?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Binary search cần dữ liệu sorted
 
@@ -193,7 +252,45 @@ LowerBound(5) = 4
 
 vì 5 nên được chèn trước 7.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| linear search | không cần sort | O(n), hợp cho một lần tìm nhỏ |
+| binary search | dữ liệu đã sort | O(log n), phải giữ comparator nhất quán |
+| hash lookup | chỉ cần equality | trung bình O(1), thêm index và không tìm khoảng |
+
+### Misconception check
+
+**Đúng hay sai?** lower bound luôn trả phần tử bằng khóa.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể trả phần tử lớn hơn hoặc length.
+
+</details>
+
+**Đúng hay sai?** Binary search trên linked list vẫn nhanh tương tự array.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: truy cập mid có thể phải đi qua nhiều node.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace chỉ số.
+
+- **Working Developer — dùng khi làm việc:** boundary và duplicates.
+
+- **Deep Dive — có thể quay lại sau:** amortize preprocessing.
 
 ### Linear search
 
@@ -290,7 +387,17 @@ có thể tốt hơn:
 sort O(n log n) + search O(log n)
 ```
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng trên dữ liệu chưa sort hoặc đang bị sửa đồng thời. Không sort toàn bộ chỉ để trả lời một query nhỏ nếu linear scan đủ.
+
+## 8. Production notes & scale check
+
+Gate so với linear oracle trên arrays có trùng, rỗng và khóa ngoài miền. Contract yêu cầu input tăng dần; không thêm kiểm O(n) vào mỗi query rồi vẫn quảng cáo tổng O(log n).
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Upper bound
 
@@ -327,7 +434,23 @@ Chọn linear/binary/hash cho:
 - collection nhỏ;
 - data chưa sort và search một lần.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với `Dictionary` ở Module 05: có 1.000 phần tử, một lần tìm hoặc 100.000 lần tìm. Chi phí dựng index/sắp xếp làm thay đổi lựa chọn thế nào?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Lower bound có thể bằng Length không?
+2. Invariant của nửa khoảng là gì?
+3. Chi phí sort tính ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi biết binary search yêu cầu ordering/monotonicity.
 - [ ] Tôi duy trì invariant của search range.

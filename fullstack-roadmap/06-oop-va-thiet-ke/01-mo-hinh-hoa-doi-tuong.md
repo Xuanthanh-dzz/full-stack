@@ -1,18 +1,46 @@
 # Mô hình hóa đối tượng
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Mô hình hóa đặt dữ liệu và quy tắc vào type sở hữu chúng.
+- Dùng entity khi cần theo dõi danh tính; value object khi giá trị đủ quyết định equality.
+- Constructor không thay validation mọi transition; read-only interface không tự đóng đường sửa object.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
 
 - đọc một mô tả nghiệp vụ và rút ra được type, dữ liệu và hành vi cần có;
 - phân biệt **entity** (được nhận diện bằng identity) với **value object** (được nhận diện bằng giá trị);
-- đặt invariant vào constructor để object không bao giờ tồn tại ở trạng thái sai;
+- đặt invariant vào constructor và các thao tác thay đổi state;
 - đặt hành vi cạnh dữ liệu thay vì viết class chỉ có property rồi xử lý bên ngoài;
 - vẽ được object graph trên heap sau mỗi lần `new`;
 - nhận ra ranh giới giữa model nghiệp vụ và phần nhập/xuất, lưu trữ;
 - tránh mô hình hóa thừa: không tạo type cho mọi danh từ xuất hiện trong tài liệu.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một phiếu đặt hàng có người chịu trách nhiệm kiểm tra trước khi ghi thêm dòng. Nếu ai cũng được sửa từng cột trong ba danh sách rời, không ai giữ được quan hệ giữa SKU, số lượng và giá.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| entity | đối tượng theo dõi bằng danh tính | Customer/Order có Id |
+| value object | giá trị được so theo nội dung | Money |
+| invariant | điều phải đúng ở ranh giới thao tác | chỉ Draft thêm dòng |
+| view | cách nhìn cùng dữ liệu | wrapper Lines |
+
+### Ví dụ nhỏ — tính tay trước
+
+2 bàn phím giá750000 +1 chuột350000 =1850000VND. Sau Place, AddLine phải bị chặn; tổng và số dòng vẫn giữ nguyên.
 
 Một cửa hàng linh kiện mô tả nghiệp vụ đặt hàng như sau:
 
@@ -38,7 +66,9 @@ Code này chạy được, nhưng mọi quy tắc ở trên đều nằm ngoài 
 
 Mô hình hóa đối tượng là bước biến các quy tắc đó thành type: mỗi type giữ dữ liệu của mình, tự bảo vệ quy tắc của mình, và chỉ mở ra những hành vi hợp lệ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -169,6 +199,7 @@ public sealed class Customer
 public sealed class Order
 {
     private readonly List<OrderLine> _lines = new();
+    private readonly IReadOnlyList<OrderLine> _view;
 
     public Order(string id, Customer customer, string currency)
     {
@@ -176,6 +207,7 @@ public sealed class Order
         ArgumentNullException.ThrowIfNull(customer);
         ArgumentException.ThrowIfNullOrWhiteSpace(currency);
 
+        _view = _lines.AsReadOnly();
         Id = id.Trim().ToUpperInvariant();
         CustomerId = customer.Id;
         Currency = currency.Trim().ToUpperInvariant();
@@ -190,7 +222,7 @@ public sealed class Order
     public OrderStatus Status { get; private set; } = OrderStatus.Draft;
 
     // Caller đọc được danh sách nhưng không thêm/bớt sau lưng Order.
-    public IReadOnlyList<OrderLine> Lines => _lines;
+    public IReadOnlyList<OrderLine> Lines => _view;
 
     public Money Total
     {
@@ -301,9 +333,22 @@ Actual value was 0.
 Rejected by InvalidOperationException: Cannot add USD to VND.
 ```
 
-Dấu phân cách hàng nghìn phụ thuộc locale. Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Dấu phân cách hàng nghìn phụ thuộc locale. Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main tạo Customer và Order; Order giữ chuỗi ID, không giữ Customer.
+2. OrderLine giữ reference Money bất biến; AddLine kiểm trạng thái và currency trước List.Add.
+3. Place kiểm không rỗng rồi chuyển trạng thái; gọi lại Place hiện là idempotent.
+4. Total duyệt n dòng, tạo các Money trung gian O(n); wrapper tạo một lần, đọc view không copy list. Sơ đồ stack/heap là mô hình lý luận, JIT có thể tối ưu vị trí local.
+
+### Mini-check
+
+Giữ một biến view trước AddLine: Count có tăng sau AddLine không, và vì sao caller vẫn không Add qua view được?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Quy tắc nghiệp vụ trở thành invariant của type
 
@@ -317,7 +362,7 @@ Mỗi quy tắc trong phần 2 giờ có một chỗ duy nhất để sống:
 | Chỉ đơn nháp mới thêm dòng | `Order.AddLine` |
 | Đơn rỗng không được đặt | `Order.Place` |
 
-Kết quả là **không có đường nào tạo ra object sai**. Muốn có `OrderLine`, bạn phải đi qua constructor; constructor ném exception trước khi object kịp được dùng. Đây là điểm khác biệt lớn so với ba `List` song song, nơi quy tắc chỉ tồn tại trong trí nhớ của người viết.
+Các constructor và API công khai bảo vệ những invariant đã liệt kê trong phạm vi sample. Muốn có `OrderLine`, bạn phải đi qua constructor; constructor ném exception trước khi object kịp được dùng. Đây là điểm khác biệt lớn so với ba `List` song song, nơi quy tắc chỉ tồn tại trong trí nhớ của người viết.
 
 ### Entity và value object khác nhau ở câu hỏi “cái gì làm nên danh tính”
 
@@ -330,7 +375,7 @@ Trong output, `first == second` trả `True` dù là hai object khác nhau trên
 
 `Order.Total` không được tính ở `Main`. Nếu để `Main` tính, mỗi nơi cần tổng tiền lại phải nhớ công thức và nhớ cả quy tắc “cùng đơn vị tiền”. Đặt `Total` trong `Order` thì công thức chỉ có một bản.
 
-Tương tự, `AddLine` không phải là setter của `_lines`. Nó là **một thao tác nghiệp vụ**: kiểm tra trạng thái, kiểm tra đơn vị tiền, rồi mới thêm. Property `Lines` trả `IReadOnlyList<OrderLine>` nên caller đọc được nhưng không thể `Add` để đi vòng qua các kiểm tra đó.
+Tương tự, `AddLine` không phải là setter của `_lines`. Nó là **một thao tác nghiệp vụ**: kiểm tra trạng thái, kiểm tra đơn vị tiền, rồi mới thêm. Property `Lines` trả wrapper tạo bằng `AsReadOnly()`, không trả chính `List`. Caller không thể ép wrapper về `List` để thêm dòng; đây là view sống, không phải snapshot.
 
 ### Object graph sau khi dựng đơn
 
@@ -378,7 +423,45 @@ Sơ đồ trên cho thấy `Order` chỉ giữ chuỗi `"CUS-001"`. Nếu `Order
 
 `Order` không đọc `Console`, không ghi file, không biết JSON. Nhờ vậy nó có thể được dùng lại ở console app, web API hay batch job mà không sửa dòng nào. Việc đọc/ghi được đặt ở lớp ngoài; các bài về SRP và dependency inversion trong module này sẽ nói kỹ ranh giới đó.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| record value | so các giá trị thành phần | hợp Money bất biến; thêm field ảnh hưởng equality |
+| class entity | mặc định reference equality | so Id tường minh khi cần danh tính |
+| AsReadOnly wrapper | chặn mutation qua view | O(1) wrapper; vẫn thấy thay đổi nội bộ, không phải snapshot |
+
+### Misconception check
+
+**Đúng hay sai?** Hai Customer cùng Id tự bằng nhau do là entity.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: class không tự sinh equality theo Id.
+
+</details>
+
+**Đúng hay sai?** AsReadOnly tạo bản sao độc lập của mọi dòng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: wrapper đọc list gốc; phần tử cần bất biến riêng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** phân loại entity/value.
+
+- **Working Developer — dùng khi làm việc:** guard và đường mutation.
+
+- **Deep Dive — có thể quay lại sau:** snapshot, equality và allocation khi đo.
 
 ### Từ mô tả nghiệp vụ tới type
 
@@ -434,7 +517,7 @@ Với setter công khai, bất kỳ đâu cũng có thể đặt `Status = Place
 public List<OrderLine> Lines => _lines; // caller gọi Add được
 ```
 
-Caller có thể `order.Lines.Add(...)` và bỏ qua mọi kiểm tra của `AddLine`. Trả `IReadOnlyList<T>` như trong sample, hoặc trả bản sao khi cần chắc chắn hơn.
+Caller có thể `order.Lines.Add(...)` và bỏ qua mọi kiểm tra của `AddLine`. Chỉ đổi kiểu trả về thành `IReadOnlyList<T>` chưa đủ: caller vẫn có thể ép kiểu nếu object thật là `List<T>`. Sample giữ một wrapper `AsReadOnly()`; bản sao là lựa chọn khi cần snapshot.
 
 ### Value object có thể thay đổi
 
@@ -446,7 +529,7 @@ Nếu `Money` cho phép gán lại `Amount`, thì hai chỗ cùng dùng một ob
 
 ### Dùng `record` cho entity chỉ vì gõ ngắn hơn
 
-`record` sinh equality theo tất cả property. Với entity, hai đơn hàng khác `Id` mà trùng mọi dữ liệu khác sẽ bị coi là bằng nhau khi bạn thêm một property, hoặc ngược lại — equality thay đổi mỗi lần model thêm field. Đó là nguồn bug âm thầm khi entity nằm trong `HashSet` hay `Dictionary`.
+`record` sinh equality theo tất cả property. Với entity, hai đơn có cùng `Id` nhưng khác state sẽ không bằng nhau theo equality sinh sẵn; hai đơn khác `Id` cũng không bằng nhau vì ID tham gia so sánh. Thêm field có thể làm thay đổi equality. Đó là nguồn bug âm thầm khi entity nằm trong `HashSet` hay `Dictionary`.
 
 ### Cho model biết về nơi lưu trữ
 
@@ -456,7 +539,17 @@ Nếu `Order` có method `SaveToFile()`, model bị dính chặt vào file. Khi 
 
 Kiểm tra ở tầng nhập liệu là để báo lỗi thân thiện cho người dùng; kiểm tra trong model là để giữ đúng bất biến cho mọi caller, kể cả import dữ liệu hay job nền. Hai chỗ này phục vụ hai mục đích khác nhau và không thay thế nhau.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo value object cho mọi string. Không dùng rich model để giấu một phép in dữ liệu đơn giản; chỉ tạo type khi có invariant hoặc nguy cơ nhầm dữ liệu cụ thể.
+
+## 8. Production notes & scale check
+
+Demo một thread, vài dòng, VND. Currency chỉ chuẩn hóa chữ, chưa xác thực mã ISO; tổng lớn có thể overflow decimal và model không bảo đảm tổng luôn tính được cho mọi giá trị decimal. Test sai quantity/currency, equality, view mutation và state sau AddLine bị từ chối.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Value object `Quantity`
 
@@ -478,7 +571,7 @@ Thêm `Cancelled` vào `OrderStatus` và method `Cancel()`. Xác định các ch
 
 ### Bài 4 — Chống rò rỉ dữ liệu bên trong
 
-Viết một chương trình cố tình phá `Order`: lấy `Lines`, ép kiểu về `List<OrderLine>` rồi `Add`. Sau đó sửa `Order` để cách phá đó không còn hiệu lực.
+Viết một chương trình cố tình phá `Order`: tạm đổi `Lines => _view` thành `Lines => _lines`, ép kiểu về `List<OrderLine>` rồi `Add`. Ghi lỗi tái hiện, khôi phục wrapper và chứng minh thao tác bị chặn.
 
 **Gợi ý:** so sánh hai hướng — trả bản sao, hoặc bọc bằng `AsReadOnly()`; ghi lại chi phí cấp phát của mỗi hướng.
 
@@ -488,11 +581,27 @@ Mô tả: “Một phiếu bảo hành thuộc về một sản phẩm đã bán
 
 **Gợi ý:** “còn hiệu lực” phụ thuộc thời điểm hiện tại — hãy nhận `DateOnly today` làm tham số thay vì đọc `DateTime.Now` bên trong model, để còn kiểm thử được.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So record init Module05 với get-only Money: đường nào tạo giá trị mới phải validate? Với phiếu chỉ nhập rồi xuất một lần, chọn DTO hay model có behavior và giải thích driver.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Identity khác reference thế nào?
+2. Ai sở hữu List và wrapper?
+3. Một lần đọc Total tốn gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi rút được type và hành vi từ một mô tả nghiệp vụ, không chỉ từ danh từ.
 - [ ] Tôi phân biệt được entity và value object bằng câu hỏi danh tính.
-- [ ] Tôi đặt invariant vào constructor nên object không tồn tại ở trạng thái sai.
+- [ ] Tôi chỉ ra invariant được bảo vệ ở constructor và từng thao tác công khai.
 - [ ] Tôi đặt hành vi vào type sở hữu dữ liệu thay vì rải ra ngoài.
 - [ ] Tôi không để collection bên trong bị sửa từ ngoài.
 - [ ] Tôi vẽ được object graph trên heap sau mỗi lần `new`.

@@ -1,5 +1,16 @@
 # Liskov substitution
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- LSP yêu cầu subtype giữ lời hứa mà caller dựa vào.
+- Viết precondition, kết quả và state sau lỗi trước khi chọn quan hệ kế thừa.
+- Cùng signature chưa chứng minh thay thế được; job có thể đã làm một phần trước lỗi.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - viết hợp đồng đủ rõ để người implement biết mình được phép làm gì.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một ổ cắm ghi “cắm là cấp điện hoặc báo chưa có nguồn” không thể thay bằng ổ cùng hình nhưng luôn làm nổ cầu dao. Caller làm đúng theo nhãn mà vẫn hỏng chính là lỗi hợp đồng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| precondition | điều caller phải đáp ứng trước gọi | amount>0 |
+| postcondition | lời hứa sau gọi | false giữ nguyên balance |
+| subtype | type thay tại nơi nhận contract cha | CheckingAccount qua IWithdrawable |
+| history constraint | cam kết về state theo thời gian | không đổi dữ liệu được hứa bất biến |
+
+### Ví dụ nhỏ — tính tay trước
+
+Fee50:ACC1trừ50 rồi ACC3ném; không tự trả50 cho ACC1. Với contract mới, tài khoản limit20 có thể false với reason dù đủ balance.
 
 Ngân hàng nhỏ của cửa hàng có một lớp tài khoản:
 
@@ -47,7 +75,9 @@ Về cú pháp, đây vẫn là một `BankAccount`. Về hợp đồng thì kh�
 
 Nguyên tắc Liskov mô tả đúng ràng buộc bị vi phạm ở đây: **nếu `S` là subtype của `T`, thì mọi chỗ dùng `T` phải thay bằng `S` được mà chương trình vẫn đúng**.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -211,6 +241,7 @@ public abstract class AccountBase : IAccount
     // Lớp con không chạm thẳng vào _balance; invariant "không âm" được giữ ở đây.
     protected bool TryDebit(decimal amount)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(amount);
         if (amount > _balance)
         {
             return false;
@@ -376,9 +407,22 @@ ACC-1:charged | ACC-2:over per-transaction limit 20,000 | ACC-4:insufficient fun
   ACC-4: 30,000
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Bản cũ chạy tuần tự qua base virtual; ACC2 nói false khác nghĩa và ACC3 ném.
+2. Bản mới chỉ nhận IWithdrawable; TermDeposit không convert được vào vai ấy.
+3. TryWithdraw validate rồi TryDebit bảo vệ số dương/đủ balance ở base.
+4. Balances thuộc từng object; Collect tạo report O(n). Không transaction toàn danh sách và không exactly-once khi chạy job lại.
+
+### Mini-check
+
+Bộ test chung nên assert gì khi LimitedCheckingAccount từ chối một amount nhỏ hơn balance?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Hậu quả nằm ở dữ liệu, không chỉ ở exception
 
@@ -431,7 +475,7 @@ r.Width = 5; r.Height = 4;  =>  r.Area == 20
 
 Với `Square`, đặt `Height` phải đổi luôn `Width`, nên `Area` thành `16`. Postcondition mà `Rectangle` hứa đã bị phá.
 
-Điểm mấu chốt: vi phạm không nằm ở quan hệ toán học mà nằm ở **hợp đồng có thể thay đổi độc lập hai chiều**. Nếu `Rectangle` bất biến (chỉ đặt kích thước lúc tạo, mọi phép biến đổi trả object mới), `Square` kế thừa lại hoàn toàn hợp lệ. Bất biến làm Liskov dễ giữ hơn rất nhiều.
+Điểm mấu chốt: vi phạm không nằm ở quan hệ toán học mà nằm ở **hợp đồng có thể thay đổi độc lập hai chiều**. Bất biến loại bỏ lỗi setter đổi hai chiều cùng lúc, nhưng vẫn phải kiểm tra hợp đồng các method. Ví dụ `WithWidth` phải được phép trả một `Rectangle` không vuông; nếu subtype hứa luôn trả `Square` và ép hai chiều bằng nhau thì lỗi vẫn còn. Bất biến làm Liskov dễ giữ hơn rất nhiều.
 
 #### History constraint
 
@@ -445,7 +489,45 @@ Nguyên tắc không giới hạn ở kế thừa class. Một `INotificationCha
 
 Cách thực dụng để phát hiện vi phạm: viết một bộ test cho **hợp đồng**, rồi chạy bộ test đó với mọi implementation. Nếu một implementation cần test riêng để “bỏ qua trường hợp này”, đó chính là dấu hiệu vi phạm. Kỹ thuật viết bộ test dùng chung sẽ có ở [module 14](../PROGRESS.md#14-testing-chat-luong).
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| kế thừa hình thức | compiler thấy quan hệ type | chưa bảo đảm behavior |
+| tách capability | chỉ type đáp ứng mới implement | phát hiện sai vai lúc compile |
+| nới contract | false có nhiều lý do hợp lệ | caller phải xử lý reason thay vì giả định thiếu tiền |
+
+### Misconception check
+
+**Đúng hay sai?** IWithdrawable buộc mọi amount trong balance đều thành công.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: contract cho phép lý do nghiệp vụ khác.
+
+</details>
+
+**Đúng hay sai?** Rectangle bất biến tự làm mọi Square hợp LSP.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vẫn phải kiểm lời hứa WithWidth/WithHeight và kiểu kết quả.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** caller và lời hứa.
+
+- **Working Developer — dùng khi làm việc:** contract tests dùng chung.
+
+- **Deep Dive — có thể quay lại sau:** history và failure semantics.
 
 ### Hợp đồng của một method gồm những gì
 
@@ -514,7 +596,17 @@ Chim là động vật, chim cánh cụt là chim, nhưng nếu hợp đồng c�
 
 Một lớp con làm `Balance` trả giá trị đã làm tròn hoặc trả `0` khi tài khoản bị khóa cũng là vi phạm. Caller cộng dồn số dư sẽ ra tổng sai.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm if cụ thể vào mọi caller để vá contract sai. Không dùng ví dụ toán học thay việc đọc API mutation thật.
+
+## 8. Production notes & scale check
+
+Sample không ngân hàng thật. Test chung cả hai implementation: số âm bị chặn, success giảm đúng tiền, false không đổi state; thêm subclass thử gọi protected TryDebit âm để kiểm guard tập trung. Compiler chặn TermDeposit vào list rút tiền.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tìm vi phạm
 
@@ -530,13 +622,13 @@ Sửa `BankAccount.Withdraw` thành `TryWithdraw(decimal amount, out string reas
 
 ### Bài 3 — Hình chữ nhật bất biến
 
-Viết `Rectangle` bất biến với method `WithWidth`/`WithHeight` trả object mới, rồi thử cho `Square` kế thừa. Giải thích vì sao vi phạm biến mất.
+Viết `Rectangle` bất biến với method `WithWidth`/`WithHeight` trả object mới, rồi thử cho `Square` kế thừa. Nêu điều kiện để không vi phạm: phép biến đổi có được trả `Rectangle` không vuông hay buộc giữ `Square`?
 
 **Gợi ý:** viết assertion `r.WithWidth(5).WithHeight(4).Area == 20` và chạy với cả hai type.
 
 ### Bài 4 — Bộ test cho hợp đồng
 
-Viết một method `CheckContract(IWithdrawable account)` kiểm tra: rút quá số dư trả `false`, rút hợp lệ giảm đúng số dư, rút số âm ném `ArgumentOutOfRangeException`. Chạy nó với cả hai implementation.
+Viết một method `CheckContract(IWithdrawable account)` kiểm tra: rút quá số dư trả `false`, rút thành công giảm đúng số dư; rút bị từ chối giữ nguyên state, rút số âm ném `ArgumentOutOfRangeException`. Chạy nó với cả hai implementation.
 
 **Gợi ý:** dùng `if (...) throw new InvalidOperationException("contract violated: ...")`; công cụ test thật sẽ học ở module 14.
 
@@ -546,7 +638,23 @@ Quay lại `RetryingChannel` ở [bài 3](./03-composition-over-inheritance.md).
 
 **Gợi ý:** thử để wrapper nuốt exception và trả `true`; ai là người tin vào giá trị trả về đó?
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Liên hệ variance Module05: conversion hợp kiểu có chứng minh semantics và exception policy không? So wrapper retry với contract gửi thành công khi chưa gửi.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. False nghĩa gì trong hai thiết kế?
+2. Job lỗi có rollback không?
+3. Protected method phải validate gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phát biểu Liskov theo hợp đồng: precondition, postcondition, invariant và lỗi.
 - [ ] Tôi chỉ ra được hậu quả dữ liệu của một vi phạm, không chỉ hậu quả exception.

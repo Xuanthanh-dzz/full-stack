@@ -1,5 +1,16 @@
 # Covering, filtered và composite index
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Composite, INCLUDE và filtered index phục vụ các phần khác nhau của access pattern.
+- Chọn key cho predicate/order, INCLUDE cho dữ liệu cần đọc, filter cho tập con có ích.
+- Covering phụ thuộc query; index rộng hoặc filter không khớp có thể không giúp.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - kiểm chứng thiết kế bằng execution plan và logical reads.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Chia sổ trước theo khách, rồi trạng thái, rồi ngày giúp tìm đơn Paid mới nhất của một khách. Ghi tổng tiền ngay trên mục lục giúp khỏi mở hóa đơn, nhưng làm mục lục dày hơn.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| composite key | key gồm nhiều cột có thứ tự | CustomerId,Status,OrderedAt |
+| INCLUDE | cột kèm ở lá, không là thứ tự search key | TotalAmount |
+| covering | index đủ dữ liệu query cần | thuộc cặp query/index |
+| filtered index | chỉ index row thỏa predicate | Status=Paid |
+
+### Ví dụ nhỏ — tính tay trước
+
+Index `(CustomerId, Status, OrderedAt DESC)` kèm `TotalAmount`: khi tìm đơn `Paid` của khách ID 42, có thể đọc theo ngày và lấy tổng tiền ngay trong index. Truy vấn chỉ lọc `Status = 'Paid'` không có cùng tiền tố key để tìm kiếm.
 
 Dashboard chạy liên tục:
 
@@ -31,7 +59,9 @@ Một index chỉ có `CustomerId` có thể vẫn phải lookup thêm dữ li�
 
 Ta cần thiết kế theo **toàn access pattern**, không chỉ một predicate.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -140,7 +170,20 @@ SET STATISTICS IO OFF;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. DDL dựng index composite và index filtered riêng; không có nghĩa cả hai được chọn cùng lúc.
+2. Filter quyết định row được giữ; SET options cần tương thích cho filtered index.
+3. Optimizer kiểm predicate có bảo đảm nằm trong filter hay không, rồi so chi phí.
+4. INCLUDE giảm lookup nhưng tăng page và write cost. Khi status đổi Pending→Paid, row phải được thêm vào filtered index.
+
+### Mini-check
+
+Vì sao OrderId có thể được lấy từ nonclustered index dù không viết trong INCLUDE khi table có clustered PK OrderId?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Composite key
 
@@ -174,7 +217,45 @@ index chỉ chứa subset cần thiết.
 
 Hữu ích khi subset nhỏ và query thường xuyên dùng đúng predicate đó.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| key column | tham gia thứ tự/range | key rộng tăng cost nhiều tầng |
+| included column | có giá trị tại leaf | không thay vị trí cột trong key |
+| filtered index | ít row theo predicate | parameter không đủ chứng minh filter có thể không dùng được |
+
+### Misconception check
+
+**Đúng hay sai?** INCLUDE(OrderedAt) tương đương key OrderedAt để tránh sort.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: INCLUDE không tạo thứ tự search key đó.
+
+</details>
+
+**Đúng hay sai?** Có index cover thì optimizer bắt buộc chọn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vẫn so chi phí theo stats và query shape.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** ba vai trò index.
+
+- **Working Developer — dùng khi làm việc:** prefix/filter implication.
+
+- **Deep Dive — có thể quay lại sau:** consolidation theo telemetry.
 
 ### Left prefix
 
@@ -220,7 +301,17 @@ Index key nên theo access pattern, không theo thứ tự column trong SELECT.
 
 Hint là gợi ý, không phải thiết kế hoàn chỉnh.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không INCLUDE toàn table để cover mọi query. Không áp “cột selective nhất trước” như luật tuyệt đối khi equality/range/order của workload khác nhau.
+
+## 8. Production notes & scale check
+
+Gate kiểm metadata key/include/filter và rowset khách ID 42. Không chấm theo tên operator cố định; index đề xuất còn cần so reads/write cost. Hai index trong demo minh họa hai thiết kế, chưa phải đề nghị giữ cả hai trên mọi hệ thống.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -242,7 +333,23 @@ Bỏ INCLUDE rồi so logical reads và key lookup.
 
 Review 5 index trùng prefix và đề xuất consolidate.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ topK Module 07: ORDER BY +TOP có thể dừng sớm khi dữ liệu đã theo thứ tự nào? Nêu index nhỏ nhất cho query cụ thể và query nó không phục vụ tốt.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Covering là thuộc tính của gì?
+2. INCLUDE có sắp row không?
+3. Filter ảnh hưởng UPDATE ra sao?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi thiết kế composite key theo predicate.
 - [ ] Tôi phân biệt key và INCLUDE.

@@ -1,85 +1,83 @@
-name: Verify Module 08
-
+name: Verify Module 08 clarity v4
 on:
   push:
     paths:
-      - "fullstack-roadmap/08-sql-va-csdl/**"
-      - "fullstack-roadmap/PROGRESS.md"
-      - "fullstack-roadmap/README.md"
-      - "fullstack-roadmap/index.md"
-      - "scripts/verify_module_08.py"
-      - "mkdocs.yml"
-      - "requirements-docs.txt"
-      - ".github/workflows/verify-module-08.yml"
+      - 'fullstack-roadmap/08-sql-va-csdl/**'
+      - 'fullstack-roadmap/00-huong-dan/**'
+      - 'fullstack-roadmap/PROGRESS.md'
+      - 'samples/module-08/**'
+      - 'scripts/verify_module_08.py'
+      - 'scripts/verify_module_01.py'
+      - 'scripts/verify_retrofit_v4.py'
+      - 'scripts/tests/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - '.github/workflows/verify-module-08.yml'
   pull_request:
     paths:
-      - "fullstack-roadmap/08-sql-va-csdl/**"
-      - "fullstack-roadmap/PROGRESS.md"
-      - "fullstack-roadmap/README.md"
-      - "fullstack-roadmap/index.md"
-      - "scripts/verify_module_08.py"
-      - "mkdocs.yml"
-      - "requirements-docs.txt"
-      - ".github/workflows/verify-module-08.yml"
+      - 'fullstack-roadmap/**'
+      - 'samples/module-08/**'
+      - 'scripts/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - '.github/workflows/verify-module-08.yml'
   workflow_dispatch:
-
+    inputs:
+      samples_only:
+        description: 'Bootstrap runtime evidence only; does not certify the v4 module gate'
+        type: boolean
+        default: false
 permissions:
   contents: read
-
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
-
+    timeout-minutes: 25
     env:
-      MODULE08_SA_PASSWORD: "SqlLab!2026Strong"
-      MODULE08_SQL_CONTAINER: "module08-sql"
-
+      MODULE08_SQL_CONTAINER: module08-v4-verifier
+      MODULE08_SA_PASSWORD: SqlLab!2026Strong
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.x"
-
-      - name: Start SQL Server 2025
+          python-version: '3.12'
+      - run: pip install -r requirements-docs.txt
+      - name: Gate regression tests
+        run: python -m unittest discover -s scripts/tests -v
+      - name: Start disposable SQL Server 2025
         run: |
           docker pull mcr.microsoft.com/mssql/server:2025-latest
-          docker run \
-            -e "ACCEPT_EULA=Y" \
+          docker run -d --name "$MODULE08_SQL_CONTAINER" \
+            --label fullstack.module08.verifier=1 \
+            -e ACCEPT_EULA=Y -e MSSQL_PID=Developer \
             -e "MSSQL_SA_PASSWORD=$MODULE08_SA_PASSWORD" \
-            --name "$MODULE08_SQL_CONTAINER" \
-            -p 1433:1433 \
-            -d mcr.microsoft.com/mssql/server:2025-latest
-
-      - name: Wait for SQL Server
-        run: |
+            mcr.microsoft.com/mssql/server:2025-latest
+          export SQLCMDPASSWORD="$MODULE08_SA_PASSWORD"
           for i in $(seq 1 60); do
-            if docker exec "$MODULE08_SQL_CONTAINER" \
-              /opt/mssql-tools18/bin/sqlcmd \
-              -S localhost \
-              -U sa \
-              -P "$MODULE08_SA_PASSWORD" \
-              -C \
-              -b \
-              -Q "SELECT 1" >/dev/null 2>&1; then
+            if docker exec -e SQLCMDPASSWORD "$MODULE08_SQL_CONTAINER" \
+              /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q 'SELECT 1' >/dev/null 2>&1; then
               exit 0
             fi
             sleep 2
           done
-
           docker logs "$MODULE08_SQL_CONTAINER"
           exit 1
-
-      - name: Verify all SQL lessons
-        run: python scripts/verify_module_08.py
-
-      - name: Install documentation dependencies
-        run: pip install -r requirements-docs.txt
-
-      - name: Build MkDocs site
-        run: mkdocs build
-
-      - name: Show SQL Server logs on failure
+      - name: SQL manifests, contracts, concurrency, backup/restore and Failure Labs
+        run: python scripts/verify_module_08.py --samples-only --report artifacts/module08-verification.json
+      - name: Clarity, freshness, links and cadence
+        if: ${{ !inputs.samples_only }}
+        run: python scripts/verify_retrofit_v4.py 08
+      - name: Strict documentation build
+        run: python -m mkdocs build --strict --site-dir /tmp/fullstack-site
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module08-verification
+          path: artifacts/
+          if-no-files-found: warn
+      - name: SQL diagnostics on failure
         if: failure()
         run: docker logs "$MODULE08_SQL_CONTAINER"
+      - name: Remove disposable lab container
+        if: always()
+        run: docker rm -f "$MODULE08_SQL_CONTAINER"

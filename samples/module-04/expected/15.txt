@@ -1,0 +1,4 @@
+Sample Information: 0 : event=batch_started batch_id=BATCH-2026-001 customer=l***@example.com
+Sample Information: 0 : event=invoice_calculated batch_id=BATCH-2026-001 item_count=2 total=1665000.00
+Sample Information: 0 : event=invoice_duration batch_id=BATCH-2026-001 elapsed_ms=<ms>
+Final total: 1,665,000 VND

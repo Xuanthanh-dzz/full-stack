@@ -1,5 +1,16 @@
 # Project, solution, namespace và assembly trong .NET
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Project là đơn vị build; solution nhóm project; namespace nhóm tên; assembly là output biên dịch.
+- Tách Domain/CLI để thấy project reference và access boundary hoạt động.
+- Tạo thư mục hoặc namespace không tự tạo assembly hay reference.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn có hai xưởng: một làm phép tính hóa đơn, một làm giao diện. Sơ đồ nhóm xưởng là solution; nhãn khu vực trong xưởng là namespace; sản phẩm đóng gói của xưởng là assembly.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| project | mô tả source và cấu hình tạo output | csproj |
+| solution | nhóm project cho công cụ build | StoreBilling.sln |
+| namespace | nhóm tên type | StoreBilling.Domain.Billing |
+| assembly | đơn vị output và identity runtime | StoreBilling.Domain.dll |
+| project reference | phụ thuộc build giữa project | CLI tham chiếu Domain |
+
+### Ví dụ nhỏ — tính tay trước
+
+Tạo folder Billing không làm CLI thấy InvoiceLine. CLI cần ProjectReference đến Domain; using chỉ rút ngắn tên, không tải dependency.
+
 Một chương trình tính hóa đơn ban đầu nằm trong một file `Program.cs`. Khi có thêm web API, background worker và test, ta muốn dùng lại quy tắc tính tiền nhưng không sao chép source code.
 
 Yêu cầu đầu tiên là tách thành:
@@ -24,7 +53,9 @@ Yêu cầu đầu tiên là tách thành:
 
 CLI được phép phụ thuộc Domain; Domain không được biết CLI. Namespace giúp đặt tên type rõ ràng, còn `ProjectReference` mới thực sự tạo dependency lúc build.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ### Tạo solution và hai project
 
@@ -209,7 +240,20 @@ CLI assembly: StoreBilling.Cli
 
 Ký tự phân cách hàng nghìn có thể khác theo locale.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. SDK9 tạo solution .sln và hai project net9.0.
+2. Domain build InvoiceLine/InvoiceCalculator thành assembly riêng; CLI có ProjectReference.
+3. Main tạo hai dòng, calculator cộng1500000+350000=1850000.
+4. CLI in tên hai assembly khác nhau. Các object vẫn chạy trong cùng process; hai project không có nghĩa hai service/máy. Build có dependency graph, runtime phép cộng O(n).
+
+### Mini-check
+
+Đổi InvoiceCalculator từ public sang internal: code trong CLI còn compile được không, dù cùng solution?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Build graph
 
@@ -252,7 +296,45 @@ Khi build solution, MSBuild đọc graph, build dependency trước và đưa ou
 
 Namespace không phải access boundary. Đặt một type vào namespace `StoreBilling.Domain.Secret` không làm type `public` trở nên bí mật.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| namespace | nhóm tên | có thể trải nhiều file/assembly |
+| project reference | quan hệ build/API | cần public member qua assembly |
+| solution | nhóm cho tooling | không tự thêm reference giữa mọi project |
+
+### Misconception check
+
+**Đúng hay sai?** using StoreBilling.Domain tự cài hoặc reference assembly.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ import namespace tên đã được compiler biết qua reference.
+
+</details>
+
+**Đúng hay sai?** Tách hai project là tách thành hai process.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: demo gọi method trong cùng process CLI.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** tạo/build solution.
+
+- **Working Developer — dùng khi làm việc:** reference và access boundary.
+
+- **Deep Dive — có thể quay lại sau:** packaging khi có nhu cầu reuse.
 
 ### Nội dung quan trọng của `.csproj`
 
@@ -351,7 +433,17 @@ Không hard-code feed token, password hay signing secret. Dùng credential provi
 
 Lỗi ở project khác trong solution có thể bị bỏ sót. CI nên restore/build/test entry phù hợp, thường là solution hoặc file điều phối build đã thống nhất.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không chia mọi namespace thành một project để trông có tầng. Một project đủ cho ứng dụng nhỏ; ranh giới assembly chỉ đáng thêm khi cần API/dependency/reuse thật.
+
+## 8. Production notes & scale check
+
+Gate build cả solution và check tên assembly/output. Không package NuGet bên ngoài. SDK9 pin để file solution/language mặc định tái lập; không giả định template SDK10 tạo cùng extension mặc định.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm project báo cáo
 
@@ -383,7 +475,23 @@ Gợi ý: dùng `dotnet build -c Release`; không sửa file output.
 
 Gợi ý: bắt đầu từ layer ổn định nhất; test có thể reference project được kiểm thử, nhưng production project không reference test.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh header/source và Makefile Module02 với csproj/ProjectReference: đâu là khai báo tên, đâu là dependency build? Vẽ chiều CLI→Domain và lý do tránh ngược lại.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Namespace khác assembly thế nào?
+2. Solution có thay ProjectReference không?
+3. internal chặn truy cập ở boundary nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt được solution, project, namespace và assembly.
 - [ ] Tôi tạo được solution nhiều project bằng `dotnet` CLI.

@@ -1,0 +1,4 @@
+KB-001 | Mechanical Keyboard V2 | price 1,400,000 | stock 7
+Inventory value: 9,800,000 VND
+Rejected: Cannot sell 100; only 7 item(s) available.
+Stock remains valid: 7

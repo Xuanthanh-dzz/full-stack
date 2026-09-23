@@ -1,5 +1,16 @@
 # Covariance và contravariance
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Variance cho phép view generic đổi theo hướng input/output an toàn.
+- Dùng out cho producer và in cho consumer khi cần khả năng thay thế thật.
+- List đọc/ghi invariant; variance reference không tự boxing value type.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Nguồn chỉ đưa mèo luôn đáp ứng nơi cần động vật. Người nhận mọi động vật luôn nhận được mèo. Nhưng hộp vừa lấy vừa bỏ mèo không thể cho người khác bỏ chó qua nhãn “động vật”.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| covariance | giữ hướng conversion của kiểu phần tử | ISource<out T> |
+| contravariance | đảo hướng conversion của consumer | ISink<in T> |
+| invariance | không conversion giữa hai generic arguments | List<T> |
+| view | quyền API nhìn cùng object | ISource<Animal> |
+
+### Ví dụ nhỏ — tính tay trước
+
+ISource<Cat>→ISource<Animal> vẫn cùng source/cat. ISink<Animal>→ISink<Cat> cùng logger. Animal[]=new Cat[1] rồi ghi Dog sẽ lỗi runtime.
+
 Hệ thống nhận nuôi động vật có một nguồn chỉ tạo `Cat` và một nơi ghi log chấp nhận mọi `Animal`. Ta muốn:
 
 - dùng nguồn `Cat` ở nơi chỉ yêu cầu nguồn `Animal`;
@@ -24,7 +52,9 @@ Hệ thống nhận nuôi động vật có một nguồn chỉ tạo `Cat` và 
 
 Nếu mọi `Generic<Cat>` tự động được coi là `Generic<Animal>`, một API vừa đọc vừa ghi có thể phá type safety. Variance chỉ hợp lệ khi hướng dữ liệu trong contract đủ rõ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -137,7 +167,20 @@ Covariant Func: Simba
 Action handled: Nori
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main tạo source Cat một lần rồi gán view rộng Animal.
+2. Next trả cùng object Cat; không clone hoặc chạy method trong phép gán.
+3. Logger Animal nhận Cat qua contravariant interface; delegates giữ cùng quy tắc.
+4. Conversion reference không thêm collection; allocation đến từ source/Cat/logger đã new. Không áp phép chuyển G<int>→G<object> như reference variance.
+
+### Mini-check
+
+Thử đưa Dog để chứng minh vì sao không thể dùng ISink<Cat> như ISink<Animal>.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Covariance giữ hướng kế thừa
 
@@ -203,7 +246,45 @@ public delegate void Action<in T>(T value);
 
 Hàm tạo `Cat` dùng được như hàm tạo `Animal`; handler biết xử lý mọi `Animal` dùng được như handler chỉ được gửi `Cat`. Delegate object không chạy trong lúc conversion; nó chỉ chạy khi gọi `Invoke`/`()`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| producer out | trả T | cho view rộng kiểu nhận |
+| consumer in | nhận T | consumer rộng dùng cho caller hẹp |
+| mutable collection | nhận và trả T | invariant để không chèn sai subtype |
+
+### Misconception check
+
+**Đúng hay sai?** Generic out giống out parameter của method.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: một bên variance type, một bên truyền output storage.
+
+</details>
+
+**Đúng hay sai?** Variance tạo SingleValueSource<Animal> mới.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: runtime object vẫn Source<Cat>.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** producer/consumer.
+
+- **Working Developer — dùng khi làm việc:** type-safe substitution.
+
+- **Deep Dive — có thể quay lại sau:** delegate variance composition.
 
 ### Invariant, covariant, contravariant
 
@@ -270,7 +351,17 @@ Viết API dựa trên giả định `G<int> → G<object>` sẽ thất bại. X
 
 Variance có ích khi có consumer thực sự cần view rộng/hẹp. Không tạo nhiều abstraction chỉ để sử dụng `in/out`; giữ API đơn giản và kiểm thử use case thay thế thật.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không cast List<Cat> qua object để ép List<Animal>. Không tách nhiều interface chỉ để có in/out khi không có consumer cần view đó.
+
+## 8. Production notes & scale check
+
+Gate reference identity, valid conversion, compiler từ chối hướng sai/value argument/invariant list và array covariance throw. So generic safety compile-time với legacy array runtime check.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Nguồn thông báo
 
@@ -302,7 +393,23 @@ Thử gán `ISource<int>` sang `ISource<object>`, ghi lỗi compile và viết a
 
 **Gợi ý:** adapter là object mới thực hiện `ISource<object>`; variance conversion đơn thuần không boxing phần tử.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ polymorphism Module04 và template Module03, vẽ khác biệt giữa subtype reference và constructed generic type. API chỉ đọc nên nhận view nào thay mutable List?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Hướng ISink conversion là gì?
+2. Tại sao List invariant?
+3. Variance có clone target không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi xác định được `T` đang đi vào hay đi ra contract.
 - [ ] Tôi vẽ đúng hướng covariance và contravariance.
@@ -315,3 +422,5 @@ Thử gán `ISource<int>` sang `ISource<object>`, ghi lỗi compile và viết a
 
 - Prerequisite: [`Span<T>`, `Memory<T>` và lập trình hiệu năng](./14-span-memory-va-lap-trinh-hieu-nang.md)
 - Bài tiếp theo: [Expression tree](./16-expression-tree.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/03-dispose.md) · [Review](./reviews/review-03.md).

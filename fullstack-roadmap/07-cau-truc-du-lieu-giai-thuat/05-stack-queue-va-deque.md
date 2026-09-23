@@ -1,5 +1,16 @@
 # Stack, queue và deque
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Stack lấy mới nhất; queue lấy cũ nhất; deque thao tác cả hai đầu.
+- Chọn theo thứ tự xử lý, như undo hoặc duyệt từng lớp.
+- Collection trong RAM không phải queue bền hay tự thread-safe.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - phân biệt call stack với data structure stack.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Chồng đĩa lấy đĩa trên cùng trước; hàng chờ quầy lấy người đến trước. Hai cách giữ cùng dữ liệu nhưng hứa thứ tự khác nhau.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| LIFO | vào sau ra trước | Stack undo |
+| FIFO | vào trước ra trước | Queue jobs |
+| deque | thêm/bớt được hai đầu | sliding window |
+| peek | xem phần tử kế tiếp không lấy ra | Peek |
+
+### Ví dụ nhỏ — tính tay trước
+
+Push A, B, C rồi pop sẽ nhận C, B, A. Enqueue A, B, C rồi dequeue sẽ nhận A, B, C. Với `([)]`, đỉnh stack là `[` nhưng gặp `)`, nên kết quả là false ngay.
 
 Một editor cần Undo:
 
@@ -38,7 +66,9 @@ thường xử lý theo thứ tự đến: **FIFO**.
 
 Đó là hai pattern dữ liệu cơ bản: stack và queue.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir StackQueueDemo
@@ -47,6 +77,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace StackQueueDemo;
@@ -97,6 +144,7 @@ internal static class Program
 
     private static bool IsBalanced(string text)
     {
+        ArgumentNullException.ThrowIfNull(text);
         var stack = new Stack<char>();
 
         foreach (char ch in text)
@@ -144,7 +192,20 @@ Balanced '{[()]}' = True
 Balanced '{[(])}' = False
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. DemoUndo push 3 chuỗi rồi TryPop đến rỗng.
+2. DemoJobQueue enqueue 3 việc rồi TryDequeue theo FIFO.
+3. IsBalanced push ngoặc mở; ngoặc đóng phải khớp đỉnh, cuối cùng stack phải rỗng.
+4. Quét ngoặc mất O(L), stack tối đa O(L). Push/enqueue có chi phí amortized O(1) dù đôi lúc resize; pop/peek không copy toàn collection. Ký tự không phải ngoặc được bỏ qua, không phải parser ngôn ngữ đầy đủ.
+
+### Mini-check
+
+Scanner đếm số mở bằng số đóng có đủ loại bỏ([)] không? Vì sao cần lưu thứ tự?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Stack — Last In, First Out
 
@@ -223,7 +284,45 @@ Ví dụ:
     gần nhất
 ```
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Stack | lấy gần nhất chưa xử lý | undo/DFS, không fairnessFIFO |
+| Queue | lấy đến trước | BFS, không urgency |
+| PriorityQueue | lấy prioritytốt nhất | cần tie policy, không mặc nhiênFIFO |
+
+### Misconception check
+
+**Đúng hay sai?** Stack<T> là call stack của thread.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: collection managed heap do chương trình giữ.
+
+</details>
+
+**Đúng hay sai?** Chuỗi(a) được scanner xem hợp lệ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Đúng: sample bỏ qua nonbracket, không kiểm cú pháp biểu thức.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** thứ tự thao tác.
+
+- **Working Developer — dùng khi làm việc:** underflow và validation.
+
+- **Deep Dive — có thể quay lại sau:** bounded/concurrentqueue khi códriver.
 
 ### Call stack và Stack<T> khác nhau
 
@@ -298,7 +397,17 @@ FIFO không phù hợp nếu job có độ ưu tiên. Khi đó xem `PriorityQueu
 
 Trong concurrency, xem `ConcurrentQueue<T>`, `Channel<T>` hoặc abstraction phù hợp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng `List.RemoveAt(0)` cho hàng đợi FIFO lớn. Không dùng Queue thường cho nhiều producer/consumer rồi coi thao tác ghép tự atomic.
+
+## 8. Production notes & scale check
+
+Gate kiểm chuỗi rỗng, đóng sớm, sai loại ngoặc, thiếu ngoặc đóng và ký tự thường; deque chỉ là concept/exercise chưa có implementation chính. Đảo char xử lý đơn vị UTF-16, không hứa đảo grapheme tiếng Việt/emoji đúng hiển thị.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Reverse string
 
@@ -335,7 +444,23 @@ Phân tích amortized complexity.
 
 Giải thích vì sao sliding-window maximum cần bỏ phần tử ở đầu và thêm/bỏ ở cuối.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với event chạy đồng bộ ở Module 05: đưa một job vào queue đã có nghĩa job hoàn thành chưa? Nếu ứng dụng tắt giữa chừng, khi nào queue trong RAM là đủ, khi nào cần queue lưu bền? Nêu yêu cầu mất dữ liệu chấp nhận được trước khi chọn.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Peek khác Pop thế nào?
+2. Vì sao kiểm tra dấu ngoặc cần LIFO?
+3. Queue cung cấp durability không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được LIFO và FIFO.
 - [ ] Tôi dùng đúng `Stack<T>` và `Queue<T>`.
@@ -348,3 +473,8 @@ Giải thích vì sao sliding-window maximum cần bỏ phần tử ở đầu v
 
 - Bài trước: [Linked list](./04-linked-list.md)
 - Bài tiếp theo: [Hash table và hash function](./06-hash-table-va-hash-function.md)
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/01-queue.md)
+- [Spaced Review](./reviews/review-01.md)

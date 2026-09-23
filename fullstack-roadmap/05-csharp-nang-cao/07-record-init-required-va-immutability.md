@@ -1,5 +1,16 @@
 # Record, `init`, `required` và tính bất biến
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Record cung cấp value equality và cú pháp tạo snapshot bằng with.
+- Dùng cho dữ liệu mà giá trị quan trọng hơn identity object.
+- with copy nông; public init vẫn có thể mở đường tạo tổ hợp state sai.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Chụp phiếu đơn mới không sửa phiếu cũ. Nhưng nếu cả hai phiếu cùng ghi địa chỉ một danh sách mutable, sửa danh sách vẫn ảnh hưởng cả hai; cần xét mọi đường tới dữ liệu.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| record | type có equality do compiler sinh | CustomerSnapshot |
+| with | tạo copy rồi gán phần thay đổi | Submit |
+| shallow copy | copy field/reference, không clone sâu | Lines dùng chung |
+| immutability | state quan sát không đổi qua API | OrderLine init-only |
+
+### Ví dụ nhỏ — tính tay trước
+
+Customer copy với with{} có ==true nhưng ReferenceEqualsfalse. Submit tạo OrderDraft mới cùng line view; public Lines.init còn cho tạo submitted with{Lines=[]}, một hạn chế domain đã nêu.
+
 Màn hình checkout cần giữ một bản nháp đơn hàng. Khi người dùng thêm dòng hàng hoặc bấm gửi:
 
 - phiên bản cũ phải giữ nguyên để audit hoặc hỗ trợ undo;
@@ -25,7 +53,9 @@ Màn hình checkout cần giữ một bản nháp đơn hàng. Khi người dùn
 
 Một class có nhiều public setter dễ làm state thay đổi từ bất kỳ chỗ nào. Ngược lại, chỉ thay `class` bằng `record` rồi dùng một array mutable vẫn chưa có immutability thật. Lời giải dưới đây kết hợp record, `required`, `init`, `with` và defensive copy.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -250,7 +280,20 @@ Same customer object: False
 
 Ký tự phân cách hàng nghìn có thể khác theo locale.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main tạo draft rỗng và OrderLine hợp lệ.
+2. AddLine tạo list, init accessor copy/wrap; draft cũ vẫn0line.
+3. Submit copy record, thay Status, giữ reference line view vì không gán Lines.
+4. Cost AddLine O(n) và có hai lượt copy container trong implementation; Submit copy số field cố định, không copy line content.
+
+### Mini-check
+
+Tại sao immutable OrderLine giúp chia sẻ line view an toàn nhưng chưa giải quyết transition invariant của OrderDraft?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Record có value equality nhưng vẫn là reference type
 
@@ -305,7 +348,45 @@ submitted ──> OrderDraft H5 ──┘                 │
 
 Đây là shallow copy. Nó an toàn trong sample vì wrapper không cho sửa cấu trúc và `OrderLine` cũng chỉ cho khởi tạo một lần. Nếu member trỏ tới `List<T>` hoặc object có public setter, cả hai record vẫn quan sát cùng mutable state.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| class identity | mặc định so reference | hợp entity có quy tắc ID riêng |
+| record value equality | member tham gia equality | collection thường vẫn reference equality |
+| read-only wrapper | chặn sửa slot qua wrapper | không tự làm element bất biến |
+
+### Misconception check
+
+**Đúng hay sai?** Hai record có array cùng nội dung luôn bằng nhau.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: equality member array mặc định theo reference.
+
+</details>
+
+**Đúng hay sai?** Private Status đã đóng mọi đường tạo Submitted rỗng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: public Lines.init trên with của submitted vẫn mở đường đó.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** identity/value và with.
+
+- **Working Developer — dùng khi làm việc:** ownership cùng cross-field invariant.
+
+- **Deep Dive — có thể quay lại sau:** custom equality theo domain.
 
 ### Các dạng record
 
@@ -326,7 +407,7 @@ Nếu equality theo chuỗi phần tử là requirement, hãy định nghĩa val
 
 - `init` ngăn gán lại property sau initialization.
 - read-only wrapper ngăn thêm/xóa/thay slot qua API được công khai.
-- neither mechanism tự làm object phần tử immutable.
+- cả hai cơ chế đều không tự làm object phần tử immutable.
 - deep immutability yêu cầu mọi đường đi trong object graph cũng không cho mutation quan sát được.
 
 Immutability giúp snapshot dễ suy luận và an toàn hơn khi chia sẻ, nhưng tạo bản sao collection lớn có chi phí. Hãy đo và chọn persistent/immutable collection ở module phù hợp khi quy mô cần đến.
@@ -355,9 +436,19 @@ Hai entity cùng `Id` nhưng khác snapshot có thể cần được coi là cù
 
 ### Công khai `init` cho state chỉ domain method được đổi
 
-Nếu `Status` có public `init`, caller có thể tạo `with { Status = Submitted }` và bỏ qua rule đơn không được rỗng. Sample dùng `private init` và method `Submit()` để giữ rule tại một chỗ.
+Nếu `Status` có public `init`, caller có thể tạo `with { Status = Submitted }` và bỏ qua rule đơn không được rỗng. Sample dùng `private init` để chặn gán trực tiếp Status. Tuy nhiên public `Lines.init` vẫn cho phép `submitted with { Lines = [] }`: object cũ không đổi nhưng bản mới có Submitted và rỗng. Vì vậy đây là snapshot minh họa, chưa phải type bảo vệ toàn bộ transition qua mọi đường `with`. Khi domain cần guarantee đó, đóng đường khởi tạo Lines bằng constructor/factory và operation có kiểm tra; không dựa riêng vào private Status.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng record mặc định cho entity chỉ vì ít dòng. Không hứa deep immutability khi member chứa List mutable hoặc public API cho thay tổ hợp state.
+
+## 8. Production notes & scale check
+
+Test defensive copy, identity/value equality, snapshot cũ và đường with bypass. Muốn type domain đóng đầy đủ: chuyển construction Lines vào API có kiểm tra, cân nhắc class/constructor thay nhiều public init; không cần framework.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Snapshot địa chỉ
 
@@ -389,7 +480,23 @@ Tạo hai record chứa hai array khác nhau nhưng có cùng phần tử, rồi
 
 Gợi ý: ghi rõ bạn cần reference equality, sequence equality hay identity theo ID trước khi viết code.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với candidate list Module04 capstone, khi nào shallow copy đủ, khi nào cần item mới? Vẽ object graph và nêu invariant độc lập với “không mutate object cũ”.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. with tạo object gì mới?
+2. Equality collection hoạt động ra sao?
+3. required khác validation ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt được record value equality với object reference identity.
 - [ ] Tôi biết `init` giới hạn thời điểm gán nhưng không tự validate.

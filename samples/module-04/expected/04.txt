@@ -1,0 +1,7 @@
+Keyboard: reserved, line total 750,000 VND.
+Mouse: reserved, line total 250,000 VND.
+Stock remaining: 5
+Average line total: 500,000 VND
+=== RECEIPT ===
+Customer: Lan
+Total: 900,000 VND

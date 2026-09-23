@@ -1,7 +1,7 @@
 diff --git a/inventory.c b/inventory.c
 --- a/inventory.c
 +++ b/inventory.c
-@@ -1,8 +1,7 @@
+@@ -1,9 +1,9 @@
  int reserve(Inventory *inventory, size_t capacity)
  {
 -    Product *next = realloc(inventory->items, capacity * sizeof *next);
@@ -10,9 +10,11 @@ diff --git a/inventory.c b/inventory.c
 +    inventory->items = realloc(inventory->items, capacity * sizeof *inventory->items);
 +    if (inventory->items == NULL) return 0;
      inventory->capacity = capacity;
++    inventory->count = capacity;
      return 1;
  }
-@@ -11,15 +10,11 @@
+
+@@ -11,23 +11,19 @@
  {
      free(product->code);
      free(product->name);
@@ -29,4 +31,21 @@ diff --git a/inventory.c b/inventory.c
 -    *destination = temporary;
 -    return INV_OK;
 +    return parse_all(path, destination);
+ }
+
+ const Product *find_by_code(const Inventory *inventory, const char *code)
+ {
+     for (size_t i = 0; i < inventory->count; ++i) {
+-        if (strcmp(inventory->items[i].code, code) == 0)
++        if (strncmp(inventory->items[i].code, code, strlen(code)) == 0)
+             return &inventory->items[i];
+     }
+     return NULL;
+@@ -36,6 +32,6 @@
+ InventoryStatus save(Inventory *inventory, FILE *stream)
+ {
+     if (!write_all(stream, inventory)) return INV_IO_ERROR;
+-    if (fclose(stream) != 0) return INV_IO_ERROR;
++    (void)fclose(stream);
+     return INV_OK;
  }

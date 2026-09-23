@@ -1,5 +1,16 @@
 # Reflection, attribute và `dynamic`
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Reflection đọc metadata runtime; attribute gắn thông tin; dynamic chọn member lúc chạy.
+- Dùng tại registry/adapter khi contract thực sự cần khám phá runtime.
+- Lỗi signature/member muộn hơn compile; allowlist không phải sandbox.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Nhãn trên method không tự gọi method. Registry đọc nhãn, kiểm tra phiếu hướng dẫn rồi mới cho gọi. dynamic là quyết định “đến lúc chạy mới tìm method”, nên typo có thể qua build.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| metadata | mô tả type/member trong assembly | CommandAttribute |
+| reflection | API đọc và gọi theo mô tả | MethodInfo |
+| runtime binding | chọn member dựa object lúc chạy | dynamic Format |
+| allowlist | tập được phép khám phá | CommandHandlers only |
+
+### Ví dụ nhỏ — tính tay trước
+
+sum12,30→42; sum2147483647,1 overflow bị Invoke bọc, adapter trả Command failed. Object không có Format compile qua dynamic nhưng trả lỗi contract khi chạy.
+
 Một công cụ vận hành nhận lệnh dạng `sum 12 30`. Ta muốn thêm command mới bằng cách viết một method rồi gắn metadata, không sửa một chuỗi `if/else` trung tâm. Đồng thời, hệ thống phải gọi một formatter cũ chỉ được biết ở runtime.
 
 Hai nhu cầu này dễ dẫn đến code nguy hiểm:
@@ -25,7 +53,9 @@ Hai nhu cầu này dễ dẫn đến code nguy hiểm:
 
 Ta sẽ tạo một registry chỉ từ một type cho phép, xác thực signature trước khi đăng ký, rồi giữ `dynamic` trong đúng một adapter nhỏ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -247,7 +277,20 @@ Result: 42
 Legacy output: [42]
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Discovery quét public static declared methods của đúng type.
+2. Attribute được materialize, signature string(string[]) được kiểm tra rồi lưu descriptor.
+3. Invoke tạo argument array, gọi handler và phân biệt wrapper/inner exception.
+4. Dynamic formatter sống trong boundary nhỏ. Metadata discovery/allocation có cost; cache bounded khi nhiều request, không quét assembly mỗi lần theo input.
+
+### Mini-check
+
+ValidateCommandSignature hiện có chặn generic method mở dù return/parameter giống không? Contract registry hiện dựa thêm assumption nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Attribute đi vào metadata, không tự chạy
 
@@ -319,7 +362,45 @@ Domain code nhận/trả `string` tĩnh. Chỉ `FormatWithLegacyBoundary` biết
 
 Không đưa tên type/method trực tiếp từ input rồi gọi mọi member. Allowlist bằng attribute và type cụ thể vẫn cần authorization ở tầng nghiệp vụ; reflection không phải cơ chế phân quyền hay sandbox. Code được gọi vẫn chạy với quyền của process. Plugin không tin cậy cần biên cô lập phù hợp như process/container riêng cùng giới hạn OS, không chỉ một allowlist reflection.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| static/interface | compiler kiểm tra | ưu tiên khi biết contract |
+| reflection registry | khám phá metadata runtime | hợp tooling có allowlist |
+| dynamic adapter | late-bound member | hợp interop thật, cô lập lỗi |
+
+### Misconception check
+
+**Đúng hay sai?** Attribute constructor chạy mỗi lần Sum được gọi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: metadata được đọc/materialize khi reflection yêu cầu.
+
+</details>
+
+**Đúng hay sai?** Allowlist reflection làm plugin không tin cậy an toàn.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: method vẫn chạy với quyền process.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** metadata và binding.
+
+- **Working Developer — dùng khi làm việc:** boundary validation và error policy.
+
+- **Deep Dive — có thể quay lại sau:** trimming/AOT đúng target.
 
 ### API reflection thường gặp
 
@@ -385,7 +466,17 @@ Call-site caching không xóa mọi chi phí binder, conversion và rủi ro run
 
 Code chạy trong `dotnet run` có thể hỏng sau publish trimmed/AOT. Kiểm thử đúng publish mode và ưu tiên source-generated/tường minh nếu deployment yêu cầu.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không nhận tên type/method tùy ý từ input để Invoke. Không dùng dynamic thay typed DTO chỉ vì JSON linh hoạt. Không cache vô hạn theo key từ người dùng.
+
+## 8. Production notes & scale check
+
+Gate sum/overflow, signature sai và missing dynamic member. Registry chỉ cho hai handler đã biết; validator signature chưa kiểm mọi dạng method tổng quát như open generic. Chưa publish trimmed/AOT, nên không tuyên bố compatibility deployment đó.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm command `multiply`
 
@@ -411,7 +502,23 @@ Truyền `new object()` vào `FormatWithLegacyBoundary`, quan sát `RuntimeBinde
 
 **Gợi ý:** so sánh thời điểm lỗi: compile time của interface và runtime của dynamic.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với delegate bài02, lúc nào nên discover một lần rồi giữ callable? Với hai command cố định, switch nhỏ có đủ và dễ kiểm hơn không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Attribute có tự thực thi không?
+2. Lỗi gốc của Invoke nằm đâu?
+3. Dynamic giữ runtime type object không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được attribute là metadata và không tự thực thi.
 - [ ] Tôi giới hạn tập member reflection và validate signature trước `Invoke`.

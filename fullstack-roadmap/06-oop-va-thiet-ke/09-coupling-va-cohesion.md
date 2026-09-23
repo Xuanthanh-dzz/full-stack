@@ -1,5 +1,16 @@
 # Coupling và cohesion
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Coupling là phụ thuộc giữa thành phần; cohesion là mức gắn kết bên trong.
+- Dùng request nhỏ và cấu hình tường minh để giảm phụ thuộc không cần thiết.
+- Không đếm dấu chấm hay số interface làm thước đo tuyệt đối.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - cân bằng: giảm coupling tới mức hợp lý mà không tạo ra hàng chục type rời rạc.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Công thức phí chỉ cần số tiền, thành phố và tốc độ. Bắt nó lục cả hồ sơ khách để lấy ba giá trị khiến đổi địa chỉ khách cũng kéo công thức phí vào việc sửa.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| coupling | mức một phần phụ thuộc phần khác | calculator biết cấu trúc Order |
+| cohesion | các phần cùng phục vụ một mục đích | Quote/Surcharge |
+| common state | state chung qua đường ngầm | ShippingConfig static |
+| request value | dữ liệu tường minh cho một lần gọi | ShippingQuoteRequest |
+
+### Ví dụ nhỏ — tính tay trước
+
+Đơn550000: threshold500000 →ship0; đổi static threshold1triệu →20000 dù tham số y hệt. Hai calculator dùng hai record rates riêng giữ kết quả0 và20000 độc lập.
 
 Cửa hàng cần tính phí vận chuyển. Class hiện tại chạy đúng trên máy người viết:
 
@@ -47,7 +75,9 @@ Ngoài ra, muốn viết một kiểm thử cho công thức phí, bạn phải 
 
 Ba triệu chứng trên là ba dạng coupling khác nhau. Bài này gọi tên chúng và chỉ cách gỡ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -151,7 +181,7 @@ public sealed class LegacyShippingCalculator
             subtotal += line.UnitPrice * line.Quantity;
         }
 
-        // Content coupling: đi xuyên qua ba object để lấy một chuỗi.
+        // Phụ thuộc cấu trúc: đi xuyên qua ba object để lấy một chuỗi.
         string city = order.Customer.Address.City;
         decimal baseFee = string.Equals(city, "Ha Noi", StringComparison.OrdinalIgnoreCase)
             ? 20_000m
@@ -342,9 +372,22 @@ Strict run: 20,000
 Normal run: 0
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Legacy đọc static tại thời điểm gọi, nên input thực gồm cả hidden config.
+2. Bản mới nhận rates ở constructor và quote request ở mỗi call.
+3. Order copy list input; Subtotal duyệt dòng trước khi tạo request.
+4. Quote chỉ làm vài phép so sánh O(1); ToQuoteRequest mất O(n) vì tính Subtotal. Config record dùng scalar/string bất biến, không bị sửa tại chỗ bởi with.
+
+### Mini-check
+
+Quote là O(1) có nghĩa cả order.ToQuoteRequest rồi Quote cũng O(1) không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Bốn dạng coupling trong bản cũ
 
@@ -352,7 +395,7 @@ Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không d
 |---|---|---|
 | Common coupling | `ShippingConfig.FreeThreshold` | mọi module đọc/ghi được; kết quả phụ thuộc thứ tự chạy |
 | Control coupling | tham số `bool express` | caller phải biết cờ nào bật nhánh nào; thêm chế độ là nhân đôi tổ hợp |
-| Content/structure coupling | `order.Customer.Address.City` | đổi cấu trúc `Address` làm hỏng calculator dù nó không liên quan |
+| Structure coupling | `order.Customer.Address.City` | đổi cấu trúc `Address` làm hỏng calculator dù nó không liên quan |
 | Stamp coupling | truyền cả `LegacyOrder` để lấy hai con số | test phải dựng cả đồ thị object |
 
 Output chứng minh dạng đầu tiên bằng số liệu: cùng `legacyOrder`, cùng `express: false`, hai lần chạy cho `0` và `20.000`. Không có tham số nào thay đổi — thứ thay đổi nằm ngoài chữ ký của method.
@@ -375,7 +418,7 @@ Order ──> ShippingQuoteRequest ──> ShippingCalculator ──> ShippingRa
 
 ### `bool` điều khiển hành vi và `enum`
 
-Với `bool express`, tập hành vi là hai. Thêm `bool sameDay` sẽ thành bốn, trong đó `(express: true, sameDay: true)` vô nghĩa nhưng vẫn hợp lệ về kiểu. `ShippingSpeed` mô tả đúng ba lựa chọn loại trừ nhau và `switch` biểu thức bắt buộc xử lý đủ.
+Với `bool express`, tập hành vi là hai. Thêm `bool sameDay` sẽ thành bốn, trong đó `(express: true, sameDay: true)` vô nghĩa nhưng vẫn hợp lệ về kiểu. `ShippingSpeed` mô tả đúng ba lựa chọn loại trừ nhau và `switch` liệt kê từng lựa chọn; nhánh `_` từ chối giá trị enum chưa biết. Có `_` thì thêm enum mới không tự buộc compiler báo thiếu nhánh.
 
 Lời gọi cũng đọc được ngay:
 
@@ -432,7 +475,45 @@ Cách sửa không phải là thêm property `CustomerCity` cho mọi thứ, mà
 
 `static` cho hằng số và hàm thuần (`Math.Max`) không tạo coupling nguy hiểm vì không có state thay đổi. Vấn đề nằm ở **static mutable state**: nó là kênh liên lạc ngầm giữa các module và biến kết quả thành phụ thuộc vào thứ tự chạy — kể cả trong test chạy song song.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| global mutable config | ẩn trong mọi call | khó chạy hai cấu hình song song |
+| explicit rates | config thuộc instance | thêm parameter nhưng dễ kiểm soát |
+| strategy mỗi speed | behavior thay được | chưa cần khi ba lựa chọn đóng, switch đủ |
+
+### Misconception check
+
+**Đúng hay sai?** Thay bool bằng enum xóa mọi control coupling.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vẫn chọn behavior, nhưng loại được tổ hợp cờ vô nghĩa.
+
+</details>
+
+**Đúng hay sai?** Hai dấu chấm luôn vi phạm thiết kế.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: xem dependency vào cấu trúc và ownership; fluent API khác truy cập nội bộ tùy tiện.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** coupling/cohesion qua ví dụ.
+
+- **Working Developer — dùng khi làm việc:** state/config và cost.
+
+- **Deep Dive — có thể quay lại sau:** change history để chọn boundary.
 
 ### Hai câu hỏi định nghĩa
 
@@ -500,7 +581,17 @@ Bọc mọi class bằng một interface không tự làm giảm coupling: nếu
 
 Gộp tất cả vào một file không xóa được phụ thuộc, chỉ làm chúng vô hình. Coupling đo bằng số thứ phải đổi cùng nhau, không đo bằng số file.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo forwarding property cho mọi chuỗi truy cập chỉ để giảm số dấu chấm. Không chia type nếu các quyết định luôn đổi cùng nhau và không có caller khác.
+
+## 8. Production notes & scale check
+
+Các DTO rates/request mẫu được dựng từ dữ liệu tin cậy; chưa validate số âm mọi field. Test đồng thời tồn tại hai config, threshold đúng biên và enum chưa biết bị từ chối. Không có concurrent mutation trong demo; thống kê fan-in/out chỉ gợi điều tra.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Gỡ static
 
@@ -532,7 +623,23 @@ Thực hiện yêu cầu “thêm chế độ giao trong ngày” trên cả hai
 
 **Gợi ý:** ở bản cũ, đừng quên các caller đang truyền `bool`; đó chính là chi phí lan tỏa của control coupling.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So static mutable với closure capture Module05: cùng tham số chưa đủ bảo đảm cùng kết quả khi state nào còn ẩn? Với3 tốc độ cố định chọn enum hay strategy.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. State ẩn ở bản cũ là gì?
+2. with sửa rates cũ không?
+3. Ai trả chi phí tính Subtotal?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi định nghĩa được coupling và cohesion bằng câu hỏi kiểm chứng được.
 - [ ] Tôi nhận ra common, control, stamp và content coupling trong code thật.

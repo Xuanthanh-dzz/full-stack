@@ -1,5 +1,16 @@
 # Collection: List, Dictionary, HashSet, Queue và Stack
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Collection khác nhau ở thứ tự, tra cứu và quyền sở hữu; chọn theo thao tác cần làm.
+- List cho report, dictionary cho ID, set cho mã duy nhất, queue FIFO và stack undo.
+- Nhiều collection cùng mô tả đơn hàng tạo thêm invariant cần giữ đồng bộ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Kho cần một danh sách để đọc, một sổ tra theo mã, hàng chờ ai đến trước và chồng phiếu để hoàn tác lần gần nhất. Mỗi công cụ trả lời một câu hỏi khác nhau.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| dictionary | ánh xạ key sang value | _ordersById |
+| hash set | tập giá trị không trùng theo equality | _knownProductCodes |
+| FIFO | vào trước ra trước | pending queue |
+| LIFO | vào sau ra trước | history stack |
+| equality/hash | quy tắc nhận diện giá trị cùng key | ProductCode chuẩn hóa |
+
+### Ví dụ nhỏ — tính tay trước
+
+Đăng ký A rồi B → queue[A,B]. Xử lý A → queue[B], history[A]. Undo A → queue[B,A]; không tự quay A về đầu.
+
 Một kho hàng nhận đơn theo thứ tự thời gian và cần:
 
 - giữ danh sách đơn để xuất báo cáo theo thứ tự đăng ký;
@@ -24,7 +53,9 @@ Một kho hàng nhận đơn theo thứ tự thời gian và cần:
 
 Một collection duy nhất không làm tốt tất cả các thao tác đó. Dùng `List<Order>` để tìm ID sẽ phải duyệt tuần tự; dùng `Dictionary` lại không diễn đạt hàng đợi FIFO hay lịch sử LIFO. Ta phối hợp năm cấu trúc, mỗi cấu trúc có một trách nhiệm rõ ràng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -245,7 +276,20 @@ Order report:
 Pending after undo: 1
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Register TryAdd kiểm tra duplicate trước khi cập nhật list/queue/set.
+2. ProductCode trim/uppercase và hash theo cùng equality để a/A là một mã.
+3. TryProcessNext lấy đầu queue, lưu state trước vào stack rồi mark processed.
+4. Undo pop một lịch sử và enqueue lại cuối. Kho giữ reference Order; wrapper collection không làm Order immutable. Tra hash trung bình O(1), report O(n), memory nhiều index O(n+p).
+
+### Mini-check
+
+Nếu đổi ProductCode dùng làm key sau khi đã vào set, lookup dựa trên hash cũ sẽ gặp vấn đề gì?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Mỗi collection giải một kiểu truy cập
 
@@ -288,7 +332,45 @@ Hai object bằng nhau **phải** trả cùng hash code. Hai object có cùng ha
 
 Dictionary ID nhận `StringComparer.OrdinalIgnoreCase` ngay lúc tạo, nên `ORD-001` và `ord-001` là cùng key. Comparer được khai báo tại collection rõ hơn việc rải `ToLower()` khắp code và tránh phụ thuộc culture.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| List | thứ tự và index | tra key bằng quét O(n) |
+| Dictionary/HashSet | tra key/duy nhất | trung bình nhanh, cần equality ổn định |
+| Queue/Stack | FIFO/LIFO | không thay nhau khi workflow cần thứ tự cụ thể |
+
+### Misconception check
+
+**Đúng hay sai?** IReadOnlyList<Order> bảo đảm các Order không thể sửa.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: wrapper ngăn sửa collection qua API, element vẫn mutable.
+
+</details>
+
+**Đúng hay sai?** Undo trong sample trả đơn về đúng vị trí queue cũ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: enqueue vào cuối.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chọn collection theo thao tác.
+
+- **Working Developer — dùng khi làm việc:** equality, alias và consistency.
+
+- **Deep Dive — có thể quay lại sau:** đo hash/memory trước thêm index.
 
 ### API quan trọng
 
@@ -384,7 +466,17 @@ Gán `List<Order> second = first;` chỉ sao chép reference; thêm qua `second`
 
 Thêm/xóa trực tiếp vào collection đang enumerate thường gây `InvalidOperationException`. Thu thập thay đổi để áp dụng sau, hoặc dùng vòng lặp/index phù hợp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không giữ cả năm collection cho một danh sách todo chỉ cần quét vài chục item. Chỉ thêm index khi có truy vấn cụ thể và kế hoạch giữ consistency.
+
+## 8. Production notes & scale check
+
+Demo một thread, gate duplicate không đổi count/index, hash case-insensitive, FIFO, undo ở cuối và clone input array. Không cam kết rollback nếu allocation thất bại giữa các index; Order public mutation còn cho caller đổi status ngoài Warehouse.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Danh bạ theo số điện thoại
 
@@ -416,7 +508,23 @@ Tạo immutable `EmailAddress` implement `IEquatable<EmailAddress>`, sau đó d�
 
 Gợi ý: normalize phần domain một cách có chủ đích; viết test tay cho `Equals` và `GetHashCode` trước khi thêm vào collection.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh vector/map/set Module03 với collections .NET: chọn bộ tối thiểu cho10 việc cá nhân và100000 đơn cần traID. Nêu thêm cost cập nhật khi có index.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. FIFO khác LIFO thế nào?
+2. Wrapper bảo vệ collection hay mọi element?
+3. Hash phải nhất quán với equality vì sao?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi chọn được collection dựa trên lookup, uniqueness, FIFO hoặc LIFO.
 - [ ] Tôi biết API `Try...` nào tránh exception cho normal flow.

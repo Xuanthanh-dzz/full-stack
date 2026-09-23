@@ -1,5 +1,16 @@
 # Window function
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Window function tính trên các row liên quan mà vẫn giữ detail row.
+- Dùng cho ranking, running total và so row trước/sau.
+- ORDER BY trong OVER khác ORDER BY kết quả; frame và tie quyết định nghĩa phép tính.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Mỗi hóa đơn vẫn có một dòng, nhưng bên cạnh ghi thêm thứ hạng trong khách đó và tổng tiền tới lúc này. Không gom mất hóa đơn như một báo cáo GROUP BY.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| partition | nhóm row để tính độc lập | mỗi CustomerId |
+| window order | thứ tự dùng khi tính | OrderedAt,OrderId |
+| frame | phần partition tham gia phép tổng tại row hiện tại | ROWS từ đầu tới hiện tại |
+| LAG | giá trị ở row trước trong window order | PreviousAmount |
+
+### Ví dụ nhỏ — tính tay trước
+
+Khách ID 1 có ba đơn trị giá 1, 3 và 3 triệu theo ngày; tổng lũy kế là 1, 4, 7 triệu. Sắp theo tiền giảm dần: `ROW_NUMBER` của các ID 102, 103, 101 là 1, 2, 3; `RANK` là 1, 1, 3; `DENSE_RANK` là 1, 1, 2.
+
 Dashboard cần:
 
 - xếp hạng order theo giá trị trong từng customer;
@@ -25,7 +53,9 @@ Nếu GROUP BY, detail row bị collapse.
 
 Window function giữ detail row nhưng vẫn tính trên “cửa sổ” các row liên quan.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -120,7 +150,20 @@ ORDER BY CustomerId, rn;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Server chia logic theo CustomerId và xác định thứ tự riêng cho từng window.
+2. ROW_NUMBER dùng OrderId phân định tie; RANK chỉ theo amount để hai giá bằng nhau cùng hạng.
+3. SUM dùng ROWS frame tường minh; LAG đầu partition trả NULL khi không chỉ định default.
+4. CTE Ranked giữ rn để WHERE ngoài lọc top 2. Sort/memory có thể đáng kể; index phù hợp có thể giảm sort, không hứa mọi window dùng cùng một thứ tự vật lý.
+
+### Mini-check
+
+Hai order cùng ngày: bỏ OrderId khỏi running order và dùng frame mặc định có thể đổi tổng ở row đầu thế nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### OVER
 
@@ -154,7 +197,45 @@ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 
 nghĩa là từ đầu partition tới row hiện tại.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| GROUP BY | một row mỗi group | mất detail nếu không nối lại |
+| window | giữ row và thêm metric | cần order/frame rõ |
+| RANK/DENSE_RANK | giữ tie | topN hạng có thể trả hơnNrow |
+
+### Misconception check
+
+**Đúng hay sai?** ORDER BY trong OVER tự sắp output cuối.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần ORDER BY ngoài nếu presentation cần thứ tự.
+
+</details>
+
+**Đúng hay sai?** ROW_NUMBER và RANK đều trả đúng 2 row khi lọc<=2.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: RANK có tie nên có thể trả hơn 2 row.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace ranking.
+
+- **Working Developer — dùng khi làm việc:** frame/tie và topN.
+
+- **Deep Dive — có thể quay lại sau:** sort/index/memory theo plan.
 
 ### GROUP BY vs window
 
@@ -204,7 +285,17 @@ Nhiều trường hợp window function đơn giản hơn.
 
 Dùng CTE/subquery rồi filter.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng ROW_NUMBER không tiebreaker cho pagination cần ổn định. Không join summary ngược detail theo thói quen khi window diễn đạt đúng và đơn giản hơn.
+
+## 8. Production notes & scale check
+
+Gate kiểm ranking có tie, running totals, NULL đầu partition và top 2. Không gắn ngưỡng milliseconds; plan có nhiều window order có thể cần nhiều sort hoặc spool. Khi chỉ cần tổng mỗi khách, GROUP BY vẫn hợp hơn.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -226,7 +317,23 @@ So sánh ROW_NUMBER/RANK/DENSE_RANK với dữ liệu tie.
 
 Tính phần trăm order trên tổng revenue customer bằng SUM OVER.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ stable sort Module 07: giữ tie trong rank khác phân định tie cho vị trí thế nào? Thiết kế báo cáo “2 đơn” và “2 mức giá” thành hai contract riêng.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Frame chọn những row nào?
+2. RANK tạo gap khi nào?
+3. Window có collapse detail không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi dùng được OVER/PARTITION BY.
 - [ ] Tôi phân biệt ROW_NUMBER/RANK/DENSE_RANK.

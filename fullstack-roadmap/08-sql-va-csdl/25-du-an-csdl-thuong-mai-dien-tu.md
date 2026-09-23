@@ -1,5 +1,16 @@
 # Dự án: CSDL thương mại điện tử
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Capstone ghép schema, query và checkout transaction thành một luồng dữ liệu có contract.
+- Dùng để chứng minh từ requirement tới state và bằng chứng kiểm tra.
+- Sample một sản phẩm chưa giải quyết payment idempotency, mọi concurrency hay vận hành production.
+
 ## 1. Mục tiêu
 
 Đây là checkpoint cuối Module 08. Bạn phải có thể:
@@ -16,6 +27,23 @@
 - đọc execution plan và tối ưu query chậm.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Phiếu mua hàng phải nối được người mua, hàng, kho và lần thanh toán. Nếu thiếu kho thì không ghi nửa phiếu; nếu giá catalog đổi sau đó thì phiếu cũ vẫn phải giải thích đúng số tiền đã chốt.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| transaction boundary | nhóm thay đổi phải cùng thành công | stock/order/item/payment intent |
+| payment attempt | một lần thử thanh toán | nhiều lần trên một order |
+| snapshot price | giá được chốt cho dòng hàng | UnitPriceSnapshot |
+| idempotency | lặp yêu cầu không tạo thêm effect ngoài contract | bài tập ProviderReference |
+
+### Ví dụ nhỏ — tính tay trước
+
+Sản phẩm ID 1 có tồn kho 10 và giá 1.200.000. Đặt 2 món → kho còn 8; đơn có tổng 2.400.000 và trạng thái `Pending`; dòng hàng ghi số lượng 2, đơn giá 1.200.000; ý định thanh toán ghi 2.400.000 và trạng thái `Pending`. Chưa có bằng chứng thu tiền từ provider.
 
 Thiết kế database cho mini e-commerce có:
 
@@ -40,7 +68,11 @@ Use case tối thiểu:
 9. backup/restore được;
 10. schema đủ rõ để Module 09 map bằng EF Core.
 
-## 3. Lời giải tham chiếu bằng SQL
+<a id="3-loi-giai-tham-chieu-bang-sql"></a>
+
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -234,6 +266,9 @@ BEGIN TRY
     DECLARE @CustomerId bigint = 1;
     DECLARE @ProductId bigint = 1;
     DECLARE @Quantity int = 2;
+    IF @Quantity IS NULL OR @Quantity <= 0
+        THROW 51003, 'Quantity must be positive.', 1;
+
     DECLARE @Price decimal(19,4);
     DECLARE @Name nvarchar(160);
 
@@ -341,7 +376,7 @@ SELECT
     YEAR(OrderedAt) AS SalesYear,
     MONTH(OrderedAt) AS SalesMonth,
     COUNT(*) AS OrderCount,
-    SUM(TotalAmount) AS Revenue
+    SUM(TotalAmount) AS NonCancelledOrderValue
 FROM sales.Orders
 WHERE Status <> 'Cancelled'
 GROUP BY
@@ -351,7 +386,20 @@ ORDER BY SalesYear, SalesMonth;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Schemas/constraints/indexes được dựng trước, seed customer và hai products/kho.
+2. Checkout validate quantity dương, đọc product active và giá snapshot trong transaction.
+3. UPDATE kho có điều kiện; nếu không đổi đúng 1 row thì THROW và rollback mọi thay đổi trong transaction.
+4. Tạo order/item/payment intent rồi commit; query report đọc từ server. Storage/index/log/locks tăng theo số dòng, join payment attempts có thể nhân item rows khi mở rộng.
+
+### Mini-check
+
+Nếu INSERT payment lỗi sau khi đã trừ kho và tạo order, catch phải để lại những row và số kho nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Schema boundary
 
@@ -385,13 +433,55 @@ WHERE ProductId = @ProductId
 
 tránh read-then-write race đơn giản.
 
+### Giá trị đơn chưa phải tiền đã thu
+
+Report cuối cộng giá trị các đơn chưa hủy, nên tên cột là NonCancelledOrderValue. Đơn Pending của sample đóng góp 2400000; không được gọi đó là tiền đã thu. Báo cáo thanh toán cần status và quy tắc refund/settlement riêng.
+
 ### Payment retry
 
 Payments là one-to-many với Order vì payment có thể fail, retry hoặc refund về sau.
 
 Không ép one-to-one nếu workflow không bảo đảm.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| reference sample | một sản phẩm, một process gọi SQL | đủ trace atomic state, chưa là shop hoàn chỉnh |
+| multi-item checkout | nhiều dòng, lock order và tổng tiền | cần contract/test thêm trước mở rộng |
+| provider payment | effect ngoài DB | không rollback bằng SQL transaction |
+
+### Misconception check
+
+**Đúng hay sai?** Payments Pending nghĩa là đã trừ tiền khách.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ ghi intent trong DB, chưa gọi provider.
+
+</details>
+
+**Đúng hay sai?** FK và CHECK tự giữ TotalAmount bằng tổng items.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: rule tổng nhiều row cần protocol cập nhật/validation riêng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace checkout và schema.
+
+- **Working Developer — dùng khi làm việc:** failure/constraints/history.
+
+- **Deep Dive — có thể quay lại sau:** concurrency/payment/ops khi có yêu cầu.
 
 ### Workload phải được định nghĩa
 
@@ -432,7 +522,9 @@ backup/restore
 known trade-offs
 ```
 
-## 6. Lỗi thường gặp và review checklist
+<a id="6-loi-thuong-gap-va-review-checklist"></a>
+
+## 6. Lỗi thường gặp
 
 ### Checkout đọc stock rồi update sau
 
@@ -458,7 +550,19 @@ Phá least privilege.
 
 Backup chỉ trên giấy.
 
-## 7. Bài tập mở rộng
+<a id="7-bai-tap-mo-rong"></a>
+
+## 7. Khi nào KHÔNG dùng
+
+Không thêm broker/microservice hoặc nhiều tầng repository cho lab schema nhỏ. Không gọi provider trong transaction giữ lock dài; trước hết xác định failure/idempotency contract.
+
+## 8. Production notes & scale check
+
+Gate kiểm schema, seed, checkout state, snapshot và rollback khi biến thể quantity vượt kho/không hợp lệ. Report NonCancelledOrderValue không gọi là tiền đã thu. Permission và backup drill có evidence ở bài23/24; bài tập capstone mở rộng cần submission riêng, không được coi tự động hoàn thành.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Cart
 
@@ -492,7 +596,25 @@ Backup, verify và restore vào database khác.
 
 Thêm OrderNumber theo expand-contract.
 
-## 8. Checklist hoàn thành Module 08
+<a id="8-checklist-hoan-thanh-module-08"></a>
+
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ Module 06 và 07: vẽ ownership/state từ input tới DB commit; chọn khóa/index theo query đã nêu. Với 100 đơn/ngày, giải pháp nhỏ nhất nào đủ và driver nào buộc xem lại?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Điểm nào công bố checkout thành công?
+2. Rule nào chưa được CHECK bảo vệ?
+3. Payment attempt khác payment success thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 ### Kiến thức
 
@@ -559,3 +681,9 @@ requirement
 -> backup
 -> performance verification
 ```
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/05-injection.md)
+- [Spaced Review](./reviews/review-05.md)
+- [PR Review](./pr-review-labs/01-report.md)

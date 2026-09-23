@@ -1,5 +1,16 @@
 # Dự án: refactor một ứng dụng C# theo SOLID
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Capstone giữ report lịch sử trong miền đã chốt và tách nơi quyết định khỏi I/O.
+- Dùng harness, domain invariants, policies và adapter theo thay đổi thật của công cụ batch.
+- Folder không cưỡng chế dependency; report atomicity và compatibility có giới hạn rõ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -8,11 +19,28 @@ Sau bài này, bạn có thể:
 - dựng characterization harness trước khi refactor và dùng nó làm lưới an toàn cho từng bước;
 - áp dụng đồng thời các nguyên tắc của module: mô hình hóa đối tượng, SRP, OCP, LSP, ISP, DIP, composition, DI và design by contract;
 - tổ chức project thành các thư mục theo vai trò: domain, application, presentation, infrastructure;
-- giữ chiều phụ thuộc đúng và chứng minh bằng chính cấu trúc thư mục/namespace;
+- giữ chiều phụ thuộc đúng; phân biệt quy ước thư mục với ràng buộc project reference;
 - viết composition root duy nhất và đổi adapter mà không đụng tới nghiệp vụ;
 - chứng minh kết quả bằng cách chạy song song bản cũ và bản mới trên cùng dữ liệu.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một dây chuyền đọc phiếu, tính tiền rồi in sổ được chia thành các bàn có nhiệm vụ rõ. Sổ cũ được giữ để so từng dòng; khi phát hiện input mà quy tắc mới từ chối khác trước, phải ghi đó là thay đổi riêng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| characterization harness | so kết quả cũ/mới | Compare theo từng batch |
+| composition root | nơi ghép policy/adapter | BuildUseCase |
+| commit point | bước công bố report mới | File.Move |
+| compatibility domain | miền đầu vào cam kết giữ behavior | ID/city/SKU và số trong cận |
+
+### Ví dụ nhỏ — tính tay trước
+
+Đơn50000 ngoài nội thành →ship35000,tax4000,total89000. Batch rỗng vẫn có header+summary0; quantity0 thành dòng INVALID. Report của3đơn hợp lệ có revenue2405188.
 
 Cửa hàng có một công cụ chạy cuối ngày: đọc danh sách đơn hàng dạng text, tính tiền và in báo cáo. Toàn bộ công cụ nằm trong một method:
 
@@ -53,7 +81,9 @@ Mục tiêu của dự án **không** phải viết lại từ đầu cho đẹp
 8. Báo cáo được ghi qua file tạm rồi thay thế file đích.
 9. Build bật `Nullable` và coi warning là error; không dùng package ngoài.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ### 3.1. Tạo project
 
@@ -216,7 +246,7 @@ public static class LegacyOrderProcessor
 }
 ```
 
-Đọc kỹ method này một lần: nó là đặc tả duy nhất mà bạn có. Mỗi chi tiết nhỏ — làm tròn ở đâu, so sánh thành phố có phân biệt hoa thường không, trần chiết khấu áp trước hay sau phí ship — đều là hành vi phải giữ.
+Đọc kỹ method này một lần: nó là chuẩn đối chiếu hành vi lịch sử. Miền characterization là dòng có ID/city/SKU không rỗng, tổng quantity nằm trong int, phép tính tiền không overflow và các ca lỗi số/field đã liệt kê. Bản mới trước đây ném từ constructor khi ID/city/SKU rỗng; retrofit sửa parser trả lỗi rõ cho các trường hợp ấy. Đây là sửa lỗi riêng ngoài miền tương đương, không sửa bản Legacy hay gọi kết quả đó là refactor thuần. Mỗi chi tiết nhỏ — làm tròn ở đâu, so sánh thành phố có phân biệt hoa thường không, trần chiết khấu áp trước hay sau phí ship — đều là hành vi phải giữ.
 
 ### 3.3. Kế hoạch refactor
 
@@ -282,7 +312,7 @@ public sealed record Money
         return new Money(Amount * factor, Currency);
     }
 
-    // Làm tròn tới đơn vị nhỏ nhất của tiền tệ; quy tắc làm tròn là một quyết định nghiệp vụ.
+    // Demo VND làm tròn tới số nguyên, midpoint to even; không phải quy tắc mọi tiền tệ.
     public Money Percentage(decimal rate)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(rate);
@@ -355,6 +385,7 @@ public sealed record OrderLine
 public sealed class Order
 {
     private readonly List<OrderLine> _lines;
+    private readonly IReadOnlyList<OrderLine> _view;
 
     public Order(string id, CustomerTier tier, string shippingCity, IReadOnlyList<OrderLine> lines)
     {
@@ -371,6 +402,7 @@ public sealed class Order
         Tier = tier;
         ShippingCity = shippingCity.Trim();
         _lines = new List<OrderLine>(lines);
+        _view = _lines.AsReadOnly();
     }
 
     public string Id { get; }
@@ -379,7 +411,7 @@ public sealed class Order
 
     public string ShippingCity { get; }
 
-    public IReadOnlyList<OrderLine> Lines => _lines;
+    public IReadOnlyList<OrderLine> Lines => _view;
 
     public int ItemCount
     {
@@ -640,6 +672,10 @@ public sealed class OrderParser
         string orderId = fields[0].Trim().ToUpperInvariant();
         CustomerTier tier = ParseTier(fields[1]);
         string city = fields[2].Trim();
+        if (orderId.Length == 0 || city.Length == 0)
+        {
+            return ParseOutcome.Failure(orderId, "order id and city are required");
+        }
         string[] rawItems = fields[3].Split(';', StringSplitOptions.RemoveEmptyEntries);
 
         if (rawItems.Length == 0)
@@ -692,6 +728,11 @@ public sealed class OrderParser
         if (unitPrice < 0m)
         {
             return "price must not be negative";
+        }
+
+        if (string.IsNullOrWhiteSpace(parts[0]))
+        {
+            return "sku is required";
         }
 
         line = new OrderLine(parts[0], quantity, Money.Of(unitPrice));
@@ -1057,7 +1098,9 @@ internal static class Program
         Console.WriteLine(result.Report);
 
         Console.WriteLine("=== output file ===");
-        string reportPath = Path.Combine(Path.GetTempPath(), "order-report.txt");
+        string workDirectory = Path.Combine(Path.GetTempPath(), "order-tool-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDirectory);
+        string reportPath = Path.Combine(workDirectory, "order-report.txt");
         BuildUseCase(new InMemoryOrderSource(SampleOrders), new FileReportWriter(reportPath), reportDate)
             .Execute();
 
@@ -1065,6 +1108,7 @@ internal static class Program
         Console.WriteLine($"processed={result.Processed}, invalid={result.Invalid}");
 
         File.Delete(reportPath);
+        Directory.Delete(workDirectory);
     }
 
     private static ProcessResult RunRefactored(IReadOnlyList<string> rawOrders, DateOnly today) =>
@@ -1134,9 +1178,22 @@ written to order-report.txt: True
 processed=3, invalid=3
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài. Báo cáo được ghi vào thư mục tạm của hệ điều hành rồi xóa, nên chương trình không để lại rác.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài. Báo cáo được ghi vào thư mục tạm của hệ điều hành rồi xóa, nên chương trình không để lại rác.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Source trả batch, parser trả Order hoặc lỗi; mới parse ID/city/SKU rỗng thành lỗi thay vì ném constructor.
+2. Pricing tính subtotal,discount,tax,shipping theo thứ tự legacy; record report entry giữ kết quả.
+3. ReportBuilder giữ thứ tự input, tính summary; writer chỉ chạy sau khi build xong.
+4. File writer ghi temp rồi move; batch/entries/report đều ở RAM O(n + tổng ký tự). Subtotal được tính lại trong vài rule O(r×dòng), không giả định cache.
+
+### Mini-check
+
+Writer không được gọi khi pricing overflow: vì sao report cũ có thể vẫn nguyên nhưng toàn batch không có report mới?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Bản đồ phụ thuộc
 
@@ -1191,7 +1248,7 @@ Kinh nghiệm: mỗi khi bạn thấy một hằng số so sánh trong code cũ,
 
 Trong lúc tách, ba chỗ suýt làm lệch kết quả:
 
-1. **Thứ tự cộng và cắt trần.** Bản cũ cộng đủ hai loại chiết khấu rồi mới cắt trần. Nếu cắt trần từng rule, `ORD-001` sẽ ra số khác.
+1. **Thứ tự cộng và cắt trần.** Bản cũ cộng đủ hai loại chiết khấu rồi mới cắt trần. Với hai rule hiện tại, tổng tỷ lệ chỉ 8% nên dữ liệu mẫu chưa chứng minh nhánh cắt trần 10%. Cần thêm rule cố định trong test để phân biệt cắt từng rule với cắt tổng.
 2. **So sánh thành phố.** Bản cũ dùng `city == "Ha Noi"`, tức phân biệt hoa thường. `ShippingPolicy` giữ nguyên `StringComparison.Ordinal` để không âm thầm “sửa lỗi”. Nếu muốn đổi thành so sánh không phân biệt hoa thường, đó là **thay đổi hành vi** và phải là một commit riêng.
 3. **Làm tròn.** `decimal.Round(x, 0)` dùng quy tắc banker's rounding, khác với làm tròn nửa lên. `Money.Percentage` dùng đúng lời gọi đó nên kết quả trùng khớp.
 
@@ -1221,7 +1278,45 @@ Nếu sau này có nhiều dạng đầu ra (JSON, CSV, HTML), bước tiếp th
 
 Thiết kế này có thể tiếp tục được chia nhỏ: tách `Order` khỏi `OrderLine` sang hai file, tạo `SkuCode` value object, tách `TaxPolicy` theo quốc gia. Đừng làm nếu chưa có yêu cầu thật. Mỗi tầng trừu tượng phải trả lời được câu hỏi “thay đổi nào trong tương lai gần khiến nó đáng giá?”.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| legacy một method | report chuẩn đối chiếu | khó thay một trách nhiệm |
+| policies + adapters | seams có driver | thêm type/allocations; dùng ở batch sống lâu |
+| nhiều project | compiler chặn project cycle/reference thiếu | chưa cần cho mọi demo; folders chỉ quy ước |
+
+### Misconception check
+
+**Đúng hay sai?** 4/4same chứng minh mọi input cũ được giữ nguyên.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: null/blank fields/overflow cần contract riêng.
+
+</details>
+
+**Đúng hay sai?** Hai rule5%+3% trong sample đã test trần10%.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần rule giả có tổng vượt trần mới đi nhánh đó.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace report end-to-end.
+
+- **Working Developer — dùng khi làm việc:** compatibility và failure contracts.
+
+- **Deep Dive — có thể quay lại sau:** streaming/atomicity khi có driver.
 
 ### Quy trình chuẩn khi nhận code cũ
 
@@ -1287,11 +1382,21 @@ Nếu `Execute` bắt đầu chứa `if` về loại khách hoặc công thức 
 
 `File.WriteAllText` thẳng vào file đích sẽ để lại báo cáo dở dang nếu tiến trình chết giữa chừng. Mẫu ghi file tạm rồi thay thế được dùng lại từ [module 05, bài 19](../05-csharp-nang-cao/19-du-an-xu-ly-du-lieu-bat-dong-bo.md).
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm repository generic, DI container hoặc microservice cho batch nhỏ một process. Không đổi Legacy để làm harness xanh; giữ golden source và tách lỗi khỏi compatibility.
+
+## 8. Production notes & scale check
+
+Gate11file compile, report exact, nhiều ca characterization/boundary, domain wrapper, parser blank-field fix, file roundtrip và lỗi trước replacement. File.tmp cố định đòi một writer/path; không chứng minh crash durability hoặc concurrent writes. Decimal overflow và tổng quantity lớn ngoài miền đã nêu vẫn cần policy rõ trước mở quy mô.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm bộ dữ liệu cho harness
 
-Bổ sung ít nhất bốn trường hợp: đơn có `subtotal` đúng `500.000`, đơn gold đúng 5 sản phẩm (đụng cả hai rule và trần), giá `0`, và một dòng có khoảng trắng thừa quanh dấu `|`.
+Bổ sung ít nhất bốn trường hợp: đơn có `subtotal` đúng `500.000`, đơn gold đúng 5 sản phẩm (đụng cả hai rule; thêm rule giả lập để test riêng nhánh trần), giá `0`, và một dòng có khoảng trắng thừa quanh dấu `|`.
 
 **Gợi ý:** dự đoán kết quả trước khi chạy; nếu dự đoán sai, bạn vừa học được một hành vi ẩn của bản cũ.
 
@@ -1319,7 +1424,23 @@ Thực hiện bốn yêu cầu sau trên **cả** bản cũ và bản mới, đ�
 
 **Gợi ý:** lập bảng hai cột; đây là bằng chứng thuyết phục nhất khi bạn phải giải thích giá trị của refactoring cho người khác.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So capstone async Module05: vì sao một batch nhỏ tuần tự không cần semaphore? Với10000dòng, đo lại repeated Subtotal/memory trước đề xuất stream hoặc cache; nêu behavior nào phải giữ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Store report lúc nào?
+2. Namespace có chặn reference không?
+3. Ca nào thật sự kích hoạt cap?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 
@@ -1336,4 +1457,10 @@ Bạn hoàn thành bài khi có thể tự trả lời:
 
 - **Bài prerequisite trực tiếp:** [Bài 13 — Design by contract và invariant](./13-design-by-contract-va-invariant.md)
 - **Ôn lại project nền:** [Module 05, bài 19 — Dự án xử lý dữ liệu bất đồng bộ](../05-csharp-nang-cao/19-du-an-xu-ly-du-lieu-bat-dong-bo.md)
-- **Bài tiếp theo theo lộ trình:** [Module 07 — Cấu trúc dữ liệu và giải thuật](../PROGRESS.md#07-cau-truc-du-lieu-giai-thuat), bắt đầu bằng `01-big-o-thoi-gian-va-bo-nho.md` khi module đó được biên soạn.
+- **Bài tiếp theo theo lộ trình:** [Module 07 — Cấu trúc dữ liệu và giải thuật](../PROGRESS.md#07-cau-truc-du-lieu-giai-thuat), bắt đầu bằng [Big-O: thời gian và bộ nhớ](../07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md).
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/03-rounding.md)
+- [Spaced Review](./reviews/review-03.md)
+- [PR Review](./pr-review-labs/01-store.md)

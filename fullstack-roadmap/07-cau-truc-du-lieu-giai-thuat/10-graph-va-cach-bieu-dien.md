@@ -1,5 +1,16 @@
 # Graph và cách biểu diễn
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Graph mô hình đỉnh và quan hệ có thể có chu trình, nhiều đường tới.
+- Dùng adjacency list khi graph thưa, matrix khi pattern truy cập phù hợp.
+- Phải chọn directed/undirected và duplicate/self-loop policy rõ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,23 @@ Sau bài này, bạn có thể:
 - liên hệ graph với mạng xã hội, route, dependency và workflow.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Bản đồ đường không giống cây gia phả: từ một điểm có thể vòng lại qua nhiều đường. Ta ghi danh sách láng giềng của từng điểm thay vì ép mỗi điểm chỉ có một cha.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| vertex | đỉnh đại diện thực thể | thành phố |
+| edge | quan hệ giữa hai đỉnh | đường hai chiều |
+| adjacency | danh sách đỉnh kề | Dictionary→HashSet |
+| degree | số cạnh liên quan đỉnh | cần quy ước self-loop |
+
+### Ví dụ nhỏ — tính tay trước
+
+Add A-B rồi B-C: A cóB, B cóA,C, C cóB. Add A-B lại không thêm cạnh logic; Edges trả mỗi cạnh hai chiều một lần.
 
 Ta có các thành phố:
 
@@ -33,7 +61,9 @@ Hanoi ---- Hue ---- Da Nang ---- HCMC
    \___________________________/
 ```
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir GraphDemo
@@ -42,6 +72,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace GraphDemo;
@@ -74,7 +121,7 @@ public sealed class Graph<T>
             throw new KeyNotFoundException($"Unknown vertex: {vertex}");
         }
 
-        return neighbors;
+        return neighbors.ToArray();
     }
 
     public IEnumerable<(T From, T To)> Edges()
@@ -110,9 +157,9 @@ internal static class Program
 
         Console.WriteLine($"Vertices = {graph.VertexCount}");
         Console.WriteLine(
-            $"Neighbors of Hanoi: {string.Join(", ", graph.Neighbors("Hanoi"))}");
+            $"Neighbors of Hanoi: {string.Join(", ", graph.Neighbors("Hanoi").OrderBy(x => x, StringComparer.Ordinal))}");
 
-        foreach ((string from, string to) in graph.Edges())
+        foreach ((string from, string to) in graph.Edges().OrderBy(x => x.From, StringComparer.Ordinal).ThenBy(x => x.To, StringComparer.Ordinal))
         {
             Console.WriteLine($"{from} <-> {to}");
         }
@@ -120,7 +167,31 @@ internal static class Program
 }
 ```
 
-## 4. Giải thích cơ chế
+Output đầy đủ:
+
+```text
+Vertices = 4
+Neighbors of Hanoi: HCMC, Hue
+Da Nang <-> HCMC
+Hanoi <-> HCMC
+Hanoi <-> Hue
+Hue <-> Da Nang
+```
+
+### Walkthrough — execution / state / cost
+
+1. AddUndirectedEdge bảo đảm cả hai vertex rồi thêm vào hai neighbor sets.
+2. HashSet gộp cạnh trùng; Edges dùng seen để bỏ hướng đảo đã xuất.
+3. Neighbors trả array snapshot shallow, caller không sửa set nội bộ qua cast.
+4. Storage O(V+E); snapshot O(degree), Edges thêm O(E) cho seen. Main sort để output ổn định, chi phí sort không thuộc AddEdge.
+
+### Mini-check
+
+Add A-A: set chứa A một lần; degree toán học tính self-loop hai lần khác Count neighbors thế nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Vertex và edge
 
@@ -217,7 +288,45 @@ O(V²)
 
 Đổi lại, kiểm tra edge `A -> B` là `O(1)`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| adjacency list | chỉ lưu cạnh có thật | O(V+E), hợp graph thưa |
+| matrix | ô cho từng cặp đỉnh | O(V²), lookupO(1) |
+| tree | một cấu trúc không cycle | không ép dependency graph đa parent vào tree |
+
+### Misconception check
+
+**Đúng hay sai?** Undirected edge phải đếm hai vì lưu hai hướng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: representation khác số cạnh logic.
+
+</details>
+
+**Đúng hay sai?** HashSet enumeration bảo đảm alphabet order.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: Main phải sort nếu muốn output ổn định.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** vertices/edges.
+
+- **Working Developer — dùng khi làm việc:** representation/alias.
+
+- **Deep Dive — có thể quay lại sau:** large graph storage khi cần.
 
 ### Sparse và dense graph
 
@@ -287,7 +396,17 @@ nhưng về logic chỉ là một edge.
 
 1 triệu vertex tạo matrix không thực tế.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không cấp matrix triệu đỉnh khi graph rất thưa. Không trả mutable neighbor set để caller phá đối xứng hai chiều.
+
+## 8. Production notes & scale check
+
+Gate kiểm cạnh lặp, hai chiều, đỉnh không tồn tại và snapshot độc lập với graph. T:notnull là ràng buộc kiểu; vertex equality/hash phải ổn định. Snapshot shallow không clone object T và không làm graph thread-safe; API không hỗ trợ concurrent updates.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Directed graph
 
@@ -325,7 +444,23 @@ Infrastructure -> Application
 
 Vẽ directed graph.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ dependency inversion ở Module 06, vẽ dependency giữa các project thành đồ thị có hướng; chỉ ra nó khác đồ thị lời gọi lúc chạy ở đâu. Nếu chỉ có vài dependency, chọn cách biểu diễn đơn giản nhất.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Một edge hai chiều lưu mấy entry?
+2. Neighbors snapshot tốn gì?
+3. Tree khác graph tổng quát ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt vertex và edge.
 - [ ] Tôi phân biệt directed/undirected và weighted/unweighted.
@@ -338,3 +473,8 @@ Vẽ directed graph.
 
 - Bài trước: [Trie](./09-trie.md)
 - Bài tiếp theo: [BFS và DFS](./11-bfs-va-dfs.md)
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/02-hash.md)
+- [Spaced Review](./reviews/review-02.md)

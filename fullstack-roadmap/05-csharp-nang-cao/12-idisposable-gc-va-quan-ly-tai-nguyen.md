@@ -1,5 +1,16 @@
 # `IDisposable`, GC và quản lý tài nguyên
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Dispose đóng tài nguyên theo ownership; GC thu managed memory theo reachability.
+- Dùng using/await using tại scope sở hữu tài nguyên hữu hạn.
+- Dispose không làm reference null hoặc tự phục hồi nghiệp vụ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -15,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Trả chìa khóa phòng ngay khi dùng xong khác với lúc người ta dọn tờ phiếu giấy. File handle cần đóng đúng hạn; object wrapper còn có thể được giữ để phát hiện dùng nhầm sau đóng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| resource | tài nguyên cần trả đúng lúc | file handle |
+| owner | nơi chịu trách nhiệm cleanup | AuditFile |
+| Dispose | kết thúc sử dụng tài nguyên | đóng writer |
+| idempotent | gọi lại không đổi kết quả đã đạt | Dispose lần2 |
+| reachability | còn đường từ root tới object | GC eligibility |
+
+### Ví dụ nhỏ — tính tay trước
+
+using ghi saved rồi throw; finally Dispose flush/đóng file. audit vẫn là reference khác null nhưng WriteLine sau đó ném ObjectDisposedException.
+
 Ứng dụng ghi audit vào file. Nếu chỉ chờ GC, file handle có thể còn mở không xác định bao lâu; dữ liệu buffer chưa flush và deploy trên Windows có thể không thay/xóa được file. Ngược lại, gọi `Dispose` không làm object biến mất: reference vẫn còn và caller vẫn có thể gọi nhầm method sau khi tài nguyên đã đóng.
 
 Ta cần một lifecycle rõ:
@@ -26,7 +55,9 @@ Ta cần một lifecycle rõ:
 5. dùng sau dispose bị từ chối rõ ràng;
 6. managed memory được GC thu hồi sau, theo reachability chứ không theo dấu ngoặc `using`.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -205,7 +236,20 @@ Async session disposed: True
 
 File tạm dùng tên ngẫu nhiên để không ghi đè dữ liệu có sẵn và được xóa trong `finally`. Output không chứa path nên vẫn deterministic.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. AuditFile constructor tạo và sở hữu StreamWriter.
+2. using rời scope gọi Dispose; field writer null hóa state disposed rồi đóng resource.
+3. AsyncSession cleanup được await trước khi Main in IsDisposed.
+4. Managed wrapper và handle khác lifetime. Cleanup có I/O/cost flush; GC không biết deadline giữ handle của nghiệp vụ.
+
+### Mini-check
+
+Nếu repository do container inject vào service, ai sở hữu quyền dispose và vì sao không tự đóng ở mỗi caller?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Object graph trước và sau `Dispose`
 
@@ -264,7 +308,45 @@ Vì vậy `Dispose` chạy khi block kết thúc bình thường, `return` hoặ
 
 Sample dùng `Task.Yield` chỉ để minh họa control flow. Nếu cleanup chỉ làm việc đồng bộ nhỏ, implement `IDisposable`; đừng tạo fake async API không cần thiết.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| using | cleanup sync ở scope | hợp owner IDisposable |
+| await using | await cleanup async | hợp resource thật cần await |
+| GC/finalizer | thu memory/fallback không định thời | không thay deterministic close |
+
+### Misconception check
+
+**Đúng hay sai?** Dispose làm object biến mất ngay.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: wrapper vẫn có thể reachable.
+
+</details>
+
+**Đúng hay sai?** Mọi IDisposable phải có finalizer.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: owner chỉ giữ managed disposable thường không cần.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** ownership và using.
+
+- **Working Developer — dùng khi làm việc:** exception cleanup, disposed state.
+
+- **Deep Dive — có thể quay lại sau:** SafeHandle/inheritance chỉ khi cần.
 
 ### GC quản lý memory theo reachability
 
@@ -333,7 +415,17 @@ Sync-over-async có thể deadlock/block thread và bỏ mất semantics excepti
 
 Dispose thường nên chịu được lần gọi lặp. Điều đó không tự làm type thread-safe khi `Write` và `Dispose` chạy đồng thời; sample tuyên bố single-owner. Nếu cần concurrency, thiết kế synchronization/lifetime protocol và test race riêng.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không gọi GC.Collect để sửa leak handle. Không fake async cleanup chỉ để dùng await using. Không dispose dependency mượn khi chưa nhận ownership.
+
+## 8. Production notes & scale check
+
+Gate exception vẫn flush, mở lại file độc quyền, dispose lặp và use-after-dispose cả sync/async. Sample single-owner; không chứng nhận Write/Dispose đồng thời hoặc flush durable sau mất điện.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Dùng `using` declaration
 
@@ -365,7 +457,23 @@ Vẽ graph Controller -> Service -> injected repository -> connection. Chỉ ra 
 
 Gợi ý: dependency do container cấp thường được container đóng; object per-operation do method tạo thường được method dùng bằng using.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu RAII C++ Module03 với C# using và GC: phần nào theo scope, phần nào không? Vẽ đường resource qua wrapper thay vì nói mọi new cần Dispose.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Dispose khác GC ở tài nguyên nào?
+2. using chạy khi throw không?
+3. Idempotent có đồng nghĩa thread-safe không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt managed memory với external/scarce resource.
 - [ ] Tôi giải thích được using hạ thành try/finally.

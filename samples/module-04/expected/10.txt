@@ -1,0 +1,7 @@
+Charging card via DemoPay: 1,250,000 VND for ORD-1001
+Receipt sent to an@example.com: ORD-1001, 1,250,000 VND, provider DemoPay
+Refund accepted: 250,000 VND for ORD-1001
+Healthy (default check)
+
+Creating transfer via VCB: 800,000 VND for ORD-1002
+Receipt sent to binh@example.com: ORD-1002, 800,000 VND, provider VCB

@@ -18,6 +18,8 @@ Ngoài correctness, xem giới hạn buffer, EOF, contract count, assertion khi 
 
 ## Rubric
 
+Trong review, xét correctness, performance, security, maintainability và operability; nếu một nhóm không có finding, ghi lý do thay vì bịa lỗi. Input safety thuộc cả correctness và security khi dữ liệu đến từ nguồn không tin cậy.
+
 | Nhóm | Trọng số | Bằng chứng |
 |---|---:|---|
 | Correctness | 30% | trace/ca cụ thể làm sai output |

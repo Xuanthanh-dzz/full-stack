@@ -1,5 +1,16 @@
 # Greedy
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Greedy chọn tốt nhất theo tiêu chí cục bộ và cần lập luận để đúng toàn cục.
+- Bài chọn nhiều cuộc họp nhất dùng thời điểm kết thúc sớm nhất.
+- Không chuyển tiêu chí ấy sang lợi nhuận hoặc ràng buộc khác mà không chứng minh.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,22 @@ Sau bài này, bạn có thể:
 - liên hệ greedy với scheduling, MST và resource allocation.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Chọn cuộc họp kết thúc sớm để chừa nhiều thời gian cho phần còn lại. Ý tưởng có lý nhưng phải chứng minh đổi cuộc họp đầu của một lời giải tối ưu sang lựa chọn này không làm giảm số cuộc họp.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| greedy | chọn cục bộ rồi không quay lại | earliest finish |
+| exchange argument | đổi một lựa chọn mà không làm lời giải tệ hơn | thay cuộc họp đầu |
+| half-open interval | gồm đầu nhưng không gồm cuối | [9,10) nối được [10,11) |
+
+### Ví dụ nhỏ — tính tay trước
+
+A[9,10),B[9,12),C[10,11) →chọn A,C. Giờ trong code là mốc int rời rạc; lịch 09:30 cần đổi sang phút hoặc kiểu thời gian trước.
 
 Một phòng học chỉ tổ chức được một lớp tại một thời điểm.
 
@@ -35,7 +62,9 @@ Chiến lược đúng kinh điển:
 
 Đây là greedy.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir GreedyDemo
@@ -44,6 +73,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace GreedyDemo;
@@ -80,7 +126,16 @@ internal static class Program
     private static IReadOnlyList<Session>
         SelectMaximumNonOverlapping(IEnumerable<Session> sessions)
     {
-        Session[] ordered = sessions
+        ArgumentNullException.ThrowIfNull(sessions);
+        Session[] input = sessions.ToArray();
+        foreach (Session session in input)
+        {
+            ArgumentNullException.ThrowIfNull(session);
+            if (session.End <= session.Start)
+                throw new ArgumentException("Sessions must have positive duration.", nameof(sessions));
+        }
+
+        Session[] ordered = input
             .OrderBy(x => x.End)
             .ThenBy(x => x.Start)
             .ToArray();
@@ -113,7 +168,20 @@ E: 11:00-12:00
 F: 12:00-13:00
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Materialize input một lần và chặn interval có End<=Start.
+2. Sort theo End, quét lần lượt, nhận khi Start>=lastEnd.
+3. Giữ danh sách đã nhận và mốc kết thúc cuối; không sửa input array.
+4. Sort O(n log n), scan O(n), bộ nhớ O(n). Tối ưu số lượng, không tối ưu tổng tiền hay mức ưu tiên.
+
+### Mini-check
+
+Với B trả 100 và A,C mỗi cuộc trả 1, greedy hiện tại tối ưu đại lượng nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Quyết định cục bộ
 
@@ -159,7 +227,45 @@ Một interval rất ngắn nhưng nằm giữa có thể chặn hai interval kh
 
 Do đó mỗi heuristic phải được kiểm tra bằng proof hoặc counterexample.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| earliest finish | tối đa số interval không giao | có exchange argument |
+| highest profit first | bài có trọng số | không tự đúng |
+| dynamic programming | cần xét nhiều phương án liên quan | thêm state khi greedy không có chứng minh |
+
+### Misconception check
+
+**Đúng hay sai?** Cuộc họp ngắn nhất luôn là lựa chọn đúng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể chắn hai cuộc họp khác.
+
+</details>
+
+**Đúng hay sai?** Một cuộc họp kết thúc ở mốc 10 và cuộc khác bắt đầu ở mốc 10 thì bị giao nhau.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai trong contract [Start,End); đổi quy tắc biên sẽ đổi kết quả.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace lựa chọn.
+
+- **Working Developer — dùng khi làm việc:** proof và counterexample.
+
+- **Deep Dive — có thể quay lại sau:** weighted interval scheduling khi cần.
 
 ### Greedy-choice property
 
@@ -212,7 +318,17 @@ Start sớm nhưng end rất muộn có thể chặn nhiều interval.
 
 Nếu mỗi interval có profit khác nhau và mục tiêu tối đa profit, greedy finish-earliest không còn đủ. Bài đó thường dẫn tới dynamic programming.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng greedy như mẹo vì chạy nhanh nếu chưa có lý do đúng. Không trộn ràng buộc phòng, di chuyển hoặc trọng số vào bài mà giữ nguyên lời giải.
+
+## 8. Production notes & scale check
+
+Gate so số lượng chọn với vét cạn tập con nhỏ và kiểm tính không giao nhau. Các lời giải tối ưu có thể khác ID khi hòa; chỉ so đặc tính cần bảo đảm. Input lớn vẫn cần tính chi phí materialization.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Counterexample
 
@@ -250,7 +366,23 @@ Giải thích vì sao 0/1 knapsack khác.
 
 Viết exchange argument ngắn cho interval scheduling finish-earliest.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ contract ở Module 06: thêm phí cho từng cuộc họp là đổi cách trình bày kết quả hay đổi bài toán cần tối ưu? Nêu phản ví dụ trước khi đề xuất weighted scheduling.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Greedy đang tối ưu gì?
+2. Exchange argument bảo vệ bước nào?
+3. Biên chạm nhau được nhận không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi hiểu greedy là quyết định cục bộ.
 - [ ] Tôi không áp dụng greedy nếu chưa có lý do đúng.
@@ -263,3 +395,8 @@ Viết exchange argument ngắn cho interval scheduling finish-earliest.
 
 - Bài trước: [Searching](./14-searching.md)
 - Bài tiếp theo: [Backtracking](./16-backtracking.md)
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/03-search.md)
+- [Spaced Review](./reviews/review-03.md)

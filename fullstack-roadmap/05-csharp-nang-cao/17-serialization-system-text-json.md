@@ -1,5 +1,16 @@
 # Serialization với `System.Text.Json`
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Serialization đổi object sang wire format theo contract riêng.
+- Dùng DTO và JsonTypeInfo rõ để kiểm soát tên, enum, required và null.
+- JSON hợp cú pháp chưa có nghĩa dữ liệu hợp nghiệp vụ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 - nhận ra giới hạn allocation, payload size, depth và polymorphism.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Gửi phiếu qua đường dây cần thống nhất tên ô và cách ghi giá trị. Người nhận dựng phiếu mới từ text, rồi vẫn phải kiểm tra số tiền và mã đơn trước khi chấp nhận.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| DTO | dữ liệu dành cho boundary | OrderDto |
+| wire contract | quy ước dữ liệu trao đổi | camelCase và enum string |
+| source generation | sinh metadata lúc build | AppJsonContext |
+| presence | field có xuất hiện | required Total |
+
+### Ví dụ nhỏ — tính tay trước
+
+Thiếu total → lỗi contract; total=-1 có mặt → deserialize được nhưng Validate từ chối. status1 bị converter chặn; statusPaid được nhận.
 
 Dịch vụ đơn hàng cần gửi object sau qua HTTP hoặc message broker:
 
@@ -32,7 +60,9 @@ Ta cần một contract cụ thể:
 - field JSON không biết bị từ chối trong contract nghiêm ngặt;
 - metadata serializer được sinh lúc compile để thân thiện hơn với trimming/AOT.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -243,7 +273,20 @@ Strict contract rejected an unknown JSON member.
 Strict enum contract rejected a numeric status.
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Generator tạo JsonTypeInfo từ DTO và attributes lúc build.
+2. Serialize ghi JSON, bỏ Note null; deserialize tạo object mới.
+3. Validate kiểm tra Id/Total/Status sau parse.
+4. Unknown field bị từ chối theo policy strict. Text và object đều tốn memory theo payload; source generation không xóa allocation.
+
+### Mini-check
+
+Producer thêm field optional nhưng consumer cũ Disallow: rollout nào sẽ lỗi?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Serialization đi qua một contract
 
@@ -321,7 +364,45 @@ JSON number không mang type CLR. Contract quyết định token được parse 
 
 Cách này giảm nhu cầu reflection discovery runtime, cải thiện startup và khả năng trimming/Native AOT. Nó không bảo đảm zero allocation và không tự tối ưu network/I/O. Mọi type cần serialize phải có entry/context phù hợp hoặc resolver được cấu hình có chủ đích.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| typed DTO | contract biết trước | dễ validate và version |
+| DOM | dữ liệu linh hoạt | thêm ownership/lookup và validation |
+| strict unknown field | bắt typo sớm | producer thêm field có thể phá consumer cũ |
+
+### Misconception check
+
+**Đúng hay sai?** required đảm bảo Id không trắng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: presence khác business validation.
+
+</details>
+
+**Đúng hay sai?** Source generation chứng minh zero allocation.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: text/object/buffer vẫn được tạo.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** object/wire contract.
+
+- **Working Developer — dùng khi làm việc:** source generation và validation.
+
+- **Deep Dive — có thể quay lại sau:** streaming/version rollout theo scale.
 
 ### API chính
 
@@ -387,7 +468,17 @@ Nó giảm reflection metadata work; string output, object mới, collection, co
 
 JSON có thể chứa token, email hoặc dữ liệu cá nhân. Redact theo field, giới hạn độ dài và không log raw payload mặc định.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không deserialize tên CLR type tùy ý. Không serialize mọi domain property thành API công khai nếu wire contract có vòng đời riêng.
+
+## 8. Production notes & scale check
+
+Gate missing field, enum số/tên lạ, null payload và total âm. Chưa publish AOT; source generation chỉ là cơ chế đã build/chạy. Timestamp format hợp lệ chưa kiểm mọi policy thời gian.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Field optional
 
@@ -419,7 +510,23 @@ Tạo converter cho một mã đơn có format `ORD-xxxx`, từ chối format sa
 
 **Gợi ý:** converter xử lý wire representation; business lookup/authorization vẫn nằm ngoài converter.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với JSON todo Module04, tách lỗi syntax/presence/domain và giữ dữ liệu cũ khi import sai. Chọn strict hoặc lenient theo nhu cầu compatibility cụ thể.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Presence khác validation thế nào?
+2. Deserialize null trả gì?
+3. Unknown member ảnh hưởng versioning ra sao?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi coi JSON là wire contract có version, không phải ảnh chụp object tùy ý.
 - [ ] Tôi phân biệt required presence với business validation.

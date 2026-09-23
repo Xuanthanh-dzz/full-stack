@@ -1,0 +1,43 @@
+diff --git a/TodoService.cs b/TodoService.cs
+--- a/TodoService.cs
++++ b/TodoService.cs
+@@ -2,26 +2,25 @@
+ {
+     var candidate = new List<Todo>(_items);
+     var old = candidate.Single(x => x.Id == id);
+-    candidate[candidate.IndexOf(old)] = new Todo(old.Id, true);
++    old.Done = true;
++    _items = candidate;
+     _repository.Save(candidate);
+-    _items = candidate;
+ }
+
+ public int Run(string input)
+ {
+-    if (!int.TryParse(input, out int id)) return 2;
++    int id = int.Parse(input);
+     Complete(id);
+     return 0;
+ }
+
+ public IReadOnlyList<Todo> List()
+ {
+-    return _items.Select(item => new Todo(item.Id, item.Done)).ToList();
++    return _items;
+ }
+
+ public bool Add(Todo item)
+ {
+-    if (_items.Any(existing => existing.Id == item.Id)) return false;
+     var candidate = new List<Todo>(_items) { item };
+     _repository.Save(candidate);
+     _items = candidate;
+@@ -31,7 +30,7 @@
+ public bool Remove(int id)
+ {
+     var candidate = new List<Todo>(_items);
+-    if (candidate.RemoveAll(item => item.Id == id) == 0) return false;
++    candidate.RemoveAll(item => item.Id == id);
+     _repository.Save(candidate);
+     _items = candidate;
+     return true;

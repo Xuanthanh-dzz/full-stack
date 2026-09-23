@@ -15,12 +15,14 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 |---|---:|---:|---:|---:|---|---|---|
 | 01 | 15/15 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35707360303](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35707360303) | PENDING |
 | 02 | 15/15 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35709456015](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35709456015) | PENDING |
-| 03 | 14/14 | 3 | 3 | 1 | PASS, 2026-09-22 | PENDING — chờ run của commit Module 03 | PENDING |
-| 04 | 0/16 | — | — | — | Chưa retrofit | — | — |
-| 05 | 0/19 | — | — | — | Chưa retrofit; C# Foundation checkpoint chưa tạo | — | — |
-| 06 | 0/14 | — | — | — | Chưa retrofit | — | — |
-| 07 | 0/19 | — | — | — | Chưa retrofit | — | — |
-| 08 | 0/25 | — | — | — | Chưa retrofit | — | — |
+| 03 | 14/14 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35711021739](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35711021739) | PENDING |
+| 04 | 16/16 | 3 | 3 | 1 | PASS, 2026-09-22 | [PASS — 35713592813](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35713592813) | PENDING |
+| 05 | 19/19 | 4 | 4 | 1 | PASS, 2026-09-22; C# Foundation checkpoint đã tạo | [PASS — 35715998560](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35715998560) | PENDING |
+| 06 | 14/14 | 3 | 3 | 1 | PASS, samples 2026-09-22; docs/links 2026-09-23 | [PASS — 35807998467](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35807998467) | PENDING |
+| 07 | 19/19 | 4 | 4 | 1 | PASS, 2026-09-23 | [PASS — 35810300665](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35810300665) | PENDING |
+| 08 | 25/25 | 5 | 5 | 1 | PASS docs/8168 rendered links local, 2026-09-23; SQL runtime PASS trên runner riêng | [PASS — 35813556555](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35813556555) | PENDING |
+
+Checkpoint review đang tiến hành: [báo cáo, findings và phạm vi đã đọc](./00-huong-dan/retrofit-01-08-maintainer-review.md). PR labs Module 02–06 và lỗi trình bày trong assessment đã sửa; chín workflow CI của commit review `576a567` đều PASS. Câu ví dụ và câu hỏi Module 07–08 đã được biên tập tiếp, verifier hai module và MkDocs strict local qua; [CI của HEAD trên nhánh](https://github.com/Xuanthanh-dzz/full-stack/actions?query=branch%3Aretrofit%2Fmodules-01-08-v4) cần được đối chiếu theo SHA sau khi đẩy. Review sâu 137 bài và maintainer sign-off còn pending.
 
 Module 01: [bản đồ học và lệnh kiểm tra](./01-nen-tang-lap-trinh/index.md).
 Gate cấu trúc tự động không chứng nhận chất lượng giải thích; reviewer cần kiểm tra người mới có thể trace code/state/cost và làm judgment độc lập. Các checkbox bài cũ vẫn phản ánh completion lịch sử, không phải xác nhận đã retrofit toàn bộ. Tổng giữ **164/421**.
@@ -48,7 +50,7 @@ Gate cấu trúc tự động không chứng nhận chất lượng giải thíc
 
 ## Definition of Done cho một bài học
 
-- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 03 đã retrofit v4 và chạy gate local; CI remote còn pending. Module 04–08 giữ trạng thái legacy cho đến lượt retrofit; không được coi là đã đạt v4.
+- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 03 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 04 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 05 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 06 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 07 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 08 đã qua SQL runtime trên runner riêng và full gate CI; maintainer review còn pending. Retrofit Module 01–08 đã qua kiểm chứng; dừng tại đây, không bắt đầu Module 10 cho tới maintainer review và yêu cầu tiếp theo.
 - Module 09+ bắt buộc Lesson Authoring Standard v4: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment/retrieval, cùng clarity blocks: trực giác, từ vựng, walkthrough, comparison/trace, misconception check, mini-check và Beginner/Working Developer/Deep Dive.
 - Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.

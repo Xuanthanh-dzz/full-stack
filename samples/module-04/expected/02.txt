@@ -1,0 +1,7 @@
+Quantity: 3
+Unit price: 249900.50
+Discount: 74970.15
+Payable: 674731 VND
+Reward points: 4500000000
+Remaining stock: 9
+Order size: S

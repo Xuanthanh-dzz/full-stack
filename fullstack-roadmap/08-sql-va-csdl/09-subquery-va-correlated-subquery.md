@@ -1,5 +1,16 @@
 # Subquery và correlated subquery
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Subquery dùng một truy vấn trong truy vấn khác theo shape cần thiết.
+- EXISTS/NOT EXISTS diễn đạt có hay không có row liên quan.
+- Correlated là phụ thuộc logic vào outer row, không khẳng định server chạy riêng một query mạng cho mỗi row.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Với mỗi thẻ khách, câu hỏi chỉ là “có hóa đơn đã trả không”, không cần đem mọi hóa đơn vào kết quả. EXISTS diễn đạt đúng câu hỏi có/không ấy và giữ mỗi thẻ khách một lần.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| scalar subquery | trả một cột, tối đa một row | MAX ngày đơn |
+| correlated | tham chiếu dữ liệu từ query ngoài | o.CustomerId=c.CustomerId |
+| semi join | giữ row trái có match, không nhân theo số match | EXISTS |
+| anti match | giữ row trái không có match | NOT EXISTS |
+
+### Ví dụ nhỏ — tính tay trước
+
+An có Paid và Pending, Bình có Paid, Chi không có order. EXISTS Paid trả An,Bình mỗi người một lần. NOT EXISTS order trả Chi; MAX ngày của Chi là NULL.
+
 Cần tìm:
 
 - customer có ít nhất một paid order;
@@ -23,7 +51,9 @@ Cần tìm:
 
 Subquery cho phép một query dùng kết quả của query khác.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -125,7 +155,20 @@ ORDER BY c.CustomerId;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Query ngoài cung cấp CustomerId cho điều kiện liên quan trong query con theo nghĩa logic.
+2. EXISTS kiểm có row; các cột SELECT trong query con không được đưa ra kết quả.
+3. Scalar subquery trả 0 row cho `NULL`; trả hơn 1 row gây lỗi nếu không dùng aggregate để thu về 1 row.
+4. Optimizer có thể decorrelate hoặc chọn semi join; đo plan để biết đọc/index/memory thực tế. Một SQL request không tự là N+1 network requests.
+
+### Mini-check
+
+3 NOT IN (1,NULL) là TRUE hay UNKNOWN? WHERE sẽ giữ row không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Scalar subquery
 
@@ -166,7 +209,45 @@ Rất phù hợp tìm “không có child”.
 customers with no orders
 ```
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| EXISTS | kiểm tồn tại, giữ multiplicity trái | không cần JOIN+DISTINCT |
+| JOIN | cần cột phía phải hoặc mọi cặp | có thể nhân row |
+| NOT IN | so với danh sách giá trị | NULL trong danh sách làm UNKNOWN |
+
+### Misconception check
+
+**Đúng hay sai?** JOIN luôn nhanh hơn subquery.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: optimizer/workload quyết định.
+
+</details>
+
+**Đúng hay sai?** NOT IN và NOT EXISTS luôn tương đương.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai khi NULL và predicate có semantics khác.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** shape subquery.
+
+- **Working Developer — dùng khi làm việc:** NULL và cardinality.
+
+- **Deep Dive — có thể quay lại sau:** decorrelation/plan nếu query chậm.
 
 ### NOT IN và NULL
 
@@ -215,7 +296,17 @@ Không cần column cụ thể.
 
 `SELECT 1` thể hiện intent rõ.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng scalar subquery nếu nghiệp vụ thật sự có nhiều kết quả mà chưa chọn rule. Không rewrite EXISTS thành JOIN rồi thêm DISTINCT chỉ vì nghĩ JOIN nhanh hơn.
+
+## 8. Production notes & scale check
+
+Gate kiểm membership, anti-match, average threshold và scalar NULL; negative case nhiều row phải báo lỗi. `SELECT 1` trong `EXISTS` diễn đạt intent, không mặc định nhanh hơn `SELECT *`. Ca NULL minh họa lý do chọn NOT EXISTS.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -237,7 +328,23 @@ Rewrite một EXISTS thành JOIN và so execution plan.
 
 Tạo demo `NOT IN` chứa NULL và giải thích kết quả.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ LINQ IEnumerable Module 05, Any và Join trả shape khác nhau thế nào? Đến Module 09 cần phân biệt query SQL một lần với loop client gọi DB nhiều lần.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Scalar subquery trả 0 row thì kết quả là gì?
+2. EXISTS có nhân khách theo số đơn không?
+3. Correlation mô tả logic hay số network calls?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi viết được scalar subquery.
 - [ ] Tôi dùng EXISTS/NOT EXISTS.

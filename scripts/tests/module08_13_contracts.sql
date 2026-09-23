@@ -1,0 +1,12 @@
+SET NOCOUNT ON;
+IF (SELECT COUNT(*) FROM dbo.vActiveProducts)<>1 OR (SELECT COUNT(*) FROM dbo.OrdersForCustomer(1))<>2 OR (SELECT COUNT(*) FROM dbo.PriceAudit)<>1 THROW 52013,'object fixture',1;
+DECLARE @Result TABLE(OrderId int,CustomerId int,TotalAmount decimal(19,4));INSERT @Result EXEC dbo.GetOrdersByCustomer 1;
+IF (SELECT SUM(TotalAmount) FROM @Result)<>4000000 THROW 52013,'procedure result',1;
+BEGIN TRAN;
+UPDATE dbo.Products SET Price=Price+10;
+IF (SELECT COUNT(*) FROM dbo.PriceAudit)<>3 THROW 52013,'multi-row audit',1;
+UPDATE dbo.Products SET Price=Price;
+IF (SELECT COUNT(*) FROM dbo.PriceAudit)<>3 THROW 52013,'no-op audit',1;
+ROLLBACK;
+IF (SELECT COUNT(*) FROM dbo.PriceAudit)<>1 THROW 52013,'audit rollback',1;
+SELECT 'CONTRACT_OK';

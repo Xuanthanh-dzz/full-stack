@@ -1,30 +1,37 @@
 # PR Review — Quyền sở hữu trong kho C
 
-Bối cảnh: dự án một process, một writer, vài chục sản phẩm. PR rút ngắn reserve/destroy/load; test happy path đang xanh. Đây là diff huấn luyện độc lập, không áp trực tiếp vào repo. Product nằm trong mảng do Inventory sở hữu; code/name là hai allocation riêng. Caller cần dữ liệu cũ nguyên vẹn khi load lỗi. Giới hạn capacity đã được caller kiểm tra trước reserve; tập trung cả lỗi mới lẫn giả định contract cần xác minh.
+Bối cảnh: dự án một process, một writer, vài chục sản phẩm. PR rút ngắn các thao tác với kho; test happy path đang xanh. Đây là diff huấn luyện độc lập, không áp trực tiếp vào repo. Product nằm trong mảng do Inventory sở hữu; code/name là hai allocation riêng. `reserve` chỉ đổi sức chứa, không đổi số phần tử đang dùng; caller đã kiểm tra giới hạn capacity. `load` lỗi phải giữ dữ liệu cũ. Mã sản phẩm khớp chính xác; kết quả `save` phải phản ánh cả lỗi đóng stream.
 
 ## Diff
 
-Đọc [patch inventory-ownership.diff](./diffs/inventory-ownership.diff). Phải review cả ba hunk; không chỉ tìm warning compiler.
+Đọc [patch inventory-ownership.diff](./diffs/inventory-ownership.diff). Review toàn bộ patch; không chỉ tìm warning compiler.
 
 ## Nhiệm vụ review
 
-- Phân loại blocker/major/minor với vị trí, cách tái hiện và hậu quả cụ thể.
-- Vẽ owner của items, Product và hai chuỗi; đánh giá free(product) khi product là &items[1].
-- Trace realloc thất bại và load lỗi giữa file; chỉ rõ state nào mất.
-- Đề xuất test allocation failure, remove phần tử giữa, malformed file giữ destination; chỉ thêm test có thể bắt regression.
-- Đánh giá yêu cầu “dùng hash table ngay để nhanh hơn”: cần đo gì trước khi chấp nhận với quy mô này?
+- Vẽ state và owner trước/sau mỗi thao tác ở đường thành công và thất bại.
+- Phân loại blocker/major/minor; mỗi finding phải có vị trí, input hoặc điều kiện tái hiện và hậu quả cụ thể.
+- Kiểm tra implementation có giữ các contract nêu trong bối cảnh không; phân biệt lỗi của PR với giả định caller phải đáp ứng.
+- Đề xuất regression test có expected behavior rõ và sửa nhỏ nhất sau lượt review độc lập.
+- Đánh giá đề xuất dùng hash table với vài chục sản phẩm: cần evidence nào trước khi tăng độ phức tạp?
 
 ## Rubric
 
+Chấm theo contract, bằng chứng, regression và lựa chọn phù hợp quy mô. Trong review, xét correctness, performance, security, maintainability và operability; nếu một nhóm không có finding, ghi lý do thay vì bịa lỗi. Viết review độc lập trước khi mở tiêu chí chi tiết.
+
+<details markdown="1">
+<summary>Sau khi nộp lượt review đầu: mở tiêu chí chấm chi tiết</summary>
+
 | Tiêu chí | Điểm |
 |---|---:|
-| Bắt đúng mất owner và invalid free, có trace | 30 |
-| Contract load và giữ state khi lỗi | 25 |
+| Correctness của state, lookup và I/O | 35 |
+| Ownership và failure trace | 25 |
 | Regression test có expected behavior rõ | 20 |
-| Chọn sửa nhỏ phù hợp quy mô | 15 |
+| Chọn sửa nhỏ phù hợp quy mô | 10 |
 | Comment rõ mức độ, vị trí, đề xuất kiểm chứng | 10 |
 
 Từ 80/100 và không bỏ sót lỗi giải phóng sai mới đạt. Nhận xét chỉ nói “code smell” không có evidence không được điểm correctness.
+
+</details>
 
 ## Submission format
 

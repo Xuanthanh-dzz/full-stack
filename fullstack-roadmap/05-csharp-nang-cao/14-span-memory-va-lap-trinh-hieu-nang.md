@@ -1,5 +1,16 @@
 # `Span<T>`, `Memory<T>` và lập trình hiệu năng
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Span là view có vùng bắt đầu/độ dài; Memory là descriptor có thể giữ qua await.
+- Dùng để giảm copy/substring ở hotspot đã có nhu cầu đo.
+- View không sở hữu buffer; readonly view không làm backing storage bất biến.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,24 @@ Sau bài này, bạn có thể:
 - chỉ áp dụng tối ưu sau khi có phép đo và yêu cầu hiệu năng rõ ràng.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Đặt khung nhìn lên vài ô trong bảng không chép bảng. Hai khung chồng nhau nhìn cùng ô; sửa qua khung ghi sẽ thấy ở bảng gốc. Khung không được sống lâu hơn bảng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| span | view vùng nhớ liên tiếp | ReadOnlySpan<char> |
+| slice | view con theo range | sensorId |
+| ref struct | kiểu chịu quy tắc escape/lifetime | ReadingView |
+| stackalloc | buffer thuộc frame thực thi hiện tại | 3 double |
+| Memory | descriptor lưu được qua await | input.AsMemory() |
+
+### Ví dụ nhỏ — tính tay trước
+
+Array[1,2,3], view=AsSpan(1),view[0]=9 →array[1]=9. Sensor1,2,3 trung bình2; NaN/Infinity parse số nhưng bị từ chối bởi IsFinite.
 
 Gateway nhận hàng triệu dòng cảm biến dạng:
 
@@ -31,7 +60,9 @@ Cách dễ viết là `Split(',')`, nhưng mỗi field text có thể trở thà
 
 Đây là bài toán giảm allocation đã biết trước, không phải lời khuyên thay mọi `string` bằng span.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -73,7 +104,7 @@ internal static class Program
             return;
         }
 
-        // Ba double nằm trong buffer thuộc stack frame của Main.
+        // Buffer chỉ dùng trước await, thuộc lần thực thi MoveNext hiện tại.
         Span<double> samples = stackalloc double[3];
         samples[0] = reading.Sample1;
         samples[1] = reading.Sample2;
@@ -163,7 +194,7 @@ internal static class Program
             text,
             NumberStyles.Float,
             CultureInfo.InvariantCulture,
-            out value);
+            out value) && double.IsFinite(value);
     }
 
     private static void ClampInPlace(
@@ -246,7 +277,20 @@ Adjusted samples: 23.50, 24.25, 25.00
 Memory length after await: 29
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Parser tìm đúng4dấu phẩy, tạo slice từ input string không copy text.
+2. TryParse đọc số với invariant culture và yêu cầu hữu hạn.
+3. Buffer3double được dùng/clamp/tính xong trước await; SensorId materialize string khi cần giữ.
+4. Memory giữ input backing string qua yield. Scan O(length), fixed scratch; output/ToString/async vẫn có allocation.
+
+### Mini-check
+
+Span lấy từ stackalloc local có được return cho caller không? Vì sao Memory không tự chữa lifetime của stack buffer?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Slice là view, không phải substring
 
@@ -334,7 +378,45 @@ Không được quảng cáo “zero allocation” cho toàn chương trình ch�
 
 C# mới cho phép một số ref-struct local trong async/iterator nếu compiler chứng minh chúng không vượt qua suspension point. Quy tắc an toàn vẫn là: kết thúc mọi thao tác span trước `await`; dùng `Memory<T>` nếu dữ liệu cần vượt qua điểm tạm dừng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Split/Substring | tạo text/container riêng | dễ đọc, đủ workload nhỏ |
+| Span slice | view đồng bộ | không copy nhưng có lifetime constraint |
+| Memory | descriptor storable | không tự trả buffer pool/định nghĩa ownership |
+
+### Misconception check
+
+**Đúng hay sai?** ReadOnlySpan nhìn array khiến array không đổi qua alias khác.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ cấm ghi qua view đó.
+
+</details>
+
+**Đúng hay sai?** C#13 cấm mọi Span local trong async method.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể dùng khi không sống qua suspension point.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** view và alias.
+
+- **Working Developer — dùng khi làm việc:** escape, ownership và finite data.
+
+- **Deep Dive — có thể quay lại sau:** allocation measurement theo hotspot.
 
 ### Bảng chọn type
 
@@ -386,13 +468,23 @@ Input lớn có thể làm cạn stack. Đặt ngưỡng nhỏ; trên ngưỡng 
 
 Span làm API và lifetime phức tạp hơn. Nếu đoạn code không phải hotspot hoặc allocation không đáng kể, phiên bản `Split` có thể dễ bảo trì hơn. Đo baseline trước và sau.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không stackalloc theo input không giới hạn hoặc lặp nhiều lần trong loop. Không đổi toàn API sang span nếu parse chưa phải bottleneck.
+
+## 8. Production notes & scale check
+
+Gate parse đủ/thừa/thiếu field, status, NaN/vô cực và alias; compile rejection kiểm escape/await. Không công bố zero-allocation toàn chương trình hoặc benchmark span thắng Split khi chưa đo cùng output ownership.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Parse ba số nguyên
 
 Parse `"10|20|30"` bằng `ReadOnlySpan<char>`, không dùng `Split` hoặc `Substring`.
 
-**Gợi ý:** tổng quát hóa `TryTakeField` để nhận separator; kiểm tra thừa/thiếu field.
+**Gợi ý:** xây helper tách field dựa trên `TryFindSeparators` để nhận separator; kiểm tra thừa/thiếu field.
 
 ### Bài 2 — Sửa một slice của array
 
@@ -418,7 +510,23 @@ So sánh parser dùng `Split` với parser span trên cùng dữ liệu và ki�
 
 **Gợi ý:** warm up, chạy Release, đo nhiều lần; dùng kỹ thuật ở bài 18 và không tính `Console.WriteLine` trong vùng đo.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với pointer+length C Module02, compiler C# chặn lớp lỗi lifetime nào và còn alias/ownership nào cần thiết kế? So array range Module04 với span slice.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Slice copy ký tự không?
+2. Memory giữ backing string thế nào?
+3. IsFinite kiểm thêm điều gì sau TryParse?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi vẽ được span header và backing storage riêng biệt.
 - [ ] Tôi biết slice tạo view, không tự copy dữ liệu.

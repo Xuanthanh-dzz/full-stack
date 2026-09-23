@@ -1,0 +1,54 @@
+name: Verify Module 05 clarity v4
+on:
+  push:
+    paths:
+      - 'fullstack-roadmap/05-csharp-nang-cao/**'
+      - 'fullstack-roadmap/00-huong-dan/**'
+      - 'fullstack-roadmap/PROGRESS.md'
+      - 'samples/module-05/**'
+      - 'scripts/verify_module_05.py'
+      - 'scripts/verify_module_01.py'
+      - 'scripts/verify_module_04.py'
+      - 'scripts/verify_retrofit_v4.py'
+      - 'scripts/tests/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - '.github/workflows/verify-module-05.yml'
+  pull_request:
+    paths:
+      - 'fullstack-roadmap/**'
+      - 'samples/module-05/**'
+      - 'scripts/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - '.github/workflows/verify-module-05.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.121'
+      - run: pip install -r requirements-docs.txt
+      - name: Gate regression tests
+        run: python -m unittest discover -s scripts/tests -v
+      - name: Release samples, contracts, compiler rejection and Failure Labs
+        run: python scripts/verify_module_05.py --report artifacts/module05-release.json
+      - name: Debug guards and diagnostics
+        run: python scripts/verify_module_05.py --configuration Debug --report artifacts/module05-debug.json
+      - name: Strict documentation build
+        run: python -m mkdocs build --strict --site-dir /tmp/fullstack-site
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module05-verification
+          path: artifacts/*.json
+          if-no-files-found: warn

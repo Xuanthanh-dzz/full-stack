@@ -1,0 +1,23 @@
+=== Ke hoach theo chi nhanh ===
+Ha Noi  : 40,500,000 VND
+Da Nang : 30,500,000 VND
+Can Tho : 28,500,000 VND
+
+=== Giao dich gan nhat ===
+Ha Noi  : moi nhat 900,000; hai giao dich cuoi [1500000, 900000]
+Da Nang : moi nhat 1,100,000; hai giao dich cuoi [700000, 1100000]
+Can Tho : moi nhat 900,000; hai giao dich cuoi [650000, 900000]
+
+Mang goc     : Ha Noi | Da Nang | Can Tho
+Mang cat moi : Da Nang - Central | Can Tho
+
+original[0] sau khi sua qua alias: 9,999,000
+Cung object mang: True
+
+Chuoi goc: sale; chuoi moi: SALE
+Cung object chuoi: False
+
+label       : A😀B
+Length      : 4 UTF-16 code units
+Rune count  : 3 Unicode scalar values
+Cac Rune    : U+41 U+1F600 U+42 

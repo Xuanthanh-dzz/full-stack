@@ -1,5 +1,16 @@
 # Mô hình quan hệ và cài đặt SQL Server
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Database quan hệ lưu các bảng có khóa và quy tắc liên kết.
+- Dùng khi nhiều thao tác cần dữ liệu bền vững, truy vấn và ràng buộc chung.
+- Một container chạy được chưa có nghĩa dữ liệu đã được backup hoặc tồn tại sau khi xóa container.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,24 @@ Sau bài này, bạn có thể:
 - hiểu vì sao schema phải được thiết kế trước khi EF Core xuất hiện.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Sổ khách hàng đánh số từng người; sổ đơn hàng chỉ ghi số khách để tham chiếu. Đổi tên khách không cần sửa từng đơn đang dùng thông tin hiện tại. Máy chủ database giữ sổ, còn công cụ SQL gửi yêu cầu đọc/ghi.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| database | vùng dữ liệu và metadata do server quản lý | CommerceLab08_01 |
+| table/row/column | bảng/bản ghi/thuộc tính có kiểu | Customers, An, Email |
+| primary key | khóa duy nhất và không NULL | CustomerId |
+| session | một kết nối có trạng thái riêng | database hiện tại sau USE |
+| batch | nhóm lệnh client gửi một lần | GO phân cách trong sqlcmd |
+
+### Ví dụ nhỏ — tính tay trước
+
+Customers có (1,An),(2,Bình). Query ORDER BY CustomerId trả An rồi Bình. Bỏ ORDER BY thì hai row vẫn tồn tại nhưng thứ tự hiển thị không được cam kết.
 
 Một cửa hàng cần lưu:
 
@@ -32,7 +61,9 @@ Nếu lưu tất cả vào một file text duy nhất, dữ liệu nhanh chóng 
 
 Relational database tách dữ liệu thành các table và nối chúng bằng key.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 SQL Server 2025 có thể chạy local bằng Docker:
 
@@ -105,7 +136,20 @@ Output logic:
 2 | Trần Bình | binh@example.com
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. sqlcmd chạy phía client; GO được client tách batch, không gửi như câu T-SQL.
+2. USE chọn database trong session; CREATE TABLE lưu cấu trúc ở server.
+3. INSERT ghi hai row và index; SELECT gửi kết quả về client để hiển thị.
+4. Dữ liệu/log nằm trong file của SQL Server, buffer pages ở RAM server. Network, đọc page và duy trì index đều có cost; tắt client không xóa table.
+
+### Mini-check
+
+Đóng terminal sqlcmd rồi mở kết nối mới: bảng còn không, biến @x của session cũ còn không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Database
 
@@ -166,7 +210,45 @@ Một customer có nhiều order.
 
 Foreign key sẽ làm database tự kiểm tra quan hệ này.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| object C# trong RAM | thuộc process và references | mất khi process kết thúc nếu chưa lưu |
+| file tự quản | ứng dụng tự định dạng và phối hợp ghi | đủ cho dữ liệu nhỏ, ít writer |
+| relational database | constraints/query/concurrency chung | cần vận hành, storage và quyền truy cập |
+
+### Misconception check
+
+**Đúng hay sai?** GO là một câu lệnh SQL Server.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sqlcmd/GUI xử lý GO như dấu kết thúc batch.
+
+</details>
+
+**Đúng hay sai?** Table luôn trả theo primary key.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ ORDER BY cam kết thứ tự kết quả.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** table/key và kết nối.
+
+- **Working Developer — dùng khi làm việc:** script tái tạo và nơi dữ liệu sống.
+
+- **Deep Dive — có thể quay lại sau:** vận hành/backup khi có dữ liệu thật.
 
 ### SQL là declarative
 
@@ -200,7 +282,7 @@ Có thể dùng:
 
 - SQL Server Management Studio;
 - Visual Studio Code với SQL extension;
-- Azure Data Studio ở môi trường cũ;
+- Azure Data Studio chỉ còn là ghi chú lịch sử: đã ngừng hỗ trợ từ 28/02/2026, không chọn cho setup mới ([thông báo Microsoft](https://learn.microsoft.com/en-us/azure-data-studio/whats-happening-azure-data-studio));
 - `sqlcmd`.
 
 Không phụ thuộc GUI: mọi bài đều phải chạy được bằng script.
@@ -229,7 +311,17 @@ Click GUI thủ công khó tái tạo.
 
 Project tốt phải có script/migration để dựng schema từ đầu.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng database server chỉ để thay một hằng số cấu hình nhỏ. Không dùng các script reset bài học trên instance có dữ liệu thật; chúng xóa database lab được ghi tên rõ.
+
+## 8. Production notes & scale check
+
+Lab chỉ có hai row để đọc được toàn bộ luồng. Verifier dùng container SQL Server 2025 riêng, ghi build/image và output; không kết nối DB ứng dụng. Dữ liệu container không có volume sẽ mất khi xóa container. Tài khoản sa và trust certificate chỉ dành cho môi trường lab này.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -264,7 +356,23 @@ Giải thích vì sao order item không nên lưu tên customer trực tiếp.
 
 Xóa container SQL Server rồi dựng lại bằng cùng command để kiểm tra tính tái tạo.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với `Dictionary` ở Module 07 và ghi file ở Module 06: database quản lý phần nào của dữ liệu và độ bền, phần nào ứng dụng vẫn phải quyết định? Với công cụ cá nhân lưu 20 mục, chọn cách đơn giản nhất.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Code SQL chạy ở client hay server?
+2. GO do ai xử lý?
+3. State nào mất khi đóng session?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt database/table/row/column.
 - [ ] Tôi giải thích được primary key.

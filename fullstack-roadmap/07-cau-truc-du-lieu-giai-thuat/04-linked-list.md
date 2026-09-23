@@ -1,5 +1,16 @@
 # Linked list
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Linked list nối node bằng reference thay vì index vào buffer.
+- Dùng khi thao tác relink tại vị trí đã biết là nhu cầu chính.
+- Tìm node vẫn O(n); allocation và locality có thể đắt hơn List.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,23 @@ Sau bài này, bạn có thể:
 - nhận ra khi nào linked list hữu ích và khi nào `List<T>` vẫn là lựa chọn tốt hơn.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mỗi tờ phiếu ghi chỗ tờ tiếp theo. Chèn tờ ở đầu chỉ sửa hai chỗ chỉ dẫn; tìm tờ thứ 500 phải đi qua chuỗi, không nhảy bằng phép tính index.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| node | object chứa value và link | Node<T> |
+| head/tail | node đầu/cuối | hai references của list |
+| predecessor | node đứng trước node cần bỏ | previous |
+| iterator | cách trả từng value khi caller duyệt | yield return |
+
+### Ví dụ nhỏ — tính tay trước
+
+A → B → C; bỏ B thì A.Next = C. Bỏ C thì tail = A. Bỏ A thì head = tail = null; AddLast(D) phải đặt lại cả hai.
 
 Một danh sách tác vụ cần thường xuyên thêm phần tử vào đầu:
 
@@ -31,7 +59,9 @@ Không cần copy hay dịch phần tử.
 
 Đổi lại, muốn lấy phần tử thứ 500, ta phải đi qua 499 node trước đó.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -212,7 +242,20 @@ A -> C
 Count = 2
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. AddFirst tạo node trỏ head cũ rồi cập nhật head, set tail nếu rỗng.
+2. AddLast nối tail.Next và đổi tail; không scan nhờ giữ tail.
+3. RemoveFirst(value) scan với previous, sửa link và tail khi cần.
+4. Enumerate là deferred iterator: code tiến từng yield khi caller yêu cầu. Các node dùng O(n) bộ nhớ; tìm/xóa theo giá trị O(n), nối lại reference O(1), không có bảo đảm fail-fast khi mutate trong lúc duyệt.
+
+### Mini-check
+
+Xóa node duy nhất mà không cập nhật tail: AddLast tiếp theo nối vào object nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Node và reference
 
@@ -271,7 +314,45 @@ previous.Next = current.Next
 
 nên khi duyệt phải giữ cả `previous`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| List | buffer slot liên tiếp | index tốt, insert đầu dịch |
+| singly linked | Next một chiều | thêm đầu/cuốiO(1), cần previous để xóa |
+| doubly linked | Next+Previous | xóa node đã biếtO(1), thêmreference |
+
+### Misconception check
+
+**Đúng hay sai?** RemoveFirst(value) luôn O(1).
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tìm value có thể scan hết.
+
+</details>
+
+**Đúng hay sai?** Node bị tháo khỏi list được GC ngay.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ trở thành eligible nếu không còn reference; thời điểmGC không cam kết.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** node graph.
+
+- **Working Developer — dùng khi làm việc:** empty/tail invariant.
+
+- **Deep Dive — có thể quay lại sau:** iterator/memory khi mở API.
 
 ### Dynamic array và linked list
 
@@ -324,7 +405,17 @@ Khi xóa node cuối, nếu `_tail` vẫn trỏ vào node đã bị loại, lầ
 
 Bài này nhằm hiểu cơ chế. Trong ứng dụng thật, ưu tiên `LinkedList<T>`, `List<T>` hoặc cấu trúc khác của BCL tùy yêu cầu.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không chọn linked list khi cần đọc ngẫu nhiên theo index 100.000 lần. Nếu chỉ cần FIFO/LIFO, Queue/Stack thể hiện contract rõ hơn.
+
+## 8. Production notes & scale check
+
+Gate so chuỗi thao tác với List oracle, xóa đầu/giữa/cuối/rỗng/duplicate rồi append lại. Iterator không snapshot và chưa có version tracking; caller không mutate khi enumerate. Chỉ đưa complexity relink, không tuyên bố tốc độ hơn khi chưa đo.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — RemoveFirstNode
 
@@ -359,7 +450,23 @@ Viết workload gồm:
 
 Dự đoán cấu trúc phù hợp trước khi đo.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ pointer C ở Module 02: vì sao C# không cần `free` thủ công mà vẫn có thể làm mất node hoặc cập nhật sai tail? Nếu thường xuyên thêm ở đầu nhưng mỗi lần đều phải tìm theo value, bạn chọn `List<T>` hay linked list? Nêu chi phí của cả hai thao tác.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Tail giúp thao tác nào?
+2. Xóa node giữa cần link nào?
+3. Yield chạy lúc gọi Enumerate hay MoveNext?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi vẽ được node graph của linked list.
 - [ ] Tôi giải thích được vì sao truy cập index là `O(n)`.

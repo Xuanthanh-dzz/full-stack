@@ -1,5 +1,16 @@
 # Design by contract và invariant
 
+> **Last verified:** 2026-09-22  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, invariant hoặc adapter; CI failure
+
+## TL;DR
+
+- Design by contract ghi nghĩa vụ caller và bảo đảm state sau thao tác.
+- Dùng guard runtime cho input, assert cho giả định nội bộ.
+- Assert Debug không bảo vệ Release; overflow cũng là đường phá invariant.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - giảm số hợp đồng phải viết bằng cách thiết kế type khiến trạng thái sai không biểu diễn được.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Kho có10 món, giữ12 là không thể. Mỗi thao tác phải nói trước nhận gì và hứa sau đó còn bao nhiêu hàng/giữ chỗ; người điều tra nhìn hai con số để tìm lần đầu lời hứa bị phá.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| invariant | quan hệ đúng trước/sau API | 0<=Reserved<=OnHand |
+| precondition | đầu vào/trạng thái được phép | Ship quantity<=Reserved |
+| postcondition | quan hệ state sau operation | Ship giảm cả hai |
+| assert | kiểm giả định để phát hiện bug | Debug.Assert |
+
+### Ví dụ nhỏ — tính tay trước
+
+OnHand10,R0 →reserve8 →10,8,available2 →ship3 →7,5,available2. Ship6 bị chặn và giữ7,5. Receive vượt int.MaxValue ném trước assignment.
 
 Kho hàng theo dõi hai con số cho mỗi SKU: số lượng đang có (`OnHand`) và số lượng đã giữ chỗ cho đơn hàng (`Reserved`). Ba điều phải luôn đúng:
 
@@ -34,7 +62,9 @@ public sealed class StockItem
 
 Design by contract trả lời ba câu hỏi cho từng thao tác: **người gọi phải bảo đảm gì**, **thao tác hứa gì**, và **điều gì luôn đúng trước lẫn sau mọi thao tác**. Câu hỏi thứ ba chính là invariant.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project `.NET 9`:
 
@@ -99,13 +129,14 @@ public sealed class StockItem
     /// <summary>
     /// Precondition: quantity > 0 (vi phạm là bug của caller).
     /// Postcondition: OnHand tăng đúng quantity; Reserved không đổi.
+    /// OverflowException nếu tổng vượt int.MaxValue; state giữ nguyên.
     /// </summary>
     public void Receive(int quantity)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         int reservedBefore = _reserved;
-        _onHand += quantity;
+        _onHand = checked(_onHand + quantity);
 
         Debug.Assert(_reserved == reservedBefore, "Receive must not change Reserved.");
         AssertInvariants();
@@ -311,9 +342,22 @@ invalid: SKU không được để trống. Số lượng phải là số nguyê
 invalid: Số lượng phải lớn hơn 0.
 ```
 
-Project được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Constructor validate rồi thiết lập state ban đầu.
+2. TryReserve từ chối thiếu available như kết quả nghiệp vụ, không đổi state.
+3. Ship/Release kiểm điều kiện rồi cập nhật; Receive dùng checked để không wrap thành âm.
+4. State gồm hai int, mỗi thao tác O(1). Debug gọi asserts; Release vẫn chạy guards và checked, không dựa vào assert để an toàn.
+
+### Mini-check
+
+OnHand=int.MaxValue, Reserved1: Receive1 ném; ba property phải còn giá trị nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Ba phần của một hợp đồng
 
@@ -350,7 +394,7 @@ Một hệ quả thực tế: đừng dùng exception cho luồng bình thườn
 
 ### `Debug.Assert` dành cho giả định nội bộ
 
-`AssertInvariants` gắn `[Conditional("DEBUG")]` nên biến mất hoàn toàn ở bản build Release: không có lời gọi, không có chi phí. Đó vừa là ưu điểm vừa là giới hạn:
+`AssertInvariants` gắn `[Conditional("DEBUG")]` nên compiler bỏ các lời gọi khi không định nghĩa DEBUG. Method vẫn có thể tồn tại trong assembly; không được dựa vào nó để validate Release. Đó vừa là ưu điểm vừa là giới hạn:
 
 - **Dùng** `Debug.Assert` cho những điều bạn tin là **không bao giờ** sai nếu code đúng.
 - **Không dùng** nó để kiểm tra dữ liệu từ người dùng, từ file hay từ mạng — vì ở Release, việc kiểm tra sẽ biến mất.
@@ -377,7 +421,7 @@ C# không có cú pháp postcondition sẵn. Cách thực dụng: chụp lại g
 
 Cách tốt hơn cả kiểm tra là làm cho trạng thái sai **không tồn tại**:
 
-- dùng `enum` thay `string` cho tập giá trị đóng, như `DeliverySpeed` ở [bài 12](./12-code-smell-va-refactoring.md);
+- dùng `enum` để đặt tên lựa chọn (vẫn cần từ chối số enum chưa định nghĩa) thay `string` cho tập giá trị đóng, như `DeliverySpeed` ở [bài 12](./12-code-smell-va-refactoring.md);
 - dùng value object có validation, như `Money` ở [bài 1](./01-mo-hinh-hoa-doi-tuong.md), thay vì `decimal` trần;
 - tách type theo trạng thái: một `DraftOrder` không có method `Ship` thì không thể ship đơn nháp.
 
@@ -387,7 +431,45 @@ Mỗi hợp đồng bạn xóa được bằng cách chọn type đúng là mộ
 
 Với dữ liệu đến từ HTTP, file hay message queue, luôn phải kiểm tra thật ở runtime — không thể tin bên gọi. Ranh giới đó cũng là nơi biến dữ liệu thô thành type đã được xác thực; từ bên trong trở đi, code làm việc với type đã hợp lệ. Các module về web sẽ dựng lại đúng mô hình này.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| validation runtime | xử lý input sai dự kiến | cần cả Release |
+| Debug.Assert | báo giả định nội bộ bị phá | không thay guard/rollback |
+| type constraint | loại bớt trạng thái biểu diễn | vẫn có null/enumunknown/ownership cần kiểm |
+
+### Misconception check
+
+**Đúng hay sai?** Nhận lượng dương luôn khiến OnHand tăng hợp lệ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tổng có thể overflow int.
+
+</details>
+
+**Đúng hay sai?** Assert sau mutation tự sửa state nếu sai.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ phát hiện; phải validate/tính candidate trước commit.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** pre/post/invariant.
+
+- **Working Developer — dùng khi làm việc:** failure-state và checked.
+
+- **Deep Dive — có thể quay lại sau:** concurrency contract nếu có caller song song.
 
 ### Chọn loại exception
 
@@ -467,9 +549,19 @@ Nếu bạn kiểm tra invariant **trước** khi thay đổi thay vì sau, ho�
 
 ### Ném exception từ constructor rồi để object nửa vời
 
-Trong C#, constructor ném exception thì object không được trả về, nên không có object nửa vời — đó là lý do constructor là nơi lý tưởng để kiểm tra. Vấn đề chỉ phát sinh nếu bạn tự tạo object bằng cách khác, ví dụ deserialization.
+Lời gọi new không trả object nếu constructor ném. Tuy nhiên, constructor có thể đã làm side effect hoặc làm rò `this` trước khi ném. Validate sớm, tránh công bố object chưa dựng xong, và bảo vệ cả các đường nạp dữ liệu.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng Debug.Assert thay kiểm input ngoài. Không tạo nhiều state types nếu hai guard đủ cho quy mô và làm transition rõ hơn.
+
+## 8. Production notes & scale check
+
+Verifier chạy chuỗi state transitions đối chiếu mô hình độc lập cả Debug/Release, kiểm overflow giữ nguyên state. Sample không thread-safe; nhiều caller cần atomicity cho check+update, không chỉ thêm assert. ReservationRequest là DTO, tạo trực tiếp vẫn có thể sai nên boundary phải dùng TryParse.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Viết hợp đồng
 
@@ -501,7 +593,23 @@ Thiết kế lại `StockItem` sao cho không thể `Ship` khi chưa `Reserve`, 
 
 **Gợi ý:** một `Reservation` do `TryReserve` trả về, và `Ship` chỉ nhận `Reservation`; nghĩ tới việc ai giữ đối tượng đó và điều gì xảy ra nếu ship hai lần.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So integer overflow C/C++ và checked C#: runtime từ chối có giữ state cũ tự động không, phụ thuộc vị trí assignment nào? Đề xuất test bắt lỗi Receive trước bản sửa.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. False và exception khác contract nào?
+2. Available giữ nguyên sau Ship vì sao?
+3. Release bỏ phần nào của assert?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi viết được ba phần hợp đồng cho một method bất kỳ.
 - [ ] Tôi phân biệt vi phạm hợp đồng với từ chối nghiệp vụ và chọn đúng cách báo.

@@ -1,0 +1,9 @@
+Quote for 2.5 kg:
+Standard               |     45,000 VND | 3-5 days
+Express                |     75,000 VND | 1-2 days
+International express  |    195,000 VND | 2-4 days to Singapore
+Store pickup           |          0 VND | Ready in 2 hours at District 1
+
+Upcast keeps the same object: True
+Runtime type: ExpressShipping; fee: 105,000 VND
+Priority level: 2

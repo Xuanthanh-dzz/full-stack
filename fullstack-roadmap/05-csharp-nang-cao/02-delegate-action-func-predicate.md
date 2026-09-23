@@ -1,5 +1,16 @@
 # Delegate, `Action`, `Func` và `Predicate`
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Delegate đóng gói một operation có signature rõ để truyền như dữ liệu.
+- Dùng cho một policy nhỏ hoặc callback; Action không trả value, Func có return.
+- Multicast dừng khi handler ném; delegate giữ target sống.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Quầy tính tiền nhận một tờ chỉ dẫn “gọi phép giảm giá này”, thay vì tự chứa mọi chiến dịch. Tờ chỉ dẫn biết cách gọi và, nếu cần, biết object nào nhận lời gọi.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| delegate | giá trị gọi method theo signature | DiscountPolicy |
+| method group | tên method chưa gọi | TenPercent |
+| target | object nhận instance method | AuditSink |
+| invocation list | danh sách handler theo thứ tự | audit |
+
+### Ví dụ nhỏ — tính tay trước
+
+Order1200000 đủ điều kiện → discount120000, payable1080000. Audit gọi sink trước rồi console; nếu sink ném thì console chưa chạy.
+
 Một chức năng tính tiền cần thay đổi theo từng chiến dịch:
 
 - rule xác định order đủ điều kiện có thể thay;
@@ -25,7 +53,9 @@ Nếu `OrderProcessor` chứa `switch (campaignName)` rồi gọi thẳng mọi 
 
 Ta sẽ đóng gói reference tới method thành delegate rồi truyền chúng như value. Bài này cố ý chỉ dùng named method; lambda expression sẽ được giới thiệu sau khi cơ chế delegate đã rõ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -216,7 +246,20 @@ Formatted: 1080000 VND
 Audit count: 1
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Method groups được convert thành delegate, chưa tính discount.
+2. Calculate gọi eligibility rồi chỉ gọi policy khi đủ điều kiện, validate kết quả trước summary.
+3. audit giữ sink, += tạo delegate với danh sách mới; invocation đồng bộ.
+4. State Count ở sink; handler list giữ references. Cost gồm các handler, không chỉ lời gọi delegate; += có thể cấp phát.
+
+### Mini-check
+
+Order không đủ điều kiện có được gọi discountPolicy có side effect không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Delegate type định nghĩa signature
 
@@ -308,7 +351,45 @@ Với multicast delegate có return value, caller thông thường chỉ nhận 
 
 Nếu không còn entry nào, phép trừ có thể cho kết quả `null`; nullable delegate và cách gọi an toàn sẽ được làm rõ ở bài event và nullable reference type.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| named method trực tiếp | behavior cố định | ít indirection |
+| delegate | một operation thay được | hợp policy ngắn |
+| interface | nhóm operation có liên hệ | hợp provider nhiều capability |
+
+### Misconception check
+
+**Đúng hay sai?** policy và policy(order) cùng truyền behavior.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: một bên là callable, bên kia là kết quả.
+
+</details>
+
+**Đúng hay sai?** Multicast Func trả danh sách kết quả mọi handler.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: invocation thông thường trả kết quả cuối.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** signature và invoke.
+
+- **Working Developer — dùng khi làm việc:** target lifetime, exception policy.
+
+- **Deep Dive — có thể quay lại sau:** allocation/caching theo measurement.
 
 ### Delegate là reference type
 
@@ -363,7 +444,17 @@ Delegate tới instance method giữ reference target. Khi delegate được lư
 
 Truyền mười delegate vào constructor làm contract rời rạc và khó đảm bảo nhất quán. Nhóm behavior liên quan thành interface/class nếu chúng cùng một capability.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không truyền mười delegate độc lập cho một capability có state/lifecycle chung. Không dùng multicast thay transaction hoặc cơ chế gửi log bền.
+
+## 8. Production notes & scale check
+
+Demo tiền nhỏ, test policy âm/vượt subtotal, không gọi policy khi ineligible và fail-fast multicast. Công thức subtotal*10/100 có thể overflow ở miền decimal cực lớn; production phải đặt cận hoặc chọn phép tính phù hợp contract.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Phí giao hàng
 
@@ -395,7 +486,23 @@ Phân tích hai use case: một công thức tính thuế; một payment provide
 
 **Gợi ý:** một operation độc lập nghiêng về delegate; capability nhiều operation/state nghiêng về interface.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu callback C Module02 với delegate instance: ai giữ target sống và khi nào cần interface như payment gateway Module04?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Action/Func/Predicate khác shape nào?
+2. += có sửa delegate cũ không?
+3. Handler thứ hai ném thì handler thứ ba chạy không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi khai báo được custom delegate có signature rõ.
 - [ ] Tôi phân biệt method group với lời gọi method.

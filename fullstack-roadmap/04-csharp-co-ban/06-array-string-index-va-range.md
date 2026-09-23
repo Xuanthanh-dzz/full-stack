@@ -1,5 +1,16 @@
 # Mảng, chuỗi, `Index` và `Range`
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Array giữ phần tử theo chỉ số; string là chuỗi bất biến gồm đơn vị mã UTF-16.
+- Dùng array cho tập có chiều dài cố định và range cho bản cắt rõ giới hạn.
+- Cắt array tạo mảng mới nhưng không clone sâu các object phần tử.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một bảng ô cố định khác một danh sách các hàng có độ dài riêng. Cắt vài ô sang bảng mới tách bảng, nhưng nếu ô chứa địa chỉ thì hai bảng vẫn có thể dẫn tới cùng đồ vật.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| rectangular array | mảng nhiều chiều có kích thước hàng/cột chung | decimal[,] |
+| jagged array | mảng mà mỗi phần tử là mảng riêng | decimal[][] |
+| range | khoảng chỉ số đầu gồm, cuối không gồm | 1.. và ^2.. |
+| UTF-16 code unit | đơn vị 16 bit của biểu diễn string | Length |
+| Rune | một Unicode scalar value | emoji trong A😀B |
+
+### Ví dụ nhỏ — tính tay trước
+
+[10,20,30][1..] → mảng [20,30]. Sửa ô đầu bản cắt thành99 không sửa mảng số gốc. A😀B có4 đơn vị UTF-16,3 scalar; số ký tự người dùng nhìn còn phụ thuộc tổ hợp Unicode.
+
 Một cửa hàng cần tổng hợp doanh thu:
 
 - Kế hoạch doanh thu có đúng 3 ngày cho mỗi chi nhánh, nên dữ liệu tạo thành một bảng chữ nhật.
@@ -22,7 +51,9 @@ Một cửa hàng cần tổng hợp doanh thu:
 
 Ta cần mô hình dữ liệu đúng trước khi tính toán. Ép mọi dữ liệu vào cùng một loại mảng sẽ làm code khó hiểu hoặc lãng phí ô nhớ.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo và chạy project độc lập bằng .NET 9:
 
@@ -144,7 +175,20 @@ Rune count  : 3 Unicode scalar values
 Cac Rune    : U+41 U+1F600 U+42
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Ba hàng kế hoạch cộng thành 40.5M,30.5M,28.5M.
+2. Mỗi hàng giao dịch là object mảng riêng; ^1 lấy cuối, ^2.. tạo bản cắt hai phần tử.
+3. Alias original cùng mảng giao dịch đầu; gán qua alias làm ô đầu thành9999000.
+4. ToUpperInvariant trả text mới khi cần thay nội dung; Rune đi qua chuỗi. Cắt k phần tử tốn O(k) bộ nhớ/copy, duyệt bảng tốn tổng số ô.
+
+### Mini-check
+
+Nếu phần tử mảng là Account thay vì decimal, sửa Balance qua bản cắt có đổi object gốc không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Mảng một chiều
 
@@ -288,7 +332,45 @@ Emoji `😀` cần một surrogate pair gồm hai `char`, nên `label.Length` l�
 
 Ngay cả số `Rune` cũng chưa chắc bằng số grapheme cluster mà người dùng coi là một ký tự. Ví dụ một chữ có dấu có thể được cấu tạo từ base character và combining mark; emoji gia đình có thể gồm nhiều scalar nối bằng ZWJ. Khi cần tách “ký tự hiển thị”, dùng API xử lý text element như `System.Globalization.StringInfo` và kiểm thử với dữ liệu thật.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| T[,] | lưới chữ nhật | dùng chiều chung; một object mảng |
+| T[][] | hàng riêng biệt | hợp độ dài khác; nhiều object và có thể có hàng null |
+| string / Rune | code units / scalar values | chọn phép đếm theo contract Unicode, chưa phải grapheme |
+
+### Misconception check
+
+**Đúng hay sai?** new string[3] tạo ba chuỗi rỗng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: ba ô reference ban đầu null.
+
+</details>
+
+**Đúng hay sai?** range trên array là view không cấp phát.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tạo array mới; Span là bài nâng cao khác.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** index/range và alias.
+
+- **Working Developer — dùng khi làm việc:** layout, null và Unicode.
+
+- **Deep Dive — có thể quay lại sau:** grapheme/Span khi có driver.
 
 ### 5.1 Array là reference type, phần tử có kiểu riêng
 
@@ -298,7 +380,7 @@ Mọi array trong C# đều là reference type, kể cả `int[]` hay `decimal[,
 - `Customer[]`: mỗi ô chứa một reference tới `Customer` hoặc `null`.
 - `int[][]`: mỗi ô của mảng ngoài chứa một reference tới một `int[]`.
 
-`new int[3]` tạo một array object mới và mọi ô được gán default value (`0`). `new string[3]` tạo array object mới và mọi ô ban đầu là `null`; với nullable reference types, compiler cảnh báo để bạn khởi tạo an toàn.
+`new int[3]` tạo một array object mới và mọi ô được gán default value (`0`). `new string[3]` tạo array object mới và mọi ô ban đầu là `null`; nullable analysis không theo dõi đầy đủ trạng thái từng ô nên không bảo đảm cảnh báo tại đây. Hãy gán các ô trước khi đọc hoặc dùng `string?[]` nếu `null` là trạng thái hợp lệ.
 
 ### 5.2 Khởi tạo collection expression
 
@@ -317,7 +399,7 @@ Target type bên trái giúp compiler biết cần tạo kiểu gì. Cú pháp c
 - Dùng `foreach` khi chỉ cần đọc lần lượt từng giá trị.
 - Với rectangular array, `foreach` duyệt toàn bộ ô theo thứ tự nhưng không cung cấp cặp `row`, `column`; nested `for` thường rõ hơn.
 
-`foreach (decimal amount in transactions[0])` copy giá trị `decimal` hiện tại vào biến lặp; gán lại biến lặp không thay ô mảng. Muốn cập nhật ô, dùng chỉ số.
+`foreach (decimal amount in transactions[0])` copy giá trị `decimal` hiện tại vào biến lặp; biến lặp của dạng `foreach` này không cho phép gán lại (compiler từ chối). Muốn cập nhật ô, dùng chỉ số.
 
 ### 5.4 So sánh string
 
@@ -392,7 +474,17 @@ name = name.Trim();
 
 String interning có thể khiến hai literal dùng chung object, còn string tạo lúc chạy có thể là object khác dù nội dung bằng nhau. So sánh nội dung bằng `string.Equals` với `StringComparison` phù hợp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng Length như số ký tự nhìn thấy trong mọi text. Không cắt mảng liên tục trong vòng nóng chỉ để tránh index; đo trước khi chuyển sang Span ở module sau.
+
+## 8. Production notes & scale check
+
+Ba chi nhánh đủ để học layout và index. Gate kiểm tra cả dòng jagged, bản cắt, alias và Unicode. Nullable analysis không tự đảm bảo mọi ô string[] đã khởi tạo. Giới hạn title theo UTF-16 phải được gọi đúng tên.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tổng và trung bình mảng một chiều
 
@@ -424,7 +516,23 @@ Với các chuỗi `"café"`, `"😀"`, `"👨‍👩‍👧‍👦"`, hãy in `
 
 Gợi ý: dùng `EnumerateRunes()` và `System.Globalization.StringInfo.ParseCombiningCharacters()`. Giải thích vì sao ba con số có thể khác nhau.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh chuỗi byte C Module 02 với string C#: ký tự tiếng Việt/emoji thay đổi cách tính capacity và độ dài ra sao? Chọn giới hạn byte lưu trữ hoặc ký tự UI theo requirement.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. ^1 chỉ phần tử nào?
+2. Mảng cắt có chia sẻ container không?
+3. Length và Rune count khác nhau vì sao?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 

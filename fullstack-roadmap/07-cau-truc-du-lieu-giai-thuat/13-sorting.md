@@ -1,5 +1,16 @@
 # Sorting
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Sorting đưa dữ liệu về thứ tự để hiển thị hoặc hỗ trợ tìm kiếm.
+- Chọn theo kích thước, yêu cầu giữ thứ tự các khóa bằng nhau và bộ nhớ.
+- Output đã tăng dần chưa đủ chứng minh không mất hoặc nhân đôi phần tử.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,22 @@ Sau bài này, bạn có thể:
 - chọn comparer/key phù hợp với nghiệp vụ.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Xếp bộ bài trên tay có thể chèn từng lá vào đúng chỗ; chia bộ bài thành hai nửa rồi trộn là cách khác. Hai cách cho cùng thứ tự nhưng số lần di chuyển và bộ nhớ khác nhau.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| stable | giữ thứ tự ban đầu của phần tử có khóa bằng nhau | hóa đơn cùng ngày |
+| in-place | sửa trực tiếp vùng dữ liệu đầu vào | InsertionSort |
+| merge | trộn hai dãy đã có thứ tự | MergeSort |
+
+### Ví dụ nhỏ — tính tay trước
+
+[3,1,2,1] →[1,1,2,3]. Phải giữ hai số 1. InsertionSort sửa array; MergeSort trả array và không sửa input trong sample.
 
 Một trang admin cần sắp xếp 100.000 đơn hàng theo:
 
@@ -31,7 +58,9 @@ Sorting không chỉ là “xếp số tăng dần”. Trong phần mềm thật
 - ranking;
 - merge dữ liệu.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir SortingDemo
@@ -40,6 +69,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace SortingDemo;
@@ -136,7 +182,20 @@ Merge    : 1, 2, 3, 5, 7, 9
 Built-in : 1, 2, 3, 5, 7, 9
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Insertion lấy key rồi dời các phần tử lớn hơn sang phải.
+2. Merge chia đến dãy một phần tử, sau đó trộn hai dãy con.
+3. Array.Sort là đối chiếu thư viện; quicksort chỉ được thảo luận để so sánh, không có implementation trong sample.
+4. Insertion worst-case O(n²); merge O(n log n). Merge giữ O(n) bộ nhớ sống tại một thời điểm nhưng cấp phát cộng dồn O(n log n) phần tử qua nhiều tầng.
+
+### Mini-check
+
+Sort [2,2,1] thành [1,2] sai điều kiện nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Insertion sort
 
@@ -182,7 +241,7 @@ Mỗi tầng merge tổng cộng `n` phần tử.
 O(n log n)
 ```
 
-Sample tạo array mới nên extra space khoảng `O(n)`.
+Sample có peak dữ liệu phụ còn cần dùng O(n), cộng call stack O(log n), nhưng range copy và merge cấp phát tổng cộng O(n log n) phần tử qua cả lần chạy. Tổng allocation khác với peak live memory; GC có thể chưa thu gom mọi array chết ngay.
 
 ### Quicksort
 
@@ -206,7 +265,45 @@ O(n²)
 
 Implementation production dùng chiến lược pivot/threshold/hybrid phức tạp hơn bản textbook.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Insertion | dãy nhỏ hoặc gần có thứ tự | ít overhead, worst-case bậc hai |
+| Merge | cần thứ tự ổn định theo cách merge | bộ nhớ phụ và allocations |
+| QuickSort khái niệm | học partition | worst-case bậc hai, không hứa như thư viện |
+
+### Misconception check
+
+**Đúng hay sai?** Dãy tăng dần nghĩa là sort đúng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: còn phải giữ số lần xuất hiện của từng giá trị.
+
+</details>
+
+**Đúng hay sai?** O(n) bộ nhớ nghĩa là chỉ cấp phát tổng cộng n phần tử.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: peak live memory khác tổng allocation qua thời gian.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace insertion/merge.
+
+- **Working Developer — dùng khi làm việc:** mutation và oracle.
+
+- **Deep Dive — có thể quay lại sau:** partition và worst-case.
 
 ### Stable sort
 
@@ -294,7 +391,17 @@ Dùng:
 a.Id.CompareTo(b.Id)
 ```
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tự triển khai sort production khi API thư viện đáp ứng yêu cầu. Không chọn quicksort mẫu cho input không kiểm soát mà bỏ qua worst-case.
+
+## 8. Production notes & scale check
+
+Gate so kết quả với Array.Sort trên dãy rỗng, trùng, đảo và seed cố định; kiểm mutation contract. Tính ổn định cần record có identity để quan sát, không suy từ dãy int trùng. Không đo thời gian một lần rồi tuyên bố thuật toán nhanh nhất.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Selection sort
 
@@ -328,7 +435,23 @@ Giải thích lựa chọn cho:
 - 10 triệu số;
 - stream chỉ cần top 10.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ ownership ở Module 06: caller có còn cần thứ tự gốc không? Với 100 mục hiển thị, chọn hàm sort của thư viện hay tự dựng cây; nêu chi phí chuẩn bị.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Stable nói về phần tử nào?
+2. Peak memory khác allocations ra sao?
+3. Pivot xấu tạo vấn đề gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt `O(n²)` và `O(n log n)`.
 - [ ] Tôi mô tả insertion/merge/quicksort.

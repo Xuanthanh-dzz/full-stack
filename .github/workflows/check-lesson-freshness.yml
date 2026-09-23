@@ -10,6 +10,9 @@ on:
       - "fullstack-roadmap/01-nen-tang-lap-trinh/**"
       - "fullstack-roadmap/02-c-chuyen-sau/**"
       - "fullstack-roadmap/03-cpp/**"
+      - "fullstack-roadmap/04-csharp-co-ban/**"
+      - "fullstack-roadmap/05-csharp-nang-cao/**"
+      - "fullstack-roadmap/06-oop-va-thiet-ke/**"
       - "fullstack-roadmap/09-linq-va-ef-core/**"
       - "fullstack-roadmap/10-web-nen-tang/**"
       - "fullstack-roadmap/11-aspnet-core-backend/**"
@@ -48,3 +51,6 @@ jobs:
           python scripts/verify_retrofit_v4.py 01
           python scripts/verify_retrofit_v4.py 02
           python scripts/verify_retrofit_v4.py 03
+          python scripts/verify_retrofit_v4.py 04
+          python scripts/verify_retrofit_v4.py 05
+          python scripts/verify_retrofit_v4.py 06

@@ -1,5 +1,16 @@
 # Generics và constraints
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, async lifecycle hoặc serializer; CI failure
+
+## TL;DR
+
+- Generics giữ quan hệ kiểu khi dùng chung một thuật toán.
+- Dùng khi Product và Warehouse thật sự cùng contract lưu/tìm theo ID.
+- Constraint chỉ cho phép operation trên kiểu, không validate mọi giá trị runtime.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một sổ kho có ô mã và ô món hàng. Thay loại mã không cần viết lại cách từ chối trùng; nhưng sổ phải biết ô nào nhận loại dữ liệu nào, thay vì nhận mọi thứ rồi đoán lại.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| type parameter | chỗ trống dành cho một kiểu | TKey/TEntity |
+| type argument | kiểu cụ thể điền vào chỗ trống | string/Product |
+| constraint | yêu cầu kiểu phải đáp ứng | IEntity<TKey> |
+| closed type | kiểu đã điền đủ tham số | EntityStore<int,Warehouse> |
+
+### Ví dụ nhỏ — tính tay trước
+
+Store<string,Product> nhận A một lần; thêm a với comparer ignore-case bị từ chối. Store<int,Warehouse> nhận7; không thể đưa Product vào store này.
+
 Một ứng dụng kho cần lưu `Product` theo mã `string`, rồi sắp tới còn lưu `Warehouse` theo mã `int`. Cả hai đều cần ba thao tác giống nhau:
 
 - thêm entity và từ chối ID trùng;
@@ -24,7 +52,9 @@ Nếu viết `ProductStore`, sao chép thành `WarehouseStore`, rồi tiếp t�
 
 Ta cần viết thuật toán lưu trữ một lần nhưng vẫn giữ type cụ thể ở compile time. Đó là bài toán của generics; constraints sẽ mô tả chính xác contract mà thuật toán cần.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project .NET 9:
 
@@ -221,7 +251,20 @@ Warehouse: 7 | Da Nang
 First sequence: 1
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main dựng hai store với cặp kiểu và comparer riêng.
+2. Add đọc entity.Id qua interface constraint, TryAdd kiểm tra trùng.
+3. GetRequired trả reference Product đã lưu, không clone; GreaterOf chọn giá trị qua CompareTo.
+4. Dictionary giữ key/reference; tra cứu trung bình O(1), vẫn có allocation và cost hash theo key.
+
+### Mini-check
+
+Vì sao IEntity constraint cần thiết để đọc Id, còn new() không cần trong EntityStore?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Type parameter và argument type
 
@@ -314,7 +357,45 @@ Main locals / registers                         Managed heap
 
 Với generic value type, dữ liệu có thể nằm inline theo context. Ví dụ `List<int>` giữ các `int` trong array nội bộ và không cần box từng phần tử thành `object`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| object + cast | mất quan hệ kiểu tĩnh | lỗi cast tới runtime |
+| generic + constraint | thuật toán chung giữ kiểu | hợp contract thực sự chung |
+| hai class riêng | logic riêng rõ ràng | hợp behavior khác; tránh generic chứa nhiều typeof |
+
+### Misconception check
+
+**Đúng hay sai?** notnull chèn runtime guard vào mọi lời gọi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chủ yếu là contract nullable analysis.
+
+</details>
+
+**Đúng hay sai?** Generic không tạo allocation.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: store, dictionary và entity vẫn có object riêng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đọc generic signatures.
+
+- **Working Developer — dùng khi làm việc:** constraint tối thiểu và key stability.
+
+- **Deep Dive — có thể quay lại sau:** code sharing/boxing khi đo.
 
 ### Các constraint thường gặp
 
@@ -374,7 +455,17 @@ Constructor rỗng thường không đủ thiết lập invariant/dependency. Ch
 
 Store, dictionary, array nội bộ và entity trong ví dụ vẫn là object. Generics giúp giữ type và có thể tránh boxing; nó không biến mọi thao tác thành zero-allocation.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo Save<T> chung cho workflow khác nhau chỉ vì cùng tên Save. Factory new() chỉ minh họa; constructor rỗng không phù hợp entity cần invariant đầy đủ.
+
+## 8. Production notes & scale check
+
+Hai loại entity đủ làm driver reuse. Test duplicate theo comparer và lookup identity; key phải ổn định sau Add. Store không đảm bảo thread-safe hay đồng bộ khi caller thay ID của implementation IEntity khác.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Generic `Pair<TFirst, TSecond>`
 
@@ -406,7 +497,23 @@ Tạo một store chứa hai biến cùng trỏ một `Product`, rồi vẽ stor
 
 **Gợi ý:** mỗi `new` class/array có nhãn H riêng; assignment reference không thêm H.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh template C++ Module03: constraint kiểu chặn gì tại compile, validation giá trị chặn gì lúc chạy? Chọn store cụ thể nếu chỉ một loại dữ liệu.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Parameter/argument khác nhau thế nào?
+2. Comparer ảnh hưởng duplicate ra sao?
+3. GetRequired trả copy hay reference?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt type parameter và type argument.
 - [ ] Tôi viết được generic class, interface và method có type safety.

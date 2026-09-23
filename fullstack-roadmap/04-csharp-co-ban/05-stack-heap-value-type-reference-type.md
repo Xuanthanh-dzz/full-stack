@@ -1,5 +1,16 @@
 # Stack, heap, value type và reference type
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Value type được copy theo giá trị; reference type copy đường truy cập cùng object.
+- Vẽ object graph để biết thao tác nào sửa bản sao và thao tác nào sửa dữ liệu chia sẻ.
+- Quy tắc copy không đồng nghĩa value luôn nằm stack hoặc reference luôn nằm heap.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -16,6 +27,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Chép tọa độ lên giấy mới cho bạn hai tọa độ độc lập. Chép địa chỉ tài khoản cho bạn hai cách tìm cùng một tài khoản. Nhìn tên biến không đủ biết dữ liệu có chung hay không.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| value type | kiểu có semantics copy dữ liệu của value | Coordinate |
+| reference type | kiểu mà biến giữ reference tới object | Account |
+| alias | đường truy cập khác tới cùng object | alias và primary |
+| boxing | đặt bản sao value vào object để dùng như object | boxedCoordinate |
+
+### Ví dụ nhỏ — tính tay trước
+
+Coordinate A=(1,2); B=A; B.X=9 → A.X vẫn 1. Account A balance10; B=A; B.Balance=9 → A đọc được9.
+
 Một lập trình viên viết chức năng giao hàng và tài khoản, rồi gặp bốn kết quả tưởng như mâu thuẫn:
 
 1. Gán một `Coordinate` sang biến khác rồi sửa biến sau, biến đầu không đổi.
@@ -25,7 +53,9 @@ Một lập trình viên viết chức năng giao hàng và tài khoản, rồi 
 
 Nếu chỉ học câu “stack nhanh, heap chậm” hoặc “struct ở stack, class ở heap”, ta không thể dự đoán đúng. Ta sẽ chạy một chương trình, đặt tên từng vùng nhớ logic và vẽ các reference đang trỏ tới đâu.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -188,9 +218,22 @@ Value in box: (10, 20)
 Unboxed copy: (888, 20)
 ```
 
-Project đã được kiểm tra bằng .NET SDK `9.0.119`, target `net9.0`, không dùng package ngoài.
+Project đã được kiểm tra bằng .NET SDK `9.0.121`, target `net9.0`, không dùng package ngoài.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Hai Coordinate được copy; sửa second không sửa first.
+2. primary/alias cùng Account: giảm qua alias rồi Debit cập nhật object từ 100→70→60.
+3. Gán local parameter sang Account mới không chuyển reference của caller; mảng Account vẫn có thể giữ alias tới object cũ.
+4. Box giữ bản sao (10,20), unbox tạo copy khác. Object graph quyết định reachability; vị trí vật lý local do runtime/JIT chọn. Copy struct theo kích thước, copy reference nhỏ nhưng không clone đích.
+
+### Mini-check
+
+Trong points[0] và accounts[0], thứ gì được copy khi gán từ biến ngoài? Vẽ từng mũi tên.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Hai câu hỏi phải tách riêng
 
@@ -327,7 +370,45 @@ Managed heap
 
 GC quản lý **memory**, không bảo đảm giải phóng tức thời file handle, socket hay database connection. Tài nguyên cần cleanup xác định dùng `IDisposable`/`using`; phần `finally` và cleanup được giới thiệu ở [bài 12 — Exception và xử lý lỗi](./12-exception-va-xu-ly-loi.md). Heap cũng không đồng nghĩa unmanaged memory; đây là managed heap của CLR.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| struct copy | copy field value | field reference bên trong vẫn có thể chia sẻ đích |
+| class assignment | copy reference | mutation object thấy qua các alias |
+| boxing/unboxing | copy value vào/ra object | có allocation khi box; cần đúng kiểu lúc unbox |
+
+### Misconception check
+
+**Đúng hay sai?** Reassign parameter Account sẽ đổi biến caller sang object mới.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: parameter mặc định là bản sao reference.
+
+</details>
+
+**Đúng hay sai?** Struct có field string nghĩa toàn bộ ký tự string nằm inline trong struct.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: field chứa reference, không phải toàn bộ object chuỗi.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** vẽ copy/alias.
+
+- **Working Developer — dùng khi làm việc:** boxing, field và array semantics.
+
+- **Deep Dive — có thể quay lại sau:** JIT/storage khi có bằng chứng đo.
 
 ### Phân loại type
 
@@ -468,7 +549,17 @@ GC không hứa thời điểm chạy. Không chờ finalizer để đóng file/
 
 Compacting GC có thể di chuyển object. Reference vẫn hợp lệ vì runtime quản lý; chỉ code interop/unsafe đặc biệt mới pin/lấy pointer và phải kiểm soát lifetime rất cẩn thận.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không chọn struct chỉ vì nghĩ stack luôn nhanh. Không dùng sơ đồ vật lý như lời hứa JIT; hãy chốt semantics alias/copy trước khi đo allocation.
+
+## 8. Production notes & scale check
+
+Demo nhỏ chứng minh quan hệ identity bằng ReferenceEquals và giá trị, không đo địa chỉ stack. Object không còn reachable mới đủ điều kiện GC; không có thời điểm thu hồi tức thì được hứa. Struct lớn copy nhiều có cost đáng kể.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Dự đoán trước khi chạy
 
@@ -500,7 +591,23 @@ Box một `int`, thử unbox đúng về `int`, sau đó khảo sát vì sao cas
 
 **Gợi ý:** tách “unbox exact type” khỏi “numeric conversion”; dùng `try/catch` chỉ để quan sát lỗi trong lab.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu copy pointer C và deep copy C++ Module 02–03. C# GC loại bỏ trách nhiệm nào và có loại bỏ lỗi chia sẻ state ngoài ý muốn không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vì sao primary còn 60 sau Reassign?
+2. Box có giữ alias tới first không?
+3. Field struct trong object chứa dữ liệu ở đâu theo mô hình logic?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi không còn đồng nhất value type với stack hay reference type với vị trí của biến.
 - [ ] Tôi vẽ được slot reference và heap object thành hai thực thể khác nhau.
@@ -514,3 +621,5 @@ Box một `int`, thử unbox đúng về `int`, sau đó khảo sát vì sao cas
 
 - Prerequisite: [Method, parameter và return](./04-method-parameter-va-return.md)
 - Bài tiếp theo: [Array, string, Index và Range](./06-array-string-index-va-range.md)
+
+**Checkpoint cụm:** [Failure Lab](./failure-labs/01-ref-va-overflow.md) · [Review](./reviews/review-01.md).

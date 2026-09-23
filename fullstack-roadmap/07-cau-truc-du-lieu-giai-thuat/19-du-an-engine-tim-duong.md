@@ -1,5 +1,16 @@
 # Dự án: engine tìm đường
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Route engine ghép graph, shortest path và contract input thành luồng kiểm chứng được.
+- Dùng Dijkstra cho bản đồ có cost dương, chạy trong một process.
+- Route đúng trên demo không chứng minh dữ liệu cập nhật đồng thời hoặc cost ngoài miền luôn an toàn.
+
 ## 1. Mục tiêu
 
 Đây là checkpoint cuối Module 07. Sau dự án này, bạn phải có thể:
@@ -16,6 +27,23 @@
 - giải thích trade-off như khi code review trong công ty.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mỗi địa điểm là một chấm, mỗi đường là một nối có giá. Bộ tìm đường giữ giá tốt nhất đã biết cho từng chấm và nhớ chấm trước đó để dựng lại hành trình.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| adjacency list | danh sách đường đi ra ở mỗi đỉnh | WeightedGraph |
+| predecessor | đỉnh trước trên đường tốt nhất | previous |
+| read-only view | API không cho caller sửa trực tiếp | GetRoads |
+| unreachable | không có đường tới đích | Found=false |
+
+### Ví dụ nhỏ — tính tay trước
+
+Warehouse →Port có tổng 13 trong bản đồ mẫu. Input có khoảng trắng ngoài phải được Trim trước lookup và tra adjacency; start=target trả một đỉnh và cost 0.
 
 Xây một **Route Engine** cho hệ thống giao hàng nội bộ.
 
@@ -56,7 +84,11 @@ Yêu cầu:
 8. không phụ thuộc UI, database hay web framework;
 9. có thể mở rộng thành ASP.NET Core service ở module sau.
 
-## 3. Lời giải tham chiếu bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+<a id="3-loi-giai-tham-chieu-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -91,7 +123,7 @@ public sealed record Road(string To, int Cost);
 
 public sealed record RouteResult(
     bool Found,
-    int TotalCost,
+    long TotalCost,
     IReadOnlyList<string> Path)
 {
     public static RouteResult NotFound() =>
@@ -147,7 +179,7 @@ public sealed class WeightedGraph
                 $"Unknown location: {location}");
         }
 
-        return roads;
+        return roads.AsReadOnly();
     }
 
     public bool Contains(string location)
@@ -197,6 +229,9 @@ public sealed class RouteFinder
         ArgumentException.ThrowIfNullOrWhiteSpace(start);
         ArgumentException.ThrowIfNullOrWhiteSpace(target);
 
+        start = start.Trim();
+        target = target.Trim();
+
         if (!_graph.Contains(start))
         {
             throw new KeyNotFoundException(
@@ -209,7 +244,7 @@ public sealed class RouteFinder
                 $"Unknown target location: {target}");
         }
 
-        var distances = new Dictionary<string, int>(
+        var distances = new Dictionary<string, long>(
             StringComparer.OrdinalIgnoreCase);
 
         var previous = new Dictionary<string, string?>(
@@ -217,18 +252,18 @@ public sealed class RouteFinder
 
         foreach (string vertex in _graph.Vertices)
         {
-            distances[vertex] = int.MaxValue;
+            distances[vertex] = long.MaxValue;
         }
 
         distances[start] = 0;
         previous[start] = null;
 
-        var queue = new PriorityQueue<string, int>();
+        var queue = new PriorityQueue<string, long>();
         queue.Enqueue(start, 0);
 
         while (queue.TryDequeue(
             out string? current,
-            out int queuedDistance))
+            out long queuedDistance))
         {
             if (queuedDistance != distances[current])
             {
@@ -245,7 +280,7 @@ public sealed class RouteFinder
 
             foreach (Road road in _graph.GetRoads(current))
             {
-                int candidate = checked(
+                long candidate = checked(
                     queuedDistance + road.Cost);
 
                 if (candidate >= distances[road.To])
@@ -259,7 +294,7 @@ public sealed class RouteFinder
             }
         }
 
-        if (distances[target] == int.MaxValue)
+        if (distances[target] == long.MaxValue)
         {
             return RouteResult.NotFound();
         }
@@ -278,7 +313,7 @@ public sealed class RouteFinder
         return new RouteResult(
             Found: true,
             TotalCost: distances[target],
-            Path: path);
+            Path: path.AsReadOnly());
     }
 }
 
@@ -411,7 +446,36 @@ Hai dòng failure cuối phải cho thấy:
 - `KeyNotFoundException` khi start location không tồn tại;
 - `ArgumentOutOfRangeException` khi road cost âm.
 
-## 4. Giải thích cơ chế
+Output đầy đủ:
+
+```text
+Warehouse -> Port
+  cost: 13
+  path: Warehouse -> District-2 -> District-1 -> District-3 -> Airport -> Port
+Warehouse -> Airport
+  cost: 10
+  path: Warehouse -> District-2 -> District-1 -> District-3 -> Airport
+Warehouse -> Island
+  no route
+Expected KeyNotFoundException: Unknown start location: Unknown
+Expected ArgumentOutOfRangeException: cost ('-1') must be a non-negative and non-zero value. (Parameter 'cost')
+Actual value was -1.
+```
+
+### Walkthrough — execution / state / cost
+
+1. Builder validate tên và cost dương trước thêm cạnh; graph giữ các danh sách trong RAM.
+2. FindCheapest chuẩn hóa start/target một lần, kiểm đỉnh tồn tại rồi khởi tạo distance kiểu long.
+3. Heap chọn cost nhỏ nhất, bỏ entry cũ; relax lưu previous.
+4. Dựng path từ target ngược về start rồi reverse. Read-only wrapper bảo vệ API, không biến graph thành snapshot bất biến hay thread-safe.
+
+### Mini-check
+
+Vì sao chỉ Trim trong ContainsLocation mà không Trim biến dùng tra Dictionary vẫn có thể lỗi?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Domain model
 
@@ -521,7 +585,47 @@ if (queuedDistance != distances[current])
 
 bỏ entry stale.
 
-## 5. Kiến thức nền và refactor project
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| BFS | mọi cạnh cùng cost | đếm bước đủ |
+| Dijkstra | cost không âm; mẫu bắt buộc dương | heap, distance và predecessor |
+| MST | nối toàn mạng với tổng thấp | không trả route tối ưu giữa hai điểm |
+
+### Misconception check
+
+**Đúng hay sai?** int.MaxValue có thể dùng làm unreachable khi cạnh cũng là int.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: đó có thể là cost hợp lệ; mẫu dùng long và sentinel khác miền một cạnh.
+
+</details>
+
+**Đúng hay sai?** Read-only roads không bao giờ thay đổi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: wrapper có thể thấy thay đổi từ owner; không iterate cùng lúc mutation.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+<a id="5-kien-thuc-nen-va-thiet-ke"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace từ input tới route.
+
+- **Working Developer — dùng khi làm việc:** failure và ownership contracts.
+
+- **Deep Dive — có thể quay lại sau:** snapshot/cache khi có workload thật.
 
 Sau khi bản single-file chạy đúng, refactor thành:
 
@@ -607,7 +711,7 @@ Tách concern giúp học và debug rõ hơn.
 
 Ở module 08–09, graph data có thể được load từ SQL/EF Core.
 
-## 6. Lỗi thường gặp và review checklist
+## 6. Lỗi thường gặp
 
 ### Dùng BFS cho weighted route
 
@@ -655,19 +759,27 @@ Trong production, location có thể cần ID riêng thay vì dùng tên làm id
 
 ### Không kiểm tra overflow
 
-Distance là tổng nhiều cost.
-
-Sample dùng `checked`.
-
-Nếu domain có cost lớn, cân nhắc `long`.
+Distance là tổng nhiều cost int dương. Sample dùng long và checked: cạnh int.MaxValue vẫn là route hợp lệ thay vì trùng sentinel unreachable. Long không thay chính sách giới hạn dữ liệu hoặc xử lý lỗi tài nguyên.
 
 ### Expose mutable adjacency
 
 Không trả trực tiếp `List<Road>` cho caller sửa.
 
-Sample trả interface read-only, nhưng cần nhớ runtime object phía dưới vẫn là list. Production API có thể dùng immutable/copy tùy threat model và performance.
+Sample trả wrapper AsReadOnly để chặn cast về List; view vẫn phản ánh update của graph. Không mutate graph khi một query đang chạy; wrapper không tự tạo snapshot hay thread safety.
 
-## 7. Bài tập mở rộng
+## 7. Khi nào KHÔNG dùng
+
+Không thêm database, broker hoặc kiến trúc phân tán cho bản đồ nhỏ trong RAM. Không gọi FindCheapest đồng thời với sửa graph mà chưa có policy snapshot/locking.
+
+## 8. Production notes & scale check
+
+Gate kiểm route/cost, unreachable, start=target, whitespace, invalid edge, read-only API và cost lớn. Seed graph nhỏ đối chiếu oracle độc lập; không coi đó là benchmark hoặc chứng minh mọi graph. Bộ nhớ search O(V+E) với lazy heap.
+
+<a id="7-bai-tap"></a>
+
+<a id="7-bai-tap-mo-rong"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Route ít chặng nhất
 
@@ -761,13 +873,31 @@ public sealed record RouteRequest(
     string To);
 
 public sealed record RouteResponse(
-    int TotalCost,
+    long TotalCost,
     IReadOnlyList<string> Path);
 ```
 
 Chưa cần ASP.NET Core, chỉ cần contract.
 
-## 8. Checklist hoàn thành Module 07
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ Module 06: ranh giới nào chịu trách nhiệm chuẩn hóa tên và bảo vệ cost hợp lệ? Nếu bản đồ 100 đỉnh đổi mỗi ngày, chọn snapshot đơn giản hay dịch vụ phân tán; giải thích bằng cách sử dụng thực tế.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Previous phục vụ bước nào?
+2. Graph giữ state ở đâu?
+3. Cost lớn khác unreachable thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+<a id="8-checklist-hoan-thanh-module-07"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 ### Kiến thức
 
@@ -826,3 +956,9 @@ README đủ lệnh chạy
 Mục tiêu cuối cùng của Module 07 không phải “nhớ tên 12 cấu trúc dữ liệu”, mà là có thể nhìn một requirement và trả lời:
 
 > Operation chính là gì, constraint là gì, cấu trúc nào phù hợp, complexity ra sao và trade-off nào chấp nhận được?
+
+### Checkpoint sau cụm bài
+
+- [Failure Lab](./failure-labs/04-alias.md)
+- [Spaced Review](./reviews/review-04.md)
+- [PR Review](./pr-review-labs/01-route.md)

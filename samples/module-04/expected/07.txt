@@ -1,0 +1,7 @@
+#1001 | An    |    1,800,000 VND
+#1002 | Binh  |    1,700,000 VND
+So object da tao: 2
+Hai lan new co cung object? False
+aliasOfAn va anAccount cung object? True
+So du An doc qua anAccount: 1,900,000 VND
+So object van la: 2

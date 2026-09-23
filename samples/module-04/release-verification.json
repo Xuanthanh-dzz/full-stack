@@ -1,0 +1,224 @@
+{
+  "verified_on": "2026-09-22",
+  "sdk": "9.0.121",
+  "target": "net9.0",
+  "language": "C#13",
+  "configuration": "Release",
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/01-dotnet-9-va-chuong-trinh-csharp.md",
+      "files": {
+        "Sample.csproj": "933bfd93fb4668ecf73c60797396a2f0e200a7b82512e75de5ba7bdd5be269de",
+        "Program.cs": "584f544a0a779d029dc9b81f8888d3d3019d9ed836b4b66ff5ff10baf7446076"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/02-cu-phap-bien-va-kieu-du-lieu.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "25ae931b951926cd2ad82d563c1fe276dc22a5253176d8a707faae8f5e761f98"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "quantity/price parse and domain rejection"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/03-toan-tu-dieu-kien-vong-lap.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "3161cdea1210bcb253ffcfc6e754595fefafd32a4a0587c3bd51fbc354ac5015"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/04-method-parameter-va-return.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "473c5f92598dfb1073657ae25a40d9e5f4be35e8ccce39377b43e9bf755db6a5"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/05-stack-heap-value-type-reference-type.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "742ce03f5d06d347c67b327566f098f6468c73f0c9da2784456bf833fcadb7b4"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/06-array-string-index-va-range.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "07cddc91ca218f889737d63c07d96a4c6fc9e0d44b4ab26d8ba084fed92e4368"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/07-class-object-constructor.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "45092cafa6fdee1e0871eecc020b8cec96858d909b7ea1dbe51feea342399203"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/08-property-encapsulation-va-access-modifier.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "72f44782b564377d4b98cf1abe46d179ca0225e8671071842de57fe7c36d7be2"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "compiler rejects missing required, init reassignment and private setter",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/09-inheritance-polymorphism.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "63d220aa2883ccea0ff8848982cf529fa7c5b16eb9ce06bdac9a352b22a56d43"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/10-abstract-class-va-interface.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "2678c3cc402f5116d66a8ec71326872da6bcec64e1030644adfe3c5d028fadd7"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/11-struct-enum-va-tuple.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "69811657ae682cae90112fe6ad69fe8362eae494d5bbe75390df5adf6fa18d2d"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/12-exception-va-xu-ly-loi.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "7d2ca792e174b221aa716cc620afaaa5f221674771739e9e851f1f7c4cff489b"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "persisted order ID/customer/quantity after compensation paths",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "a359d80fd190292342f23600bcf5a4e70cc1bb5374a41f9b0d95013ca582059e"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/14-project-solution-namespace-va-assembly.md",
+      "files": {
+        "StoreBilling.Domain/StoreBilling.Domain.csproj": "fa6375684d4de4f1bcd0aafb6276543df3b66460d98c49190cd7c2fcd815821c",
+        "StoreBilling.Cli/StoreBilling.Cli.csproj": "5b473cdc10cb552af8bcfe04de237519665ba4f350bef19fcf7a8cea769f0c2c",
+        "StoreBilling.Domain/Billing/InvoiceLine.cs": "19a48cf9ce074a58478a2a60ed2751522a82855ecc31c7a1c42dc3248c44c945",
+        "StoreBilling.Domain/Billing/InvoiceCalculator.cs": "9e9ba617c47e5b0186afa044b730e569435c87717078e1d2eeaed03632e24b26",
+        "StoreBilling.Cli/Program.cs": "f579d509863b0e66a02b2a6b2c1ac2c9343a091682770ef0c20d76f7de4d6323"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "internal calculator is inaccessible across real assembly boundary"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/15-debug-va-diagnostics-co-ban.md",
+      "files": {
+        "Sample.csproj": "3e6e754a714a5792dd4f426eab473edd6691f18b4d9927608f0b2189fe2297a7",
+        "Program.cs": "23b238f53fd3d584f188074703d362d5c67c0eb52fdae8333bafe0a65a7ff7e0"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "reviewed stdout oracle, expected stderr and exit; only GUID/timing normalized",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/04-csharp-co-ban/16-du-an-console-csharp-quan-ly-cong-viec.md",
+      "files": {
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398",
+        "Domain/TodoStatus.cs": "94df46f1af24cc6f91e8d2adfc31e90c28ce2a9087f0251472ec271413aab07c",
+        "Domain/TodoItem.cs": "357c8e55d094d15f24d42ca14cd22f57a22784e3a0e0e5b004299b9e1ac08562",
+        "Application/ITodoRepository.cs": "5224c04bc55b752fb287d0b3a7d5535a267727ca62cd0b8ef2bc575e7a16d8ec",
+        "Application/TodoItemView.cs": "a68374eb5d61bfb527e1e30390f7446cc550807ce8cdb0430d463b651b5f8575",
+        "Application/TodoService.cs": "f0a6ebf3ffd259ae0cadd47d2540548b19f1bc7ffd676f65627cffd2a5466ebd",
+        "Infrastructure/JsonTodoRepository.cs": "3f35f34707d823e55a3a5ae994706d3aed88d75204654126ddc7e7c01588e1d9",
+        "Program.cs": "c598addbaf9c89d92337d6d5716a5317e3d499bf30528ac97cc90b60f54963bc"
+      },
+      "checks": [
+        "published source/project manifest builds with warnings as errors",
+        "CLI add/list/done/remove across processes; invalid input, JSON, ID range and file failure preserve bytes",
+        "boundary and unchanged-state assertions from independent contract harness"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/04-csharp-co-ban/failure-labs/01-ref-va-overflow.md",
+      "source_sha256": "52de2b5a0b5dc93dc5c0b651b45ca0eb2d6eb857b6ab8b9b5451e0449a44e66f",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/04-csharp-co-ban/failure-labs/02-virtual-va-member-hiding.md",
+      "source_sha256": "7afd9b94af9f0021c63c08d52eaa323eceae4e8ae326edb0b7acfc9974f2c218",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/04-csharp-co-ban/failure-labs/03-shallow-copy-va-save.md",
+      "source_sha256": "a7045a57031987c3efecd1acd4874ff39192c33d9a3ba37fff61aa35c5274bd1",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

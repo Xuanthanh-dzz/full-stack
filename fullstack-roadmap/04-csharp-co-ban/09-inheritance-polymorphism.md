@@ -1,5 +1,16 @@
 # Inheritance và polymorphism
 
+> **Last verified:** 2026-09-22 — published samples/contracts PASS; CI và maintainer review xem PROGRESS  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, culture hoặc serialization; CI failure
+
+## TL;DR
+
+- Kế thừa cho phép dùng derived qua base contract; virtual chọn implementation theo object runtime.
+- Dùng khi các cách giao hàng thực sự đáp ứng cùng phép tính phí.
+- Upcast không clone hoặc cắt bỏ phần derived như copy base value trong C++.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một quầy hỏi mọi đơn vị giao hàng cùng câu “phí là bao nhiêu?”. Câu hỏi chung, nhưng đơn vị thực trả lời theo cách riêng. Không cần đổi loại object chỉ để gọi qua tên chung.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| base/derived | kiểu nền và kiểu mở rộng contract | ShippingMethod/ExpressShipping |
+| virtual/override | cho phép và cung cấp hành vi runtime | CalculateFee |
+| upcast | nhìn derived qua kiểu base | ShippingMethod reference |
+| sealed override | khóa việc override tiếp member | phí quốc tế |
+
+### Ví dụ nhỏ — tính tay trước
+
+Express mức2, nặng2.5kg: phí nền25000+20000=45000; thêm60000 →105000. Cùng object nhìn qua ShippingMethod vẫn cho105000.
+
 Một hệ thống bán hàng cần báo giá nhiều cách giao hàng:
 
 - Giao tiêu chuẩn dùng công thức cơ sở.
@@ -25,7 +53,9 @@ Màn hình báo giá phải duyệt một mảng duy nhất và gọi cùng mộ
 
 Đây là lúc inheritance mô tả quan hệ “là một loại của” (`is-a`) và runtime polymorphism chọn implementation dựa trên object thật.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project .NET 9:
 
@@ -236,7 +266,20 @@ Runtime type: ExpressShipping; fee: 105,000 VND
 Priority level: 2
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main tạo bốn object derived/base rồi duyệt qua ShippingMethod.
+2. PrintQuote gọi virtual CalculateFee; runtime chọn theo object thật.
+3. InternationalExpress thêm120000 trên Express; StorePickup trả0 với weight hợp lệ.
+4. List/reference giữ object sống; dispatch không copy object. Cost phép tính cố định, format/output theo text; hierarchy thêm chi phí hiểu contract.
+
+### Mini-check
+
+Tại sao cast để xem PriorityLevel không cần tạo object Express mới?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1 Derived object chứa state của cả base và derived type
 
@@ -347,7 +390,45 @@ decimal standardFee = base.CalculateFee(weightKg);
 
 Dùng `sealed` khi invariant không an toàn nếu tiếp tục mở rộng, behavior phải cố định, hoặc type vốn không được thiết kế làm base. Không dùng chỉ để “tối ưu hiệu năng” nếu chưa có đo đạc và lý do thiết kế.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| virtual override | chọn theo runtime type | hợp thay hành vi qua base |
+| overload | chọn theo signature tại compile | không thay runtime dispatch |
+| new member hiding | che tên theo static type | dễ gây bất ngờ; không dùng thay override |
+
+### Misconception check
+
+**Đúng hay sai?** Gán Express vào biến ShippingMethod làm mất PriorityLevel khỏi object.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ giới hạn member nhìn qua reference base.
+
+</details>
+
+**Đúng hay sai?** Method không virtual trong base không thể gọi hành vi derived.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: PrintQuote không virtual nhưng gọi CalculateFee virtual.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** base reference và dispatch.
+
+- **Working Developer — dùng khi làm việc:** contract thay thế, validation.
+
+- **Deep Dive — có thể quay lại sau:** thiết kế hierarchy khi có driver.
 
 ### 5.1 Quan hệ `is-a` và khả năng thay thế
 
@@ -442,7 +523,17 @@ Override có thể chạy trước khi derived field được gán. Constructor 
 
 Cây nhiều tầng làm behavior bị phân tán qua nhiều class và `base` call. Giữ hierarchy nông; khi các biến thể kết hợp độc lập, composition/interface thường dễ thay đổi hơn.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không kế thừa chỉ để dùng lại vài dòng tính toán khi không có contract thay thế được. Không gọi virtual trong constructor để dựa vào state derived chưa hoàn tất.
+
+## 8. Production notes & scale check
+
+Bốn phương thức giao hàng đủ cho demo. Test dispatch, cận weight, priority và sealed rule. Nếu pricing thay theo cấu hình thường xuyên, trước hết so sánh một bảng rule nhỏ với hierarchy; không mặc định thêm pattern.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Nhân viên và lương
 
@@ -474,7 +565,23 @@ Phân tích ba quan hệ: `Order : List<OrderLine>`, `Car : Engine`, `CsvExporte
 
 Gợi ý: hỏi “mọi X có thực sự là Y và dùng được ở mọi nơi cần Y không?”; tái sử dụng code không phải tiêu chí duy nhất.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So sánh slicing C++ Module03 với upcast C#. Hãy dự đoán phí qua base reference rồi giải thích phần nào là static type, phần nào là runtime object.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Ai chọn CalculateFee khi chạy?
+2. sealed override chặn điều gì?
+3. ReferenceEquals chứng minh điều gì và không chứng minh gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể tự trả lời:
 
