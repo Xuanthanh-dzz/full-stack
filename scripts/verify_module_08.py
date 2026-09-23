@@ -50,7 +50,7 @@ def rows(stdout):
         line=line.strip()
         if not line or line.startswith(('Changed database context','SQL Server','Table ','Worktable','Workfile','CPU time','(')):continue
         parts=[p.strip() for p in line.split('|')]
-        parts=[format(Decimal(p).normalize(),'f') if re.fullmatch(r'-?\d+(\.\d+)?',p) else p for p in parts]
+        parts=[format(Decimal(p).normalize(),'f') if re.fullmatch(r'-?(?:\d+(?:\.\d+)?|\.\d+)',p) else p for p in parts]
         result.append('|'.join(parts))
     return result
 
