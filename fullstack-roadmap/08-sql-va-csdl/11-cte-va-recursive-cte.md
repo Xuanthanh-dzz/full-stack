@@ -33,13 +33,13 @@ Bắt đầu từ phòng ban gốc, ghi những phòng trực thuộc rồi ti�
 | Thuật ngữ | Nghĩa đơn giản | Trong bài này |
 |---|---|---|
 | CTE | tên tạm cho biểu thức query trong một statement | CategoryTree |
-| anchor | rowset khởi đầu | category1 |
+| anchor | rowset khởi đầu | category 1 |
 | recursive member | bước suy rowset tiếp theo từ lượt trước | join ParentCategoryId |
 | materialize | lưu kết quả trung gian để dùng lại | temp table, không mặc định CTE |
 
 ### Ví dụ nhỏ — tính tay trước
 
-Gốc1 có con2,5;2 có 3,4;5 có 6,7. Các depth là0:[1],1:[2,5],2:[3,4,6,7]. Output ORDER BY Path là thứ tự chữ của path, không phải cam kết thứ tự chạy từng node.
+Gốc 1 có con 2 và 5; node 2 có con 3 và 4; node 5 có con 6 và 7. Theo độ sâu: 0 → [1], 1 → [2, 5], 2 → [3, 4, 6, 7]. `ORDER BY Path` sắp kết quả theo chuỗi đường dẫn; nó không cam kết thứ tự engine duyệt từng node.
 
 Category có cấu trúc:
 
@@ -155,14 +155,14 @@ GO
 
 ### Walkthrough — execution / state / cost
 
-1. Anchor chọn gốc1 với Depth0 và cast Path sang nvarchar(1000).
+1. Anchor chọn gốc 1 với `Depth = 0` và cast Path sang nvarchar(1000).
 2. Recursive member nối mỗi row vừa có với children, tăng depth và nối path.
 3. UNION ALL gom các lượt; dừng khi không sinh thêm row hoặc MAXRECURSION báo lỗi.
 4. Server giữ state thực thi theo plan; path dài thêm và sort cuối có cost. CTE không còn dùng được ở statement tiếp theo.
 
 ### Mini-check
 
-Nếu parent của gốc1 đổi thành7, FK có cấm vòng1→5→7→1 không?
+Nếu parent của gốc 1 đổi thành 7, foreign key có ngăn vòng 1 → 5 → 7 → 1 không?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -292,11 +292,11 @@ Foreign key self-reference không tự ngăn mọi cycle logic.
 
 ## 7. Khi nào KHÔNG dùng
 
-Không dùng recursion vô hạn bằng MAXRECURSION0 cho dữ liệu chưa kiểm. Không chọn temp table chỉ vì query dài nếu CTE đủ rõ và plan ổn.
+Không dùng recursion vô hạn bằng `MAXRECURSION 0` cho dữ liệu chưa kiểm. Không chọn temp table chỉ vì query dài nếu CTE đủ rõ và plan ổn.
 
 ## 8. Production notes & scale check
 
-Gate kiểm7 node/depth/path và case cycle có lỗi recursion. Path cast1000 là cận demo, không bảo đảm hierarchy tùy ý không bị cắt chuỗi. Cần chọn cận và policy vượt cận trước dùng cho cây dữ liệu thật.
+Gate kiểm 7 node, độ sâu, đường dẫn và ca có vòng lặp gây lỗi recursion. `Path` được cast sang `nvarchar(1000)` chỉ để minh họa; cây sâu hơn có thể vượt giới hạn này. Cần quy định giới hạn và cách xử lý khi vượt giới hạn trước khi dùng dữ liệu thật.
 
 <a id="7-bai-tap"></a>
 
@@ -324,7 +324,7 @@ Rewrite một derived table dài thành CTE có tên rõ nghĩa.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So BFS/DFS Module 07: state chờ duyệt nằm ở đâu khi chuyển sang SQL? Với cây20 node, cần materialized path hay adjacency list hiện tại đã đủ?
+So BFS/DFS Module 07: state chờ duyệt nằm ở đâu khi chuyển sang SQL? Với cây 20 node, cần materialized path hay adjacency list hiện tại đã đủ?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

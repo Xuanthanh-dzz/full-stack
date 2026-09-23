@@ -36,11 +36,11 @@ Sau bài này, bạn có thể:
 | INNER JOIN | chỉ các cặp thỏa ON | 3 đơn có khách |
 | LEFT JOIN | giữ mọi row trái, thêm NULL nếu không match | Chi vẫn xuất hiện |
 | cardinality | số row và số match dự kiến | 1 khách tới nhiều đơn |
-| CROSS JOIN | mọi cặp giữa hai phía | 3 khách×2 sản phẩm |
+| CROSS JOIN | mọi cặp giữa hai phía | 3 khách × 2 sản phẩm |
 
 ### Ví dụ nhỏ — tính tay trước
 
-Customers An,Bình,Chi; Orders101/102 của An,103 của Bình. INNER có 3 row; LEFT có 4 row; CROSS với2products có 6 row. LEFT với Paid trong ON giữ Chi, chuyển sang WHERE thì mất Chi.
+Có ba khách An, Bình, Chi; An có đơn 101 và 102, Bình có đơn 103. `INNER JOIN` trả 3 row; `LEFT JOIN` trả 4 row vì giữ cả Chi; `CROSS JOIN` với 2 sản phẩm trả 6 row. Lọc `Paid` trong `ON` vẫn giữ Chi, còn lọc trong `WHERE` có thể loại Chi.
 
 Ta có:
 
@@ -162,7 +162,7 @@ GO
 
 ### Mini-check
 
-COUNT(*) sau LEFT JOIN cho Chi bằng1 hay0? COUNT(o.OrderId) thì sao?
+COUNT(*) sau LEFT JOIN cho Chi bằng 1 hay 0? COUNT(o.OrderId) thì sao?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -308,7 +308,7 @@ Không dùng DISTINCT che lỗi join thiếu key. Không CROSS JOIN nguồn lớ
 
 ## 8. Production notes & scale check
 
-Gate kiểm3/4/6 row, unmatched customer và ON/WHERE khác nhau. RIGHT/FULL có ca riêng trên tập nhỏ; semantics tập kết quả không bảo đảm thứ tự nếu thiếu ORDER BY. JOIN nhiều children có thể nhân số tiền trước SUM.
+Gate kiểm 3, 4 và 6 row, unmatched customer và ON/WHERE khác nhau. RIGHT/FULL có ca riêng trên tập nhỏ; semantics tập kết quả không bảo đảm thứ tự nếu thiếu ORDER BY. JOIN nhiều children có thể nhân số tiền trước SUM.
 
 <a id="7-bai-tap"></a>
 

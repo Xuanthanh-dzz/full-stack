@@ -33,14 +33,14 @@ Sau bài này, bạn có thể:
 
 | Thuật ngữ | Nghĩa đơn giản | Trong bài này |
 |---|---|---|
-| UNION ALL | nối và giữ mọi row | COMMON xuất hiện2 lần |
+| UNION ALL | nối và giữ mọi row | COMMON xuất hiện 2 lần |
 | UNION | nối rồi loại row trùng | COMMON một lần |
 | INTERSECT | row có ở cả hai phía, không lặp | COMMON |
 | EXCEPT | row ở trái mà không ở phải | A-only |
 
 ### Ví dụ nhỏ — tính tay trước
 
-A=[A1,A2,C],B=[B1,B2,C]: UNION5 row,ALL6 row,INTERSECT[C],A EXCEPT B=[A1,A2]. Đảo EXCEPT nhận[B1,B2].
+A = [A1, A2, C], B = [B1, B2, C]. `UNION` có 5 row, `UNION ALL` có 6 row, `INTERSECT` cho [C], `A EXCEPT B` cho [A1, A2]. Đảo chiều `EXCEPT` cho [B1, B2].
 
 Ta có hai nguồn SKU:
 
@@ -264,7 +264,7 @@ Không dùng UNION khi cần giữ mọi event trùng giá trị. Không dùng E
 
 ## 8. Production notes & scale check
 
-Gate kiểm kết quả và số row của5query chính, thêm NULL/duplicate case. Collation/type conversion ảnh hưởng equality; đối chiếu dữ liệu quan trọng cần cả key, count và giá trị, không chỉ checksum dễ collision.
+Gate kiểm kết quả và số row của 5 truy vấn chính, thêm NULL/duplicate case. Collation/type conversion ảnh hưởng equality; đối chiếu dữ liệu quan trọng cần cả key, count và giá trị, không chỉ checksum dễ collision.
 
 <a id="7-bai-tap"></a>
 

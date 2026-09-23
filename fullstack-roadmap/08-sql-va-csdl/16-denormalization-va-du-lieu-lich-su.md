@@ -26,7 +26,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Hóa đơn đã ghi giá mua1200000 không được đổi thành1500000 chỉ vì cửa hàng tăng giá hôm nay. Đây là hai sự thật ở hai thời điểm, khác với tổng tiền được lưu thêm để đỡ cộng lại mỗi lần.
+Hóa đơn đã ghi giá mua 1.200.000 không được đổi thành 1.500.000 chỉ vì cửa hàng tăng giá hôm nay. Đây là hai sự thật ở hai thời điểm, khác với tổng tiền được lưu thêm để đỡ cộng lại mỗi lần.
 
 ### Từ vựng
 
@@ -39,7 +39,7 @@ Hóa đơn đã ghi giá mua1200000 không được đổi thành1500000 chỉ v
 
 ### Ví dụ nhỏ — tính tay trước
 
-Product Keyboard Pro1200000 được copy vào item. Sau UPDATE catalog thành Keyboard Pro2/1500000, item vẫn có tên cũ/1200000. Hai mức giá khác nhau là đúng lịch sử.
+Khi mua, dòng hàng chụp tên Keyboard Pro và giá 1.200.000. Sau đó catalog đổi thành Keyboard Pro 2 với giá 1.500.000; dòng hàng vẫn giữ tên và giá cũ. Hai mức giá khác nhau là đúng lịch sử.
 
 Product hiện tại:
 

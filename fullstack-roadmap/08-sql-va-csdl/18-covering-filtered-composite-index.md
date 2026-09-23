@@ -40,7 +40,7 @@ Chia sổ trước theo khách, rồi trạng thái, rồi ngày giúp tìm đơ
 
 ### Ví dụ nhỏ — tính tay trước
 
-Index(CustomerId,Status,OrderedAt DESC) INCLUDE TotalAmount: với customer42/Paid có thể đọc theo ngày và lấy total ngay. Query chỉ Status=Paid không có cùng prefix tìm kiếm.
+Index `(CustomerId, Status, OrderedAt DESC)` kèm `TotalAmount`: khi tìm đơn `Paid` của khách ID 42, có thể đọc theo ngày và lấy tổng tiền ngay trong index. Truy vấn chỉ lọc `Status = 'Paid'` không có cùng tiền tố key để tìm kiếm.
 
 Dashboard chạy liên tục:
 
@@ -307,7 +307,7 @@ Không INCLUDE toàn table để cover mọi query. Không áp “cột selectiv
 
 ## 8. Production notes & scale check
 
-Gate kiểm metadata key/include/filter và rowset khách42. Không chấm theo tên operator cố định; index đề xuất còn cần so reads/write cost. Hai index trong demo minh họa hai thiết kế, chưa phải đề nghị giữ cả hai trên mọi hệ thống.
+Gate kiểm metadata key/include/filter và rowset khách ID 42. Không chấm theo tên operator cố định; index đề xuất còn cần so reads/write cost. Hai index trong demo minh họa hai thiết kế, chưa phải đề nghị giữ cả hai trên mọi hệ thống.
 
 <a id="7-bai-tap"></a>
 

@@ -40,7 +40,7 @@ Mỗi hóa đơn vẫn có một dòng, nhưng bên cạnh ghi thêm thứ hạn
 
 ### Ví dụ nhỏ — tính tay trước
 
-Khách1 có amounts1,3,3 triệu theo ngày: running totals1,4,7 triệu. Theo amount giảm: ROW_NUMBER của IDs102,103,101 là1,2,3; RANK là1,1,3; DENSE_RANK là1,1,2.
+Khách ID 1 có ba đơn trị giá 1, 3 và 3 triệu theo ngày; tổng lũy kế là 1, 4, 7 triệu. Sắp theo tiền giảm dần: `ROW_NUMBER` của các ID 102, 103, 101 là 1, 2, 3; `RANK` là 1, 1, 3; `DENSE_RANK` là 1, 1, 2.
 
 Dashboard cần:
 
@@ -221,7 +221,7 @@ Sai: cần ORDER BY ngoài nếu presentation cần thứ tự.
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
 
-Sai: RANK có tie nên có thể trả hơn2 row.
+Sai: RANK có tie nên có thể trả hơn 2 row.
 
 </details>
 
@@ -319,7 +319,7 @@ Tính phần trăm order trên tổng revenue customer bằng SUM OVER.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ stable sort Module 07: giữ tie trong rank khác phân định tie cho vị trí thế nào? Thiết kế báo cáo “2 đơn” và “2mức giá” thành hai contract riêng.
+Từ stable sort Module 07: giữ tie trong rank khác phân định tie cho vị trí thế nào? Thiết kế báo cáo “2 đơn” và “2 mức giá” thành hai contract riêng.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

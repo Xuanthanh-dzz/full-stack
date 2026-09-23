@@ -358,7 +358,7 @@ Xóa container SQL Server rồi dựng lại bằng cùng command để kiểm t
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So Dictionary Module 07 và file writer Module 06: phần nào của ownership/durability được chuyển sang database, phần nào ứng dụng vẫn phải quyết định? Với một công cụ cá nhân lưu20 mục, chọn cách đơn giản nhất.
+So với `Dictionary` ở Module 07 và ghi file ở Module 06: database quản lý phần nào của dữ liệu và độ bền, phần nào ứng dụng vẫn phải quyết định? Với công cụ cá nhân lưu 20 mục, chọn cách đơn giản nhất.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

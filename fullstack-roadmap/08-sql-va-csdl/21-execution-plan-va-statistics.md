@@ -34,14 +34,14 @@ Hai lộ trình giao hàng cùng tới đích nhưng một đường đi vòng q
 | Thuật ngữ | Nghĩa đơn giản | Trong bài này |
 |---|---|---|
 | optimizer | thành phần chọn phương án thực thi | seek/scan/join |
-| cardinality estimate | số row dự đoán | ước lượng cho customer42/Paid |
+| cardinality estimate | số row dự đoán | ước lượng cho khách ID 42 với trạng thái `Paid` |
 | statistics | tóm tắt phân bố dữ liệu | histogram/density |
 | actual plan | plan kèm metrics của lần chạy | actual rows |
 | spill | ghi dữ liệu xử lý trung gian ra tempdb | sort/hash thiếu memory grant |
 
 ### Ví dụ nhỏ — tính tay trước
 
-Seed có 20000 đơn,12000thuộc customer1. Cùng query cho customer1 và 42 có volume rất khác. Actual rows là số đo; estimated rows là dự đoán trước hoặc trong lựa chọn plan, không phải hai tên cho cùng số.
+Dữ liệu mẫu có 20.000 đơn, trong đó 12.000 đơn thuộc khách ID 1. Cùng một truy vấn cho khách 1 và khách 42 có thể trả số row rất khác. `Actual rows` là số đo lúc chạy; `estimated rows` là dự đoán dùng để chọn plan, không phải hai tên của cùng một số.
 
 Một query chạy chậm:
 
@@ -158,7 +158,7 @@ Seed dùng chu kỳ status 3 khác chu kỳ customer 200 để CustomerId=42 có
 
 ### Mini-check
 
-Operator estimate1 row nhưng actual100000 row: điều gì có thể xảy ra với join choice hoặc memory grant?
+Operator ước lượng 1 row nhưng thực tế có 100.000 row: điều gì có thể xảy ra với join choice hoặc memory grant?
 
 <a id="4-giai-thich-co-che"></a>
 

@@ -40,7 +40,7 @@ Số đơn phải duy nhất, khách được ghi trên đơn phải có trong s
 
 ### Ví dụ nhỏ — tính tay trước
 
-Có customer1. Order(customer1) được nhận; Order(customer99) bị FK chặn. Price=-1 bị CHECK chặn. DEFAULT không thay thế NULL được truyền tường minh vào cột NOT NULL.
+Có customer ID 1. Đơn hàng tham chiếu ID 1 được nhận; đơn tham chiếu ID 99 bị foreign key chặn vì khách này chưa tồn tại. Giá -1 bị `CHECK` chặn. `DEFAULT` không thay giá trị `NULL` được truyền tường minh vào cột `NOT NULL`.
 
 Hệ thống bán hàng cần bảo đảm:
 

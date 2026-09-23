@@ -27,7 +27,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Đánh dấu cuốn sách cuối đã đọc giúp tìm trang tiếp theo theo vị trí cuốn ấy. Đếm bỏ qua100cuốn từ đầu là cách khác; nếu ai thêm sách ở đầu, số thứ tự cũ có thể lệch.
+Đánh dấu cuốn sách cuối đã đọc giúp tìm trang tiếp theo theo vị trí cuốn ấy. Đếm bỏ qua 100 cuốn từ đầu là cách khác; nếu ai thêm sách ở đầu, số thứ tự cũ có thể lệch.
 
 ### Từ vựng
 
@@ -40,7 +40,7 @@ Sau bài này, bạn có thể:
 
 ### Ví dụ nhỏ — tính tay trước
 
-Filter Keyboard giá 400000..3000000 giữ IDs1,2,3,8. Sort giá giảm trả 8,2,1,3; page1 size 3 là8,2,1. Query keyset ID>3 là4,5,6 và không có filter Keyboard của query trước.
+Lọc Keyboard giá từ 400.000 đến 3.000.000 giữ các ID 1, 2, 3, 8. Sắp theo giá giảm dần được 8, 2, 1, 3; trang đầu gồm 3 mục là 8, 2, 1. Một truy vấn keyset khác với điều kiện ID > 3 trả 4, 5, 6; truy vấn này không dùng bộ lọc Keyboard trước đó.
 
 API product cần hỗ trợ:
 
@@ -143,7 +143,7 @@ GO
 
 ### Mini-check
 
-Insert sản phẩm đắt nhất sau khi đọc page1: offset page2 sẽ dịch thế nào?
+Chèn sản phẩm đắt nhất sau khi đọc trang 1: nội dung trang 2 dùng offset sẽ dịch thế nào?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -304,7 +304,7 @@ Backend phải filter/sort/page gần dữ liệu khi dataset lớn.
 
 ## 7. Khi nào KHÔNG dùng
 
-Không dùng offset rất sâu cho feed lớn theo thói quen. Không thêm search engine cho8 row chỉ vì LIKE có wildcard; đo workload trước.
+Không dùng offset rất sâu cho feed lớn theo thói quen. Không thêm search engine cho 8 row chỉ vì LIKE có wildcard; đo workload trước.
 
 ## 8. Production notes & scale check
 
@@ -336,7 +336,7 @@ Giải thích vì sao `ORDER BY Price` chưa đủ stable.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ binary search/index Module 07, chi phí chuẩn bị thứ tự và bỏ qua prefix nằm ở đâu? Với20 sản phẩm so với10 triệu, chọn pagination và nêu evidence cần đo.
+Từ binary search/index Module 07, chi phí chuẩn bị thứ tự và bỏ qua prefix nằm ở đâu? Với 20 sản phẩm so với 10 triệu sản phẩm, chọn pagination và nêu evidence cần đo.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 
@@ -346,7 +346,7 @@ Không nhìn bài; trả lời bằng ví dụ khác sample.
 
 1. Tiebreaker bảo vệ điều gì?
 2. Keyset cần giữ state gì ở client?
-3. Nhận3 row có nghĩa chỉ đọc3 row không?
+3. Nhận 3 row có nghĩa database chỉ đọc 3 row không?
 
 <a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
 

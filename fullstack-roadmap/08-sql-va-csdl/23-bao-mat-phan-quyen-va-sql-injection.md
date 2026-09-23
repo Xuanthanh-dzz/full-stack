@@ -42,7 +42,7 @@ Mẫu phiếu có ô nhập tên. Nếu nội dung ô được dán thành chỉ
 
 ### Ví dụ nhỏ — tính tay trước
 
-demo_reader SELECT Products được nhưng DELETE phải bị từ chối. Input dấu nháy hoặc chuỗi giống OR1=1 qua @Pattern vẫn là dữ liệu; dấu% vẫn là wildcard của LIKE theo contract.
+demo_reader SELECT Products được nhưng DELETE phải bị từ chối. Chuỗi nhập có dấu nháy hoặc giống `OR 1=1` vẫn chỉ là dữ liệu khi truyền qua `@Pattern`; ký tự `%` vẫn là wildcard của `LIKE` theo contract.
 
 Code nguy hiểm:
 

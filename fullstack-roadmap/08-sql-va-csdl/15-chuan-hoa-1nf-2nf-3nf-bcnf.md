@@ -184,8 +184,8 @@ GO
 
 1. Liệt kê dependencies từ quy tắc nghiệp vụ, không chỉ từ dữ liệu tình cờ hiện có.
 2. Tách Customer/Category/Product/Order/Items theo key và nối bằng FK.
-3. Join sample tái tạo hai dòng hàng, cùng thông tin khách và category, tổng tiền2200000.
-4. Normalized writes giảm số nơi sửa fact nhưng reads có thể thêm join/index. Server không tự chứng minh3NF/BCNF khi CREATE TABLE thành công.
+3. Join sample tái tạo hai dòng hàng, cùng thông tin khách và category, tổng tiền 2.200.000.
+4. Normalized writes giảm số nơi sửa fact nhưng reads có thể thêm join/index. Server không tự chứng minh 3NF/BCNF khi CREATE TABLE thành công.
 
 ### Mini-check
 
@@ -249,11 +249,11 @@ BCNF mạnh hơn 3NF ở một số dependency đặc biệt.
 |---|---|---|
 | 1NF/2NF | không nhóm lặp; non-prime phụ thuộc đầy đủ mọi candidate key | không chỉ nhìn primary key đã chọn |
 | 3NF | với X→A không tầm thường: X là superkey hoặc A thuộc một candidate key | định nghĩa chặt hơn mẹo nhớ “không bắc cầu” |
-| BCNF | mọi determinant của dependency không tầm thường là superkey | mạnh hơn3NF, decomposition có thể khó giữ mọi dependency |
+| BCNF | mọi determinant của dependency không tầm thường là superkey | mạnh hơn 3NF, decomposition có thể khó giữ mọi dependency |
 
 ### Misconception check
 
-**Đúng hay sai?** Thêm surrogate primary key làm schema tự đạt3NF.
+**Đúng hay sai?** Thêm surrogate primary key làm schema tự đạt 3NF.
 
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>

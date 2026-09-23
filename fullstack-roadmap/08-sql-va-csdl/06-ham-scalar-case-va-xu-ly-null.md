@@ -35,11 +35,11 @@ Mỗi phiếu giá đi qua một bàn tính: bỏ khoảng trắng, chọn nhãn
 | scalar | một giá trị đầu ra cho bộ input | TRIM(Name) |
 | CASE expression | chọn giá trị theo điều kiện | PriceTier |
 | COALESCE | lấy expression đầu không NULL | Description fallback |
-| NULLIF | trả NULL khi hai giá trị bằng nhau | mẫu số bằng0 |
+| NULLIF | trả NULL khi hai giá trị bằng nhau | mẫu số bằng 0 |
 
 ### Ví dụ nhỏ — tính tay trước
 
-Price120,ListPrice150 →giảm20%. ListPrice NULL được thay bằng Price nên0%. Cả hai bằng0 →mẫu số NULL, kết quả NULL chứ không tự thành0%.
+Giá 120 và giá niêm yết 150 → giảm 20%. Khi giá niêm yết `NULL`, bài này dùng giá bán làm giá niêm yết nên giảm 0%. Khi cả hai bằng 0, mẫu số trở thành `NULL`; kết quả là `NULL`, không tự thành 0%.
 
 Dashboard cần hiển thị:
 
@@ -126,7 +126,7 @@ GO
 
 ### Mini-check
 
-Từ23:59 tới00:01 ngày sau, DATEDIFF(day) bằng bao nhiêu và có đủ24 giờ chưa?
+Từ 23:59 tới 00:01 ngày hôm sau, `DATEDIFF(day)` bằng bao nhiêu? Khoảng thời gian đó đã đủ 24 giờ chưa?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -191,7 +191,7 @@ Rất hữu ích để tránh chia 0.
 
 ### Misconception check
 
-**Đúng hay sai?** DATEDIFF(day) đo số khoảng24 giờ trọn vẹn.
+**Đúng hay sai?** DATEDIFF(day) đo số khoảng 24 giờ trọn vẹn.
 
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
@@ -314,7 +314,7 @@ Tìm trường hợp `ISNULL` và `COALESCE` suy luận type khác nhau.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So formatter/policy Module 06: nhãn hiển thị có nên thành state lưu lâu dài? Với100 row và 10 triệu row, cost biến đổi chạy ở client hay server khác gì?
+So formatter/policy Module 06: nhãn hiển thị có nên thành state lưu lâu dài? Với 100 row và 10 triệu row, cost biến đổi chạy ở client hay server khác gì?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

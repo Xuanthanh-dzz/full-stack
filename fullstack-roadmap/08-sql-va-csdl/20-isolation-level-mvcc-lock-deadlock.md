@@ -34,13 +34,13 @@ Hai người giữ hai ngăn tủ khác nhau rồi cùng chờ ngăn người ki
 | Thuật ngữ | Nghĩa đơn giản | Trong bài này |
 |---|---|---|
 | blocking | chờ tài nguyên đang bị giữ xung đột | writer chờ writer |
-| deadlock | vòng chờ không ai tự tiến được | A giữ1 chờ2,B giữ2 chờ1 |
+| deadlock | vòng chờ không ai tự tiến được | A giữ khóa 1 chờ khóa 2; B giữ khóa 2 chờ khóa 1 |
 | row versioning | giữ bản row phù hợp cho reader | RCSI |
 | RCSI | READ COMMITTED đọc snapshot theo statement | không phải snapshot toàn transaction |
 
 ### Ví dụ nhỏ — tính tay trước
 
-Stock 1=99,Stock 2=100 sau setup. A trừ1 ở product1 rồi chờ2; B trừ1 ở product2 rồi chờ1. Khi tạo được cycle, một transaction bị lỗi1205 và rollback; survivor trừ mỗi sản phẩm một lần.
+Sau setup, tồn kho sản phẩm 1 là 99, sản phẩm 2 là 100. A trừ 1 ở sản phẩm 1 rồi chờ khóa của sản phẩm 2; B trừ 1 ở sản phẩm 2 rồi chờ khóa của sản phẩm 1. Khi có vòng chờ, một transaction nhận lỗi 1205 và rollback; transaction còn lại trừ mỗi sản phẩm một lần.
 
 Hai request checkout cùng lúc:
 
@@ -149,7 +149,7 @@ Một session có thể bị chọn làm deadlock victim.
 
 ### Mini-check
 
-SELECT lần1 dưới RCSI thấy99; writer commit98 trước SELECT lần2: có thể thấy98 không?
+Lần `SELECT` đầu dưới RCSI thấy 99; writer commit giá trị 98 trước lần `SELECT` thứ hai. Reader có thể thấy 98 không?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -268,7 +268,7 @@ Không thêm NOLOCK như cách chữa blocking mặc định. Không retry vô h
 
 ## 8. Production notes & scale check
 
-Gate dùng hai sqlcmd sessions, kiểm một lỗi1205 và state survivor; thêm reader RCSI thấy giá trị committed khi writer đang giữ thay đổi chưa commit. Không cố định victim danh tính hoặc thời gian detector. Không tuyên bố đã kiểm mọi isolation anomaly chỉ từ demo này.
+Gate dùng hai sqlcmd sessions, kiểm một lỗi 1205 và state survivor; thêm reader RCSI thấy giá trị committed khi writer đang giữ thay đổi chưa commit. Không cố định victim danh tính hoặc thời gian detector. Không tuyên bố đã kiểm mọi isolation anomaly chỉ từ demo này.
 
 <a id="7-bai-tap"></a>
 

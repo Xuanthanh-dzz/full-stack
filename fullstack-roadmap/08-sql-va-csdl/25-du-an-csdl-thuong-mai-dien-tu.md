@@ -43,7 +43,7 @@ Phiếu mua hàng phải nối được người mua, hàng, kho và lần thanh
 
 ### Ví dụ nhỏ — tính tay trước
 
-Kho product1=10,giá 1200000,quantity 2 →kho8,order Pending2400000,item2×1200000,payment Pending2400000. Đây là ý định thanh toán, chưa có bằng chứng thu tiền từ provider.
+Sản phẩm ID 1 có tồn kho 10 và giá 1.200.000. Đặt 2 món → kho còn 8; đơn có tổng 2.400.000 và trạng thái `Pending`; dòng hàng ghi số lượng 2, đơn giá 1.200.000; ý định thanh toán ghi 2.400.000 và trạng thái `Pending`. Chưa có bằng chứng thu tiền từ provider.
 
 Thiết kế database cho mini e-commerce có:
 
@@ -600,7 +600,7 @@ Thêm OrderNumber theo expand-contract.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ Module 06 và 07: vẽ ownership/state từ input tới DB commit; chọn khóa/index theo query đã nêu. Với100order/ngày, giải pháp nhỏ nhất nào đủ và driver nào buộc xem lại?
+Từ Module 06 và 07: vẽ ownership/state từ input tới DB commit; chọn khóa/index theo query đã nêu. Với 100 đơn/ngày, giải pháp nhỏ nhất nào đủ và driver nào buộc xem lại?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

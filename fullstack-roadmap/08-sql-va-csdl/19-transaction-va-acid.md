@@ -39,7 +39,7 @@ Ghi đơn rồi trừ kho là hai dòng trong một công việc. Nếu kho khô
 
 ### Ví dụ nhỏ — tính tay trước
 
-Stock 5, quantity 3: insert order, update stock2, commit. Quantity10: update0 row, THROW, rollback order; stock vẫn 5 nếu bắt đầu từ fixture5. Identity có thể bị tiêu hao dù row rollback.
+Kho có 5 món. Đặt 3 món: ghi đơn, trừ kho còn 2 rồi commit. Đặt 10 món từ cùng dữ liệu ban đầu: lệnh trừ kho tác động 0 row, báo lỗi và rollback cả đơn; kho vẫn là 5. Giá trị identity có thể đã cấp dù row bị rollback.
 
 Checkout cần:
 
@@ -135,7 +135,7 @@ GO
 1. SET XACT_ABORT ON cùng TRY/CATCH thiết lập đường xử lý lỗi runtime.
 2. BEGIN TRANSACTION mở boundary; INSERT chưa là thành công business cuối.
 3. UPDATE có điều kiện Stock>=Quantity và kiểm @@ROWCOUNT ngay sau lệnh.
-4. COMMIT lưu thay đổi; catch rollback khi XACT_STATE khác0 rồi rethrow. Lock/log tồn tại theo engine/isolation; giữ transaction chờ network làm tăng blocking.
+4. COMMIT lưu thay đổi; catch rollback khi `XACT_STATE()` khác 0 rồi rethrow. Lock/log tồn tại theo engine/isolation; giữ transaction chờ network làm tăng blocking.
 
 ### Mini-check
 

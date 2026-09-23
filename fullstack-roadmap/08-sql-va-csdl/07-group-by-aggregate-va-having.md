@@ -40,7 +40,7 @@ Xếp hóa đơn thành chồng theo khách rồi cộng từng chồng. Trướ
 
 ### Ví dụ nhỏ — tính tay trước
 
-Khách1 có 3 đơn với amounts3 triệu,4.5 triệu,NULL: COUNT(*)=3,COUNT(amount)=2,SUM=7.5 triệu,AVG=3.75 triệu. NULL không tự tính là0 trong AVG.
+Khách ID 1 có ba đơn: số tiền 3 triệu, 4,5 triệu và `NULL`. `COUNT(*) = 3`, `COUNT(amount) = 2`, `SUM = 7,5 triệu`, `AVG = 3,75 triệu`. `AVG` bỏ qua `NULL`, không coi nó là 0.
 
 Business hỏi:
 
@@ -133,13 +133,13 @@ GO
 ### Walkthrough — execution / state / cost
 
 1. Theo nghĩa logic: FROM →WHERE →GROUP BY →HAVING →SELECT →ORDER BY.
-2. Query1 gom mọi status; query2 chỉ giữ Paid trước khi tính ngưỡng.
+2. Truy vấn 1 gom mọi trạng thái; truy vấn 2 chỉ giữ `Paid` trước khi tính ngưỡng.
 3. Query tháng đầu tiên đang cộng giá trị mọi đơn, không tự chứng minh đó là tiền đã thu.
 4. Optimizer chọn hash/sort/stream aggregate ở server; có thể giữ state nhóm và spill ra tempdb. Kết quả ít row không đồng nghĩa đọc ít row.
 
 ### Mini-check
 
-AVG(COALESCE(amount,0)) trên ví dụ khách1 bằng bao nhiêu, và đang trả lời câu hỏi khác gì?
+AVG(COALESCE(amount,0)) trên ví dụ khách ID 1 bằng bao nhiêu, và đang trả lời câu hỏi khác gì?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -193,7 +193,7 @@ HAVING SUM(TotalAmount) >= 5000000
 |---|---|---|
 | WHERE | lọc từng row trước group | không dùng aggregate cùng level |
 | HAVING | lọc nhóm theo metric | không thay WHERE nếu cần loại row trước cộng |
-| window | giữ detail và thêm metric | học bài12, không collapse như GROUP BY |
+| window | giữ detail và thêm metric | học ở bài 12, không collapse như GROUP BY |
 
 ### Misconception check
 
@@ -310,7 +310,7 @@ Giải thích grain của ba query bạn vừa viết.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ dictionary counting Module 07: hash group giữ state gì theo số nhóm? So10 khách nhiều đơn với1 triệu khách ít đơn, đề xuất metric bộ nhớ cần xem.
+Từ dictionary counting Module 07: hash group giữ state gì theo số nhóm? So 10 khách nhiều đơn với 1 triệu khách ít đơn, đề xuất metric bộ nhớ cần xem.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

@@ -27,7 +27,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Ô cân nặng chưa đo không thể ghi0 vì0 là một kết quả đo. Một nhãn trống cũng khác chưa từng nhập nhãn. Database cần lưu được các khác biệt ấy để phép tính sau có nghĩa.
+Ô cân nặng chưa đo không thể ghi 0, vì 0 là một kết quả đo. Một nhãn trống cũng khác chưa từng nhập nhãn. Database cần lưu được các khác biệt ấy để phép tính sau có nghĩa.
 
 ### Từ vựng
 

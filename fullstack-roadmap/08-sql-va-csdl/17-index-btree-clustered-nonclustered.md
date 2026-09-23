@@ -27,7 +27,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Mục lục khách hàng dẫn tới đoạn sổ của khách42, thay vì lật mọi trang. Nhưng mỗi lần thêm hóa đơn, cả sổ lẫn mục lục phải được cập nhật; một mục lục quá rộng có thể gần bằng sổ.
+Mục lục khách hàng dẫn tới đoạn sổ của khách 42, thay vì lật mọi trang. Nhưng mỗi lần thêm hóa đơn, cả sổ lẫn mục lục phải được cập nhật; một mục lục quá rộng có thể gần bằng sổ.
 
 ### Từ vựng
 
@@ -40,7 +40,7 @@ Mục lục khách hàng dẫn tới đoạn sổ của khách42, thay vì lật
 
 ### Ví dụ nhỏ — tính tay trước
 
-Khách42 có 100 đơn trong seed10000 row. Index bắt đầu CustomerId dẫn tới vùng100 row; query lấy20 đơn mới nhất có thể dừng sớm. Cột Status/Total không nằm trong index phụ này nên plan có thể cần lookup.
+Khách ID 42 có 100 đơn trong dữ liệu mẫu 10.000 row. Index bắt đầu bằng `CustomerId` dẫn tới vùng 100 row; truy vấn lấy 20 đơn mới nhất có thể dừng sớm. `Status` và `TotalAmount` không nằm trong index phụ này, nên plan có thể phải tra thêm row gốc.
 
 Table Orders có 10 triệu row.
 
@@ -131,14 +131,14 @@ GO
 
 ### Walkthrough — execution / state / cost
 
-1. Seed tạo10000 row, clustered PK giữ row tại leaf theo key logic.
+1. Dữ liệu mẫu có 10.000 row, clustered PK giữ row tại leaf theo key logic.
 2. CREATE INDEX đọc dữ liệu và dựng cây phụ theo CustomerId rồi OrderedAt giảm.
 3. Optimizer ước lượng phạm vi cần đọc, chọn index/lookup hoặc scan.
 4. Query chạy trên server; buffer pages và memory plan ở RAM, files/log trên storage. Kết quả cần ORDER BY dù có clustered index.
 
 ### Mini-check
 
-Query cần90%table: vì sao đọc tuần tự nhiều page có thể hợp hơn hàng nghìn lookup?
+Truy vấn cần 90% số row của bảng: vì sao đọc tuần tự nhiều page có thể hợp hơn hàng nghìn lookup?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -242,11 +242,11 @@ Elapsed time một lần chạy dễ nhiễu.
 
 ## 7. Khi nào KHÔNG dùng
 
-Không index mọi cột hoặc chọn key rộng chỉ vì dễ đọc. Không coi heap table SQL là cùng cấu trúc binary heap bài08 Module 07.
+Không index mọi cột hoặc chọn key rộng chỉ vì dễ đọc. Không coi heap table SQL là cùng cấu trúc binary heap bài 08 Module 07.
 
 ## 8. Production notes & scale check
 
-Gate kiểm seed/index key và kết quả query; IO được ghi làm evidence, không ép một plan shape cố định. Sample10000 row không đại diện10 triệu row production. Đo cardinality, reads và write workload trước giữ thêm index.
+Gate kiểm seed/index key và kết quả query; IO được ghi làm evidence, không ép một plan shape cố định. Dữ liệu mẫu 10.000 row không đại diện cho 10 triệu row production. Đo cardinality, reads và write workload trước giữ thêm index.
 
 <a id="7-bai-tap"></a>
 

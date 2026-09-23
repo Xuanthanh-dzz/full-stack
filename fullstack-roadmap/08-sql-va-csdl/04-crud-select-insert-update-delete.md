@@ -40,7 +40,7 @@ Một lệnh tăng giá có thể tác động cả nhóm sản phẩm. Trước
 
 ### Ví dụ nhỏ — tính tay trước
 
-Có KB750000,MS450000,MN5200000. UPDATE KB→790000; ngừng bán MN; DELETE MS. Cuối cùng còn KB active và MN inactive, không còn MS.
+Có ba sản phẩm: KB giá 750.000, MS giá 450.000 và MN giá 5.200.000. `UPDATE` KB thành 790.000; đánh dấu MN ngừng bán; `DELETE` MS. Cuối cùng KB còn active, MN inactive và MS không còn.
 
 Admin cần:
 

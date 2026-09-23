@@ -159,7 +159,7 @@ GO
 
 1. Query ngoài cung cấp CustomerId cho điều kiện liên quan trong query con theo nghĩa logic.
 2. EXISTS kiểm có row; các cột SELECT trong query con không được đưa ra kết quả.
-3. Scalar query0 row cho NULL, nhiều hơn1 row gây lỗi nếu không aggregate thu về1 row.
+3. Scalar subquery trả 0 row cho `NULL`; trả hơn 1 row gây lỗi nếu không dùng aggregate để thu về 1 row.
 4. Optimizer có thể decorrelate hoặc chọn semi join; đo plan để biết đọc/index/memory thực tế. Một SQL request không tự là N+1 network requests.
 
 ### Mini-check
@@ -302,7 +302,7 @@ Không dùng scalar subquery nếu nghiệp vụ thật sự có nhiều kết q
 
 ## 8. Production notes & scale check
 
-Gate kiểm membership, anti-match, average threshold và scalar NULL; negative case nhiều row phải báo lỗi. SELECT1 trong EXISTS diễn đạt intent, không mặc định nhanh hơn SELECT*. Ca NULL minh họa lý do chọn NOT EXISTS.
+Gate kiểm membership, anti-match, average threshold và scalar NULL; negative case nhiều row phải báo lỗi. `SELECT 1` trong `EXISTS` diễn đạt intent, không mặc định nhanh hơn `SELECT *`. Ca NULL minh họa lý do chọn NOT EXISTS.
 
 <a id="7-bai-tap"></a>
 
@@ -338,7 +338,7 @@ Từ LINQ IEnumerable Module 05, Any và Join trả shape khác nhau thế nào?
 
 Không nhìn bài; trả lời bằng ví dụ khác sample.
 
-1. Scalar0 row trả gì?
+1. Scalar subquery trả 0 row thì kết quả là gì?
 2. EXISTS có nhân khách theo số đơn không?
 3. Correlation mô tả logic hay số network calls?
 

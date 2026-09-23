@@ -40,7 +40,7 @@ View là công thức xem sổ; procedure là một công việc được gọi 
 
 ### Ví dụ nhỏ — tính tay trước
 
-Keyboard1000000→1100000 tạo một audit. UPDATE cả Keyboard và Mouse tăng giá tạo hai audit; UPDATE Name hoặc Price=Price không tạo audit theo predicate của sample.
+Giá Keyboard đổi từ 1.000.000 lên 1.100.000 tạo một row audit. Một lệnh `UPDATE` tăng giá cả Keyboard và Mouse tạo hai row audit; chỉ đổi `Name` hoặc gán `Price = Price` không tạo audit theo điều kiện của sample.
 
 Hệ thống cần:
 

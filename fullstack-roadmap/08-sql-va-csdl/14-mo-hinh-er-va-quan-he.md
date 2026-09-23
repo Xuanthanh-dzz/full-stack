@@ -40,7 +40,7 @@ Sau bài này, bạn có thể:
 
 ### Ví dụ nhỏ — tính tay trước
 
-Product1 thuộc Categories10,20: bảng nối có(1,10),(1,20). Thêm(1,10) nữa bị PK ghép chặn; thêm(1,99) bị FK chặn nếu99 chưa tồn tại.
+Sản phẩm ID 1 thuộc hai nhóm ID 10 và 20, nên bảng nối có (1, 10) và (1, 20). Thêm lại (1, 10) bị khóa chính ghép chặn; thêm (1, 99) bị foreign key chặn nếu nhóm 99 chưa tồn tại.
 
 Requirement:
 
@@ -198,7 +198,7 @@ Nhưng optional phải đến từ business requirement.
 | Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
 |---|---|---|
 | one-to-many | FK ở child | NOT NULL quyết định child bắt buộc có cha |
-| one-to-one | FK kèm UNIQUE ở phía phù hợp | chỉ FK chưa giới hạn tối đa1 |
+| one-to-one | FK kèm UNIQUE ở phía phù hợp | chỉ FK chưa giới hạn tối đa 1 |
 | many-to-many | bảng nối với key cặp | thêm row và join nhưng giữ integrity |
 
 ### Misconception check
@@ -280,7 +280,7 @@ Không thiết kế table theo mỗi màn hình UI. Không tách địa chỉ sn
 
 ## 8. Production notes & scale check
 
-Gate kiểm quan hệ/cặp trùng/FK và dữ liệu snapshot với fixture nhỏ; sample DDL gốc chưa seed nên verifier thêm fixture riêng. Quy tắc1..n và immutable history cần application/transaction/permissions bổ sung nếu nghiệp vụ yêu cầu.
+Gate kiểm quan hệ/cặp trùng/FK và dữ liệu snapshot với fixture nhỏ; sample DDL gốc chưa seed nên verifier thêm fixture riêng. Quy tắc 1..n và immutable history cần application/transaction/permissions bổ sung nếu nghiệp vụ yêu cầu.
 
 <a id="7-bai-tap"></a>
 

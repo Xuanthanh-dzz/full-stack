@@ -33,8 +33,8 @@ Chụp một bản sổ rồi cất đi chưa biết có đọc được khi c�
 
 | Thuật ngữ | Nghĩa đơn giản | Trong bài này |
 |---|---|---|
-| RPO | mức mất dữ liệu tối đa chấp nhận theo thời gian | mất tối đa1 giờ |
-| RTO | thời gian mục tiêu khôi phục dịch vụ | trở lại trong30 phút |
+| RPO | mức mất dữ liệu tối đa chấp nhận theo thời gian | mất tối đa 1 giờ |
+| RTO | thời gian mục tiêu khôi phục dịch vụ | trở lại trong 30 phút |
 | backfill | điền dữ liệu cũ vào cột mới | FirstName/LastName |
 | expand-contract | thêm tương thích rồi mới bỏ cũ | hai release |
 | restore drill | thử phục hồi có kiểm dữ liệu | database tên khác |
@@ -314,7 +314,7 @@ Không DROP cột cũ cùng lúc đổi application khi cần rollback phiên b�
 
 ## 8. Production notes & scale check
 
-Gate chạy cả3block: migration, backup/VERIFYONLY, restore/CHECKDB và so dữ liệu nguồn–đích. Đây là full backup nhỏ, chưa kiểm log chain/PITR, encryption key recovery hay RPO/RTO thực tế. Restore target dùng tên riêng trong container tạm.
+Gate chạy cả 3 block: migration, backup/VERIFYONLY, restore/CHECKDB và so dữ liệu nguồn–đích. Đây là full backup nhỏ, chưa kiểm log chain/PITR, encryption key recovery hay RPO/RTO thực tế. Restore target dùng tên riêng trong container tạm.
 
 <a id="7-bai-tap"></a>
 

@@ -28,7 +28,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Mục lục đã theo ngày, hỏi từ đầu2026 tới trước2027 giúp mở đúng đoạn. Nếu bắt tính YEAR trên từng ngày rồi mới so, engine có thể phải xét nhiều entry hơn trước khi biết entry nào thuộc năm cần tìm.
+Mục lục đã theo ngày, hỏi từ đầu năm 2026 tới trước năm 2027 giúp mở đúng đoạn. Nếu bắt tính YEAR trên từng ngày rồi mới so, engine có thể phải xét nhiều entry hơn trước khi biết entry nào thuộc năm cần tìm.
 
 ### Từ vựng
 
@@ -41,7 +41,7 @@ Mục lục đã theo ngày, hỏi từ đầu2026 tới trước2027 giúp mở
 
 ### Ví dụ nhỏ — tính tay trước
 
-Ngày31/12/2026 23:59:59 thuộc khoảng >=01/01/2026 và <01/01/2027. Dùng <=31/12/2026 với mốc00:00 dễ bỏ phần còn lại của ngày cuối.
+Mốc 2026-12-31 23:59:59 nằm trong khoảng từ 2026-01-01 (gồm) tới 2027-01-01 (không gồm). Nếu lọc tới 2026-12-31 00:00, các thời điểm còn lại của ngày cuối sẽ bị bỏ.
 
 Query:
 
@@ -138,7 +138,7 @@ GO
 
 ### Walkthrough — execution / state / cost
 
-1. Seed30000 row trải qua nhiều năm, tạo index OrderedAt và ExternalCode.
+1. Dữ liệu mẫu có 30.000 row trải qua nhiều năm, tạo index OrderedAt và ExternalCode.
 2. Query YEAR và query range phải trả cùng số row trước khi so performance.
 3. Range để engine có lựa chọn truy cập vùng key, nhưng optimizer vẫn cân nhắc scan.
 4. Đọc page, tính expression, lookup và network đều là cost; chạy STATISTICS IO trên cùng dữ liệu và ghi plan/cấu hình.
@@ -251,7 +251,7 @@ Không dùng query hint để che schema/query sai. Không thay substring bằng
 
 ## 8. Production notes & scale check
 
-Gate kiểm hai count bằng nhau và bằng8760 giờ của2026 trong seed, lookup ExternalCode đúng, thêm biên timestamp. Lưu IO để review, không đặt tỷ lệ tốc độ cố định. Parameterization chống trộn syntax không tự sửa type mismatch hoặc wildcard semantics.
+Gate kiểm hai count bằng nhau và bằng 8.760 giờ của năm 2026 trong seed, lookup ExternalCode đúng, thêm biên timestamp. Lưu IO để review, không đặt tỷ lệ tốc độ cố định. Parameterization chống trộn syntax không tự sửa type mismatch hoặc wildcard semantics.
 
 <a id="7-bai-tap"></a>
 
