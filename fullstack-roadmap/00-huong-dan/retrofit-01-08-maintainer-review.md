@@ -12,7 +12,7 @@ Ngày bắt đầu: 2026-09-23. Reviewer: Codex, lượt rà soát hỗ trợ ma
 | Spaced Review Module 01–08 | Đã rà prompt/format của 28 checkpoint; sửa câu dính chữ/số ở Module 04–08 | Có retrieval, trace, debug và judgment; chưa thử với người mới để kiểm tra mức khó. |
 | Failure Labs Module 01–08 | Đã rà context/triệu chứng/acceptance của 28 lab và chỉnh lỗi trình bày thấy được | Mô tả đủ đường tái hiện và tiêu chí đầu ra; chưa kiểm thử độc lập bản sửa do người học nộp. |
 | Career Checkpoint Module 05 | Toàn bộ đề và competency matrix | Đủ nhóm task, thiếu mô tả ba mức năng lực; đã bổ sung. |
-| 137 bài chính | Đã đối chiếu tóm tắt ví dụ nhỏ và walkthrough theo tuyến module; đã xem sâu một số bài đầu Module 01 và ví dụ Module 04–05. Verifier có kiểm cấu trúc toàn bộ 137 bài. | Chưa tự trace và đánh giá prerequisite/retrieval/judgment của từng bài; không suy PASS nội dung từ verifier hoặc lần authoring trước. |
+| 137 bài chính | Đã đối chiếu tóm tắt ví dụ nhỏ và walkthrough theo tuyến module; đã xem sâu Module 01, câu hỏi Module 07 và ví dụ mở đầu Module 08. Verifier có kiểm cấu trúc toàn bộ 137 bài. | Chưa tự trace và đánh giá prerequisite/retrieval/judgment của từng bài; không suy PASS nội dung từ verifier hoặc lần authoring trước. |
 
 ## Findings đã xử lý trong lượt đầu
 
@@ -22,13 +22,14 @@ Ngày bắt đầu: 2026-09-23. Reviewer: Codex, lượt rà soát hỗ trợ ma
 | R03 | Medium | Career Checkpoint Module 05 có điểm và cột evidence đạt, chưa mô tả Chưa đạt/Đạt/Vững. | Reviewer khó phân biệt hoàn thành task đã thấy với chuyển giao kỹ năng sang biến thể mới. | Thêm ba mức có hành vi quan sát được, yêu cầu evidence từng năng lực và điều kiện chặn khi còn lỗi nghiêm trọng. |
 | R04 | High | PR patch Module 02–06 trước đó chỉ có 2–4 vấn đề độc lập ở mỗi patch. | Người học khó luyện phân loại issue và review theo nhiều nhóm. | Mở rộng từng patch thành ít nhất 6 root cause độc lập, bổ sung contract; cả 8 rubric nay yêu cầu xét correctness/performance/security/maintainability/operability. Không buộc bịa finding ở nhóm không có lỗi. |
 | R05 | Medium | Nhiều câu trong Failure Lab/Spaced Review/PR Lab và career checkpoint dính số và từ, ví dụ `20file`, `Retrieval10điểm`, `Top2`. | Khó đọc và tăng tải nhận thức không cần thiết. | Biên tập các câu đã phát hiện; giữ identifier và baseline. Kiểm lại bằng tìm kiếm ngoài code fence/inline code. |
+| R07 | Medium | Nhiều ví dụ/câu hỏi bài chính Module 07–08 nén số và thuật ngữ, ví dụ `Coins[1,3,4],amount 6`, `Customers An,Bình,Chi; Orders101/102`, `Stock 1=99,Stock 2=100`. | Người mới khó tính tay và đối chiếu state với walkthrough; dấu nối chữ/số che contract. | Viết lại các câu phát hiện trong 19 bài Module 07 và 25 bài Module 08, tách input, bước và output. Sửa riêng ví dụ capstone Module 08 để phân biệt trạng thái đơn, dòng hàng và payment intent. Không đổi code/SQL sample. |
 
 Ghi chú kiểm chứng: nghi vấn escape trong patch C Module 01 đã được loại bỏ sau kiểm tra ký tự nguồn; newline/NUL vốn đúng và file không thay đổi. Không tính nghi vấn này là finding.
 
 ## Findings còn mở — cần review trước phê duyệt
 
 1. **R06 — High, độ sâu của bài chính chưa được chứng nhận.** Cần đọc đủ 137 bài cùng bài liền trước/liền sau, tự tính worked example và trace sample, rồi đối chiếu retrieval/judgment với prerequisite. Lượt này đã so tuyến Module 01 theo bài 01–15 và đọc tóm tắt ví dụ/trace của các module khác; chưa có review sâu tương ứng cho Module 02–08. Không biến checklist tự sinh thành chứng nhận chất lượng.
-2. **G01 — gate bên ngoài chưa có cho diff review mới.** Các patch review và câu hỏi chỉ đổi docs, không đổi sample; local structural gate/MkDocs pass. Remote CI của commit chứa lượt review này chưa chạy; run xanh trong `PROGRESS.md` là baseline trước thay đổi. Maintainer cũng chưa ký duyệt.
+2. **G01 — CI phải khớp commit đang xét.** Chín workflow của commit review `576a567` đã PASS trên GitHub: [Module 01](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857887), [02](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857919), [03](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857856), [04](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857833), [05](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857869), [06](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857930), [07](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857884), [08](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857901), [09](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35831857818). Bản prose Module 07–08 tiếp theo đã qua verifier 07/08, MkDocs strict và diff check local; cần xem [CI của HEAD trên nhánh](https://github.com/Xuanthanh-dzz/full-stack/actions?query=branch%3Aretrofit%2Fmodules-01-08-v4) sau khi đẩy. Maintainer chưa ký duyệt.
 
 ### Evidence riêng cho R04
 
@@ -48,6 +49,8 @@ Module 01: đọc ví dụ nhỏ, walkthrough, prerequisites, judgment và retri
 
 Module 02–08: đã đối chiếu tiêu đề, ví dụ nhỏ và các bước walkthrough để tìm mâu thuẫn rõ, cùng judgment/retrieval của nhiều bài. Ca kiểm tay tiêu biểu: Module 02 `[2, 5, 1]` cộng thành 8 và kho cũ `[A:2]` phải còn khi load hỏng; Module 03 VAT của 200 ở 8% là 16, tổng 216; Module 04 `749701.50 - 74970.15 = 674731.35`; Module 05 hai giá 3 và 2 hoàn tất ngược thứ tự vẫn cộng 5, thuế 0.5; Module 06 `2 × 750000 + 350000 = 1850000`; Module 07 coin `[1,3,4]` với amount 6 cần hai đồng 3, greedy 4+1+1 dùng ba; Module 08 `COUNT(*)=2`, `COUNT(WeightKg)=1` và `AVG=0.095` khi có NULL và 0.095. Các phép thử này không đại diện cho mọi nhánh của 137 bài; chưa đọc sâu toàn bộ phần cơ chế, bài tập và prerequisite từng bài. Cần tiếp tục từ Module 02, ghi evidence cùng finding theo bài khi có lỗi thực tế.
 
+Lượt biên tập tiếp theo: rà bài liền trước/liền sau và ví dụ/câu hỏi Module 07–08; sửa R07 trong 44 bài. Phép đối chiếu riêng: Dijkstra ở Module 07 bài 12 cho A→C→D bằng 2, B có đường tốt hơn qua C bằng 3 nên entry B(4) cũ; Module 08 bài 07 có `(3 + 4,5) / 2 = 3,75` triệu, bài 08 có 3 row inner/4 row left/6 row cross, bài 12 có tổng lũy kế 1/4/7 và rank hòa 1/1/3, bài 19 rollback đơn khi kho 5 nhưng đặt 10, bài 25 ghi đơn và payment intent `Pending` chứ không chứng nhận thu tiền. Đây là soát câu và phép tính cục bộ, chưa đóng R06.
+
 ## Quy trình review từng module
 
 1. Đọc theo thứ tự bài; ghi prerequisite, thuật ngữ lần đầu và kiến thức chưa được giới thiệu.
@@ -65,4 +68,4 @@ Cần đủ evidence cho cả 137 bài và artifact bổ trợ; không còn find
 
 ## Kiểm tra sau sửa lượt đầu
 
-Gate cấu trúc/liên kết/cadence của cả 8 module qua; 10 regression tests qua; MkDocs strict qua bằng `/tmp/fullstack-docs-v4-venv`; `git apply --numstat` đọc được cả 8 patch, `git diff --check` sạch. Lệnh `python -m mkdocs` với Python hệ thống không chạy vì chưa cài MkDocs; đã chạy lại bằng venv có sẵn và qua. Các thay đổi chỉ ở assessment và báo cáo; sample runtime không đổi, Last verified giữ nguyên. CI của commit chứa lượt review này cần được xác nhận riêng trước khi kết luận gate remote.
+Gate cấu trúc/liên kết/cadence của cả 8 module qua; 10 regression tests qua; MkDocs strict qua bằng `/tmp/fullstack-docs-v4-venv`; `git apply --numstat` đọc được cả 8 patch, `git diff --check` sạch. Lệnh `python -m mkdocs` với Python hệ thống không chạy vì chưa cài MkDocs; đã chạy lại bằng venv có sẵn và qua. Chín workflow của `576a567` đều PASS. Sau sửa prose Module 07–08, verifier của hai module, MkDocs strict và diff check local đều qua; sample runtime không đổi, `Last verified` giữ nguyên. Kết quả CI của commit chứa prose được theo dõi riêng theo đúng SHA.

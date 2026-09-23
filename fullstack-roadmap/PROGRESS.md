@@ -22,7 +22,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 | 07 | 19/19 | 4 | 4 | 1 | PASS, 2026-09-23 | [PASS — 35810300665](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35810300665) | PENDING |
 | 08 | 25/25 | 5 | 5 | 1 | PASS docs/8168 rendered links local, 2026-09-23; SQL runtime PASS trên runner riêng | [PASS — 35813556555](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35813556555) | PENDING |
 
-Checkpoint review đang tiến hành: [báo cáo, findings và phạm vi đã đọc](./00-huong-dan/retrofit-01-08-maintainer-review.md). PR labs Module 02–06 và lỗi trình bày trong assessment đã sửa, local docs gate qua. Review sâu 137 bài và maintainer sign-off còn pending; CI cho lượt sửa này chưa chạy.
+Checkpoint review đang tiến hành: [báo cáo, findings và phạm vi đã đọc](./00-huong-dan/retrofit-01-08-maintainer-review.md). PR labs Module 02–06 và lỗi trình bày trong assessment đã sửa; chín workflow CI của commit review `576a567` đều PASS. Câu ví dụ và câu hỏi Module 07–08 đã được biên tập tiếp, verifier hai module và MkDocs strict local qua; [CI của HEAD trên nhánh](https://github.com/Xuanthanh-dzz/full-stack/actions?query=branch%3Aretrofit%2Fmodules-01-08-v4) cần được đối chiếu theo SHA sau khi đẩy. Review sâu 137 bài và maintainer sign-off còn pending.
 
 Module 01: [bản đồ học và lệnh kiểm tra](./01-nen-tang-lap-trinh/index.md).
 Gate cấu trúc tự động không chứng nhận chất lượng giải thích; reviewer cần kiểm tra người mới có thể trace code/state/cost và làm judgment độc lập. Các checkbox bài cũ vẫn phản ánh completion lịch sử, không phải xác nhận đã retrofit toàn bộ. Tổng giữ **164/421**.
