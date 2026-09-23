@@ -20,7 +20,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 | 05 | 19/19 | 4 | 4 | 1 | PASS, 2026-09-22; C# Foundation checkpoint đã tạo | [PASS — 35715998560](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35715998560) | PENDING |
 | 06 | 14/14 | 3 | 3 | 1 | PASS, samples 2026-09-22; docs/links 2026-09-23 | [PASS — 35807998467](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35807998467) | PENDING |
 | 07 | 19/19 | 4 | 4 | 1 | PASS, 2026-09-23 | [PASS — 35810300665](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35810300665) | PENDING |
-| 08 | 25/25 | 5 | 5 | 1 | MkDocs strict + 8168 rendered links PASS, 2026-09-23; SQL runtime PASS trên runner 35813362399; full gate đang chạy | PENDING — đang chạy kiểm chứng SQL trên CI | PENDING |
+| 08 | 25/25 | 5 | 5 | 1 | PASS docs/8168 rendered links local, 2026-09-23; SQL runtime PASS trên runner riêng | [PASS — 35813556555](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/35813556555) | PENDING |
 
 Module 01: [bản đồ học và lệnh kiểm tra](./01-nen-tang-lap-trinh/index.md).
 Gate cấu trúc tự động không chứng nhận chất lượng giải thích; reviewer cần kiểm tra người mới có thể trace code/state/cost và làm judgment độc lập. Các checkbox bài cũ vẫn phản ánh completion lịch sử, không phải xác nhận đã retrofit toàn bộ. Tổng giữ **164/421**.
@@ -48,7 +48,7 @@ Gate cấu trúc tự động không chứng nhận chất lượng giải thíc
 
 ## Definition of Done cho một bài học
 
-- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 03 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 04 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 05 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 06 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 07 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 08 đã qua SQL runtime trên runner riêng; full gate CI đang chạy sau cập nhật freshness bằng evidence.
+- Module 01 đã retrofit cấu trúc v4, gate local và CI remote PASS; maintainer review còn pending. Module 02 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 03 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 04 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 05 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 06 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 07 đã retrofit v4, gate local và CI remote PASS; maintainer review còn pending. Module 08 đã qua SQL runtime trên runner riêng và full gate CI; maintainer review còn pending. Retrofit Module 01–08 đã qua kiểm chứng; dừng tại đây, không bắt đầu Module 10 cho tới maintainer review và yêu cầu tiếp theo.
 - Module 09+ bắt buộc Lesson Authoring Standard v4: metadata freshness, TL;DR, 12 section, `Khi nào KHÔNG dùng`, production/scale note, judgment/retrieval, cùng clarity blocks: trực giác, từ vựng, walkthrough, comparison/trace, misconception check, mini-check và Beginner/Working Developer/Deep Dive.
 - Module 09+ còn phải đạt module gate v3: Failure Labs, Spaced Reviews, PR Review Lab và Career Checkpoint tại các mốc nghề nghiệp.
 - Mở đầu problem-first; giải thích bằng tiếng Việt, code/keyword giữ nguyên tiếng Anh.
