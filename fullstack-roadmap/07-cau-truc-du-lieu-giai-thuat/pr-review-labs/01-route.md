@@ -10,7 +10,7 @@ Review theo contract về input, kết quả đường đi, trạng thái giữ 
 
 ## Rubric
 
-Chấm theo contract, bằng chứng, regression và lựa chọn phù hợp quy mô. Viết review độc lập trước khi mở tiêu chí chi tiết.
+Chấm theo contract, bằng chứng, regression và lựa chọn phù hợp quy mô. Trong review, xét correctness, performance, security, maintainability và operability; nếu một nhóm không có finding, ghi lý do thay vì bịa lỗi. Viết review độc lập trước khi mở tiêu chí chi tiết.
 
 <details markdown="1">
 <summary>Sau khi nộp lượt review đầu: mở tiêu chí chấm chi tiết</summary>
