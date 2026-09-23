@@ -36,7 +36,7 @@ class Server:
         if inspect.returncode or inspect.stdout.strip()!='1':raise ValueError('Refusing target: container must carry fullstack.module08.verifier=1')
         self.args=['docker','exec','-i','-e','SQLCMDPASSWORD',container,SQLCMD,'-S','localhost','-U','sa','-C','-b','-r1','-W','-h','-1','-s','|','-w','65535','-f','65001']
     def sql(self,sql,database='master',error=None,wide=False):
-        args=[x for x in self.args if not (wide and x=='-W')]+(['-y','0'] if wide else [])
+        args=[x for x in self.args if not (wide and x in ('-W','-h','-1'))]+(['-y','0'] if wide else [])
         r=process(args+['-d',database],env=self.env,input='SET NOCOUNT ON;\n'+sql+'\n')
         if error is None:
             if r.returncode:raise ValueError(f'SQL failed in {database}:\n{r.stdout}\n{r.stderr}')
