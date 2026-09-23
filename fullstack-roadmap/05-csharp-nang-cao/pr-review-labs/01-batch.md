@@ -1,6 +1,6 @@
 # PR Review — Cancellation và permit
 
-Patch huấn luyện độc lập: `gate` là `SemaphoreSlim`, `ReadAsync` nhận token và trả `FileResult`; `Failure` tạo kết quả file lỗi. Contract: chỉ lỗi dữ liệu được chuyển thành result với thông báo an toàn cho caller; cancellation đi lên caller; chỉ release permit đã acquire. Batch có thể từ 20 tới một triệu file. Không áp trực tiếp patch vào capstone.
+Patch huấn luyện độc lập: `gate` là `SemaphoreSlim`, `ReadAsync` nhận token và trả `FileResult`; `Failure` tạo kết quả file lỗi. Contract: chỉ lỗi dữ liệu được chuyển thành result với thông báo an toàn cho caller; cancellation đi lên caller; chỉ release permit đã acquire; kết quả giữ thứ tự path đầu vào. Batch có thể từ 20 tới một triệu file. Không áp trực tiếp patch vào capstone.
 
 ## Diff
 

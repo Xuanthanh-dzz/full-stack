@@ -23,7 +23,7 @@ diff --git a/Batch.cs b/Batch.cs
 -    foreach (string path in paths)
 -        results.Add(await ProcessAsync(path, token));
 +    var tasks = paths.Select(path => ProcessAsync(path, token)).ToArray();
-+    foreach (var task in tasks)
++    foreach (var task in tasks.Reverse())
 +        results.Add(await task);
      return results;
  }

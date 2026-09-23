@@ -37,8 +37,8 @@ Ghi chú kiểm chứng: nghi vấn escape trong patch C Module 01 đã được
 | 02 | mất owner khi `realloc` lỗi; `count` bị gán bằng capacity; free phần tử trong mảng; xóa kho cũ trước khi load thành công; so mã bằng prefix; bỏ qua lỗi `fclose`. |
 | 03 | nhận ID trùng; dereference owner sau move; xóa danh mục trước parse; tra ID bằng prefix; comparator `<=` sai contract sắp xếp; gọi `remove_if` nhưng không erase. |
 | 04 | sửa object bị alias trong bản copy list; publish state trước Save; parse sai input bằng exception; trả reference tới list mutable; nhận ID trùng; báo xóa thành công khi ID không có. |
-| 05 | release permit chưa acquire; bỏ token khi đọc; biến cancellation thành result; nuốt lỗi ngoài dữ liệu; lộ exception message; tạo task cho toàn bộ input trước khi giới hạn số lượng. |
-| 06 | bỏ kiểm ID rỗng; bỏ kiểm tổng tiền dương; nhận ID trùng; nuốt lỗi Save; gửi thông báo dù chưa lưu; trả list nội bộ mutable; báo Cancel thành công với ID không có. |
+| 05 | release permit chưa acquire; bỏ token khi đọc; `catch` quá rộng (gồm cancellation và lỗi I/O); lộ exception message; tạo task cho toàn bộ input trước khi giới hạn số lượng; đảo thứ tự result. |
+| 06 | bỏ kiểm ID rỗng; bỏ kiểm tổng tiền dương; nhận ID trùng; nuốt lỗi Save khiến gửi thông báo dù chưa lưu; trả list nội bộ mutable; báo Cancel thành công với ID không có. |
 
 Mỗi hàng đếm root cause riêng, không tách một lỗi thành nhiều cách diễn đạt. Patch là fixture cố ý sai nên không được áp lên sample đang chạy.
 
