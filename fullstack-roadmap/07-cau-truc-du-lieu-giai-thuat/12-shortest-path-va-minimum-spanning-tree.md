@@ -35,11 +35,11 @@ Mua vé rẻ nhất đi từ nhà tới ga khác với kéo cáp rẻ nhất n�
 | relaxation | cải thiện distance qua một cạnh | candidate<distance |
 | tentative distance | chi phí tốt nhất hiện biết | distances |
 | stale entry | priority cũ đã bị cải thiện | queuedDistance mismatch |
-| spanning tree | cây nối mọi đỉnh | V-1cạnh khi graphconnected |
+| spanning tree | cây nối mọi đỉnh | V - 1 cạnh khi graph liên thông |
 
 ### Ví dụ nhỏ — tính tay trước
 
-A→B4,A→C1,C→B2,C→D1: popA0, C1, cập nhậtB3,D2; popD2 hoàn tất. B4 vẫn là entry cũ trong queue.
+A→B có trọng số 4, A→C là 1, C→B là 2, C→D là 1: lấy A(0), C(1), cập nhật B(3), D(2), rồi lấy D(2). B(4) vẫn là entry cũ trong queue.
 
 Graph đường đi:
 
@@ -211,7 +211,7 @@ Path = A -> C -> D
 
 ### Mini-check
 
-Graph A→B2,A→C5,C→B-10: dừng khi popB2 sẽ bỏ đường nào?
+Graph có A→B trọng số 2, A→C là 5, C→B là -10: dừng khi lấy B(2) sẽ bỏ đường nào?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -455,7 +455,7 @@ cho ba bài toán:
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So checked và invariant Module06: validate weight lúc boundary khác guard trong loop ở đâu? Với graph đọc nhiều cập nhật ít, chuyển validation sang builder có ích gì?
+So `checked` và invariant ở Module 06: kiểm tra trọng số tại ranh giới tạo graph khác kiểm tra trong vòng lặp ở đâu? Với graph đọc nhiều cập nhật ít, chuyển validation sang builder có ích gì?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

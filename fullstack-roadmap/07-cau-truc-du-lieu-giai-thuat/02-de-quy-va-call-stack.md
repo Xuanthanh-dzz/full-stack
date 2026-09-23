@@ -27,7 +27,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Tính4! nhờ tính3!, nhưng vẫn phải nhớ “khi nhận kết quả thì nhân4”. Các giấy nhắc chồng lên nhau rồi được lấy ra ngược thứ tự khi chạm bài toán nhỏ nhất.
+Tính 4! nhờ tính 3!, nhưng vẫn phải nhớ “khi nhận kết quả thì nhân 4”. Các giấy nhắc chồng lên nhau rồi được lấy ra ngược thứ tự khi chạm bài toán nhỏ nhất.
 
 ### Từ vựng
 
@@ -462,7 +462,7 @@ Nếu depth có thể rất lớn, dùng loop hoặc stack/queue tường minh t
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
 
-Sai: long chỉ đủ0..20; sample guard trước khi recurse.
+Sai: `long` chỉ chứa được kết quả giai thừa từ 0! đến 20!; sample kiểm tra giới hạn trước khi gọi đệ quy.
 
 </details>
 
@@ -748,7 +748,7 @@ Sau đó viết lại bằng `Stack<Folder>`.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So ownership C++ và managed reference Module04: return một frame không đồng nghĩa object heap chết. Với cây thư mục sâu do user cấp, chọn stack tường minh và budget nào?
+So với ownership C++ và reference trong Module 04: một frame kết thúc không có nghĩa object trên heap chết ngay. Với cây thư mục sâu do người dùng cung cấp, khi nào chọn stack tường minh và giới hạn độ sâu nào?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

@@ -881,7 +881,7 @@ Chưa cần ASP.NET Core, chỉ cần contract.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ Module06: boundary nào sở hữu normalization và invariant cost? Nếu bản đồ100 đỉnh đổi mỗi ngày, chọn snapshot đơn giản hay dịch vụ phân tán; giải thích bằng workload.
+Từ Module 06: ranh giới nào chịu trách nhiệm chuẩn hóa tên và bảo vệ cost hợp lệ? Nếu bản đồ 100 đỉnh đổi mỗi ngày, chọn snapshot đơn giản hay dịch vụ phân tán; giải thích bằng cách sử dụng thực tế.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

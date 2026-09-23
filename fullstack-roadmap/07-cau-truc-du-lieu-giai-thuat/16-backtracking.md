@@ -412,7 +412,7 @@ Mô tả state, choice, constraint và undo.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So iterator ở Module05: trả IEnumerable có tự làm số đáp án ít đi không? Với UI chỉ cần lời giải đầu, đổi contract nào trước khi chọn tối ưu?
+So với iterator ở Module 05: trả IEnumerable có tự làm số đáp án ít đi không? Với UI chỉ cần lời giải đầu, đổi contract nào trước khi chọn tối ưu?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

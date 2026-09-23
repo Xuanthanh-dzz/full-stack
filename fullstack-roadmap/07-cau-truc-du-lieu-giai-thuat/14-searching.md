@@ -39,7 +39,7 @@ Tra từ điển bằng cách mở giữa, xem từ cần tìm nằm trước ha
 
 ### Ví dụ nhỏ — tính tay trước
 
-[1,4,4,4,7], lower bound 4=1; lower bound 5=4; lower bound 8=5. Kết quả5 là vị trí chèn, không phải index có thể đọc.
+[1, 4, 4, 4, 7]: lower bound của 4 là 1, của 5 là 4 và của 8 là 5. Kết quả 5 là vị trí chèn, không phải index có thể đọc.
 
 Danh sách 1.000.000 mã đơn đã sort:
 
@@ -436,7 +436,7 @@ Chọn linear/binary/hash cho:
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So Dictionary ở Module05: với1000 phần tử, một query và 100000 query, chi phí xây index/sort đổi quyết định thế nào?
+So với `Dictionary` ở Module 05: có 1.000 phần tử, một lần tìm hoặc 100.000 lần tìm. Chi phí dựng index/sắp xếp làm thay đổi lựa chọn thế nào?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

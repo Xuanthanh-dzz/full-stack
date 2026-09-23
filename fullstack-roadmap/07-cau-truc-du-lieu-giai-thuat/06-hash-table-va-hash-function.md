@@ -435,7 +435,7 @@ Giải thích kết quả.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ record/equality Module05, field nào phải bất biến khi record làmkey? Với một query trên10items, linear có thể hợp hơn index mới không?
+Từ record và equality ở Module 05: field nào phải giữ nguyên khi record được dùng làm key? Với một lần tìm trong 10 phần tử, duyệt tuyến tính có thể hợp hơn việc tạo index mới không?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 
@@ -444,8 +444,8 @@ Từ record/equality Module05, field nào phải bất biến khi record làmkey
 Không nhìn bài; trả lời bằng ví dụ khác sample.
 
 1. Equality quyết định ở bước nào?
-2. AverageO(1) bỏ qua kích thước nào?
-3. Mutationkey có di chuyển entry không?
+2. Độ phức tạp trung bình `O(1)` của lookup đang xét kích thước nào, và bỏ qua chi phí nào của key?
+3. Sửa key sau khi thêm có tự di chuyển entry sang bucket mới không?
 
 <a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
 

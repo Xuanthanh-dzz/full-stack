@@ -28,7 +28,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Một kệ4ô đang có 3món còn chỗ để thêm. Hết ô thì chuyển sang kệ lớn hơn; không phải tự kéo giãn chính kệ cũ. Giá chuyển kệ được chia trên nhiều lần thêm.
+Một kệ 4 ô đang có 3 món nên vẫn thêm được một món. Khi hết ô, ta chuyển sang kệ lớn hơn; không thể tự kéo giãn kệ cũ. Chi phí chuyển được chia cho nhiều lần thêm.
 
 ### Từ vựng
 
@@ -530,7 +530,7 @@ Clear slot giúp tránh giữ object sống không cần thiết.
 
 ### Misconception check
 
-**Đúng hay sai?** Capacity4 cho đọc index3 dù Count 3.
+**Đúng hay sai?** `Capacity` bằng 4 cho phép đọc index 3 dù `Count` bằng 3.
 
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
@@ -836,7 +836,7 @@ Giải thích lựa chọn bằng operation chính, không chỉ bằng câu "qu
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So vector C++ Module03: resize đổi buffer có nghĩa reference tới object C# trong slot bị invalid không? Phân biệt reference object với view vào storage.
+So với `vector` C++ ở Module 03: khi resize đổi buffer, reference tới object C# được giữ trong một slot có mất hiệu lực không? Phân biệt reference tới object với view vào vùng chứa các slot.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

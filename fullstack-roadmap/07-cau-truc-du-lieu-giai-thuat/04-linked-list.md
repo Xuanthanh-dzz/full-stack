@@ -26,7 +26,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Mỗi tờ phiếu ghi chỗ tờ tiếp theo. Chèn tờ ở đầu chỉ sửa hai chỗ chỉ dẫn; tìm tờ thứ500 phải đi qua chuỗi, không nhảy bằng phép tính index.
+Mỗi tờ phiếu ghi chỗ tờ tiếp theo. Chèn tờ ở đầu chỉ sửa hai chỗ chỉ dẫn; tìm tờ thứ 500 phải đi qua chuỗi, không nhảy bằng phép tính index.
 
 ### Từ vựng
 
@@ -407,7 +407,7 @@ Bài này nhằm hiểu cơ chế. Trong ứng dụng thật, ưu tiên `LinkedL
 
 ## 7. Khi nào KHÔNG dùng
 
-Không chọn linked list cho100000randomindexreads. Nếu chỉ cần FIFO/LIFO, Queue/Stack thể hiện contract rõ hơn.
+Không chọn linked list khi cần đọc ngẫu nhiên theo index 100.000 lần. Nếu chỉ cần FIFO/LIFO, Queue/Stack thể hiện contract rõ hơn.
 
 ## 8. Production notes & scale check
 
@@ -452,7 +452,7 @@ Dự đoán cấu trúc phù hợp trước khi đo.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ pointer C Module02, vì sao C# tránh manualfree mà vẫn có bug mất node/tail? Chọn structure cho thêmđầu nhiều nhưng mỗi lần phải tìm vị trí theo value.
+Từ pointer C ở Module 02: vì sao C# không cần `free` thủ công mà vẫn có thể làm mất node hoặc cập nhật sai tail? Nếu thường xuyên thêm ở đầu nhưng mỗi lần đều phải tìm theo value, bạn chọn `List<T>` hay linked list? Nêu chi phí của cả hai thao tác.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

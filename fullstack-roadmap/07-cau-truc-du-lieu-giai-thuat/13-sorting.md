@@ -437,7 +437,7 @@ Giải thích lựa chọn cho:
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ ownership Module06: caller có còn cần thứ tự gốc không? Với100 mục hiển thị, chọn sort thư viện hay tự dựng cây; nêu chi phí chuẩn bị.
+Từ ownership ở Module 06: caller có còn cần thứ tự gốc không? Với 100 mục hiển thị, chọn hàm sort của thư viện hay tự dựng cây; nêu chi phí chuẩn bị.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

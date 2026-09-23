@@ -38,7 +38,7 @@ Một sổ hàng có mục lục theo mã và một trang xếp hạng bán ch�
 
 ### Ví dụ nhỏ — tính tay trước
 
-Ba mức phổ biến70,90,80;top 2 →90,80. top 0 trả rỗng ngay; ID trùng bị từ chối thay vì ghi đè âm thầm.
+Ba mức phổ biến 70, 90, 80; top 2 → 90, 80. Top 0 trả rỗng ngay; ID trùng bị từ chối thay vì ghi đè âm thầm.
 
 Thiết kế autocomplete sản phẩm có các yêu cầu:
 
@@ -197,7 +197,7 @@ Monitor: 80
 1. Add validate key rồi duy trì index; lookup dùng Dictionary.
 2. ContainsSku dùng comparer đã chọn, không tự chuẩn hóa mọi quy tắc nghiệp vụ.
 3. TopPopular giữ heap không quá k rồi trả các phần tử theo mức phổ biến.
-4. RAM O(n) cho index, topK thêm O(k); thời gian O(n log k + k log k) khi0<k<n, xử lý k0 riêng.
+4. RAM O(n) cho index, top K thêm O(k); thời gian O(n log k + k log k) khi 0 < k < n, xử lý k = 0 riêng.
 
 ### Mini-check
 
@@ -273,11 +273,11 @@ O(n log n)
 
 Một endpoint có thể:
 
-1. query DB: 100ms;
-2. deserialize: 5ms;
-3. sort 100 item: 0.1ms.
+1. query DB: 100 ms;
+2. deserialize: 5 ms;
+3. sort 100 item: 0.1 ms.
 
-Tối ưu sort từ `O(n log n)` xuống một thuật toán đặc thù không giải quyết bottleneck 100ms database.
+Tối ưu sort từ `O(n log n)` xuống một thuật toán đặc thù không giải quyết nút thắt 100 ms ở database.
 
 DSA phải kết hợp với profiling.
 
@@ -424,7 +424,7 @@ Thiết kế LRU cache cần:
 
 ### Bài 4 — API performance review
 
-Endpoint load 200k rows rồi:
+Endpoint tải 200.000 row rồi:
 - filter;
 - group;
 - sort;
@@ -446,7 +446,7 @@ Alternative rejected
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So repository Module06: nếu hai yêu cầu cùng Add, check-then-add có atomic không? Không tự thêm lock khi demo tuần tự; ghi driver nào buộc thay contract.
+So repository ở Module 06: nếu hai yêu cầu cùng Add, check-then-add có atomic không? Không tự thêm lock khi demo tuần tự; ghi driver nào buộc thay contract.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

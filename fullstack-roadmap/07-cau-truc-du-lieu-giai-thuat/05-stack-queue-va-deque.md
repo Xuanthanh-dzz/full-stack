@@ -399,7 +399,7 @@ Trong concurrency, xem `ConcurrentQueue<T>`, `Channel<T>` hoặc abstraction ph�
 
 ## 7. Khi nào KHÔNG dùng
 
-Không dùng List.RemoveAt0 cho FIFO lớn. Không dùng Queue thường cho nhiều producer/consumer rồi coi thao tác ghép tự atomic.
+Không dùng `List.RemoveAt(0)` cho hàng đợi FIFO lớn. Không dùng Queue thường cho nhiều producer/consumer rồi coi thao tác ghép tự atomic.
 
 ## 8. Production notes & scale check
 
@@ -446,7 +446,7 @@ Giải thích vì sao sliding-window maximum cần bỏ phần tử ở đầu v
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So event synchronous Module05 với job queue: enqueue đã có nghĩa job hoàn thành chưa? Chọn cầnRAMqueue haydurablequeue theo requirement cụ thể.
+So với event chạy đồng bộ ở Module 05: đưa một job vào queue đã có nghĩa job hoàn thành chưa? Nếu ứng dụng tắt giữa chừng, khi nào queue trong RAM là đủ, khi nào cần queue lưu bền? Nêu yêu cầu mất dữ liệu chấp nhận được trước khi chọn.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 
@@ -455,7 +455,7 @@ So event synchronous Module05 với job queue: enqueue đã có nghĩa job hoàn
 Không nhìn bài; trả lời bằng ví dụ khác sample.
 
 1. Peek khác Pop thế nào?
-2. Vì sao bracket cầnLIFO?
+2. Vì sao kiểm tra dấu ngoặc cần LIFO?
 3. Queue cung cấp durability không?
 
 <a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>

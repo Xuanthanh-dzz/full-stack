@@ -40,7 +40,7 @@ Mỗi biển chỉ đường ghi số mốc: nhỏ hơn đi trái, lớn hơn đ
 
 ### Ví dụ nhỏ — tính tay trước
 
-Insert 3,1,4,2 → root 3, trái 1 có phải 2, phải 4. Tìm2 đi3→1→2; thêm 2 lần nữa trả false, Count vẫn 4.
+Insert 3, 1, 4, 2 → root là 3; node trái 1 có node phải 2; node phải của root là 4. Tìm 2 đi theo đường 3 → 1 → 2; thêm 2 lần nữa trả false, `Count` vẫn bằng 4.
 
 Ta cần lưu một tập số và thường xuyên:
 
@@ -230,7 +230,7 @@ Contains 9 = False
 
 ### Mini-check
 
-Insert1..5: tổng số lần so sánh tăng thế nào dù mỗi insert chỉ đi một nhánh?
+Insert lần lượt 1 đến 5: tổng số lần so sánh tăng thế nào dù mỗi lần thêm chỉ đi một nhánh?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -359,7 +359,7 @@ Sai: tối đa hai con vẫn cho phép chỉ một nhánh dài.
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
 
-Sai: sample coi comparison0 là duplicate.
+Sai: sample coi kết quả so sánh bằng 0 là giá trị trùng.
 
 </details>
 
@@ -482,7 +482,7 @@ Trả các value nằm trong `[min, max]` mà không cần duyệt những nhán
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ invariant Module06, nơi nào giữ ordering và vì sao get-only reference chưa bảo đảm object T bất biến? Với100key nhỏ và ít query, chọn sorted array hay tree.
+Từ invariant ở Module 06: phần nào giữ thứ tự của cây, và vì sao property chỉ có getter vẫn chưa bảo đảm object `T` bất biến? Với 100 key nhỏ và ít lần tìm, bạn chọn array đã sắp xếp hay tree? Nêu cả chi phí thêm phần tử.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

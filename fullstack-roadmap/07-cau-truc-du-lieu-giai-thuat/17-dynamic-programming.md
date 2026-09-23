@@ -27,7 +27,7 @@ Sau bài này, bạn có thể:
 
 ### Trực giác 60 giây
 
-Đổi tiền nhiều lần gặp lại câu hỏi “cần ít nhất bao nhiêu đồng để được6”. Ghi câu trả lời cho6 giúp những lần sau dùng lại; bảng không thay việc xác định chuyển trạng thái đúng.
+Đổi tiền nhiều lần gặp lại câu hỏi “cần ít nhất bao nhiêu đồng để được 6”. Ghi câu trả lời cho 6 giúp những lần sau dùng lại; bảng không thay việc xác định chuyển trạng thái đúng.
 
 ### Từ vựng
 
@@ -40,7 +40,7 @@ Sau bài này, bạn có thể:
 
 ### Ví dụ nhỏ — tính tay trước
 
-Coins[1,3,4],amount 6 →2 đồng3; greedy4+1+1 dùng3 đồng. dp[0]=0; dp[6]=1+min(dp[5],dp[3],dp[2]).
+Coins [1, 3, 4], amount 6 → cần 2 đồng mệnh giá 3; greedy chọn 4 + 1 + 1 nên dùng 3 đồng. `dp[0] = 0`; `dp[6] = 1 + min(dp[5], dp[3], dp[2])`.
 
 Hệ coin:
 
@@ -220,7 +220,7 @@ Tabulated 6 = 2
 
 ### Mini-check
 
-Coins[4,6],amount 5: sentinel có được cộng1 rồi coi là đáp án không?
+Coins [4, 6], amount 5: có được cộng 1 vào giá trị sentinel rồi coi là đáp án không?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -452,7 +452,7 @@ Không chỉ trả số coin tối thiểu; lưu predecessor để trả chính 
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ array và overflow Module04: guard arithmetic bảo vệ gì khác budget bộ nhớ? Với đơn vị tiền rất nhỏ và amount rất lớn, cần xem lại biểu diễn hay thêm cache?
+Từ array và overflow ở Module 04: guard arithmetic bảo vệ gì khác budget bộ nhớ? Với đơn vị tiền rất nhỏ và amount rất lớn, cần xem lại biểu diễn hay thêm cache?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 
@@ -461,7 +461,7 @@ Từ array và overflow Module04: guard arithmetic bảo vệ gì khác budget b
 Không nhìn bài; trả lời bằng ví dụ khác sample.
 
 1. State có đủ thông tin không?
-2. Base case0 có nghĩa gì?
+2. Base case 0 có nghĩa gì?
 3. Memo giữ thêm stack ở đâu?
 
 <a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>

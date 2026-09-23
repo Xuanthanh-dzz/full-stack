@@ -224,7 +224,7 @@ Hai dòng thời gian ở cuối phụ thuộc máy, runtime, tải hệ thống
 
 ### Mini-check
 
-Tra một key10000ký tự trong dictionary10phần tử có thể tốn hơn key5ký tự dù cùng O(1) theo n không?
+Tra key dài 10.000 ký tự trong dictionary có 10 phần tử có thể tốn hơn tra key dài 5 ký tự dù cả hai cùng được mô tả là O(1) theo số phần tử không?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -659,7 +659,7 @@ Phân tích complexity nếu có `m` order item và `n` product. Đề xuất c�
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ Module05 đo allocations, tách build index khỏi lookup khi có 1query và 10000query. Nêu input, cost CPU/memory và thời điểm index đáng giá.
+Từ phép đo allocation ở Module 05, tách chi phí dựng index khỏi chi phí tìm kiếm. So một lần tìm với 10.000 lần tìm; nêu dữ liệu đầu vào, chi phí CPU/bộ nhớ và khi nào index đáng giá.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

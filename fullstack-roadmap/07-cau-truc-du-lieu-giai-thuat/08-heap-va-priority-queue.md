@@ -40,7 +40,7 @@ Sau bài này, bạn có thể:
 
 ### Ví dụ nhỏ — tính tay trước
 
-Heap[1,3,2], thêm 0 ở index 3: đổi với3 rồi1 →[0,1,2,3]. Hai ticket P2 có thể ra theo bất kỳ thứ tự nào hợp contract.
+Heap [1, 3, 2], thêm 0 ở index 3: đổi chỗ với 3 rồi 1 → [0, 1, 2, 3]. Hai ticket P2 có thể ra theo bất kỳ thứ tự nào hợp contract.
 
 Một hệ thống support có ticket:
 
@@ -144,7 +144,7 @@ P3: T-100 - Change avatar
 
 ### Mini-check
 
-Với min-heap top 3, vì sao khi size4 ta bỏ nhỏ nhất chứ không bỏ lớn nhất?
+Với min-heap giữ top 3 giá trị lớn nhất, vì sao khi size bằng 4 ta bỏ phần tử nhỏ nhất?
 
 <a id="4-giai-thich-co-che"></a>
 
@@ -356,11 +356,11 @@ Nếu mỗi lần thêm job lại sort toàn list, chi phí không cần thiết
 
 ## 7. Khi nào KHÔNG dùng
 
-Không dùng heap để truy cập phần tử thứ100 theo rank thường xuyên. Không đảo dấu int.MinValue để làm max-heap; dùng comparer rõ.
+Không dùng heap để thường xuyên truy cập phần tử đứng thứ 100 theo thứ hạng. Không đảo dấu int.MinValue để làm max-heap; dùng comparer rõ.
 
 ## 8. Production notes & scale check
 
-Gate kiểm thứ tự priority và tập ticket, không khóa thứ tự hai P2. Complexity top-k bao gồm bước xuất k kết quả O(klog k); k=0 phải xử lý riêng. Demo không scheduler thật, chưa có fairness/cancellation/durability.
+Gate kiểm thứ tự priority và tập ticket, không khóa thứ tự hai P2. Chi phí top-k gồm cả bước xuất k kết quả O(k log k); cần xử lý riêng khi k bằng 0. Demo không scheduler thật, chưa có fairness/cancellation/durability.
 
 <a id="7-bai-tap"></a>
 
@@ -400,7 +400,7 @@ vào min-heap.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So priority với cancellation Module05: ticket được dequeue chưa có nghĩa effect hoàn tất. Với20items xử lý một lần, so sort với heap theo chi phí triển khai.
+So priority với cancellation ở Module 05: lấy ticket khỏi queue chưa có nghĩa tác động của nó đã hoàn tất. Với 20 phần tử xử lý một lần, so sánh sắp xếp với heap theo chi phí triển khai.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

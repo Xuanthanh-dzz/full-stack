@@ -349,7 +349,7 @@ nên `Contains("prod")` là false.
 
 ### Misconception check
 
-**Đúng hay sai?** Limit10 bảo đảm chỉ thăm10node.
+**Đúng hay sai?** Giới hạn 10 kết quả bảo đảm chỉ thăm 10 node.
 
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
@@ -363,7 +363,7 @@ Sai: có thể đi sâu nhiều node mới gặp một từ.
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
 
-Sai: UTF16 code unit khác scalar/grapheme.
+Sai: một đơn vị mã UTF-16 khác một Unicode scalar hoặc một ký tự người dùng nhìn thấy.
 
 </details>
 
@@ -481,7 +481,7 @@ và tìm các route có prefix `/api/`.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ string/rune Module04 và đo allocation Module05, chỉ ra chi phí current+ch trên một nhánh dài. Chọn scan cho100từ hay trie cho100000query dựa trên access pattern.
+Từ string/rune ở Module 04 và phép đo allocation ở Module 05, chỉ ra chi phí nối `current + ch` trên một nhánh dài. Chọn duyệt 100 từ hay dựng trie cho 100.000 lần tìm dựa trên cách sử dụng thực tế.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

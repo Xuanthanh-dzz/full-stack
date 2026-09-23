@@ -446,7 +446,7 @@ Vẽ directed graph.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ Module06 dependency inversion, vẽ compile references thành directed graph và chỉ ra khác với runtimecall graph. Chọn representation nếu chỉ vài edges/project.
+Từ dependency inversion ở Module 06, vẽ dependency giữa các project thành đồ thị có hướng; chỉ ra nó khác đồ thị lời gọi lúc chạy ở đâu. Nếu chỉ có vài dependency, chọn cách biểu diễn đơn giản nhất.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

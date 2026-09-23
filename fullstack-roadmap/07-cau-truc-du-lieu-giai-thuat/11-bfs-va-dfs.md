@@ -450,7 +450,7 @@ Viết lại DFS bằng recursion và so sánh space behavior.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-So Queue Module05 async với BFSqueue: vì sao BFS không cần thread để có frontier? Với số đỉnh tăng, chi phí state thuộc RAM chứ không I/O nào?
+So queue dùng cho async ở Module 05 với queue của BFS: vì sao BFS không cần thread riêng để giữ danh sách đỉnh chờ duyệt? Khi số đỉnh tăng, state nào chiếm RAM và thao tác nào không có I/O?
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 

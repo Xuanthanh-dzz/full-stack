@@ -246,7 +246,7 @@ Sai: có thể chắn hai cuộc họp khác.
 
 </details>
 
-**Đúng hay sai?** Kết thúc10 và bắt đầu10 bị giao nhau.
+**Đúng hay sai?** Một cuộc họp kết thúc ở mốc 10 và cuộc khác bắt đầu ở mốc 10 thì bị giao nhau.
 
 <details markdown="1">
 <summary>Tự trả lời rồi mở giải thích</summary>
@@ -368,7 +368,7 @@ Viết exchange argument ngắn cho interval scheduling finish-earliest.
 
 ## 10. Bài tập tích hợp liên module — Judgment
 
-Từ contract Module06, thêm phí từng cuộc họp là thay đổi output format hay thay bài toán? Nêu phản ví dụ trước khi đề xuất weighted scheduling.
+Từ contract ở Module 06: thêm phí cho từng cuộc họp là đổi cách trình bày kết quả hay đổi bài toán cần tối ưu? Nêu phản ví dụ trước khi đề xuất weighted scheduling.
 
 **Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
 
