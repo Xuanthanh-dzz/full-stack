@@ -1,5 +1,16 @@
 # Mảng và dynamic array
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Dynamic array giữ buffer liên tiếp và Count logic riêng Capacity.
+- Dùng khi cần index và append; preallocate khi có ước lượng hợp lý.
+- Resize có lần O(n); insert/remove đầu phải dịch nhiều slot.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 - chọn `T[]` hay `List<T>` dựa trên yêu cầu thay vì thói quen.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một kệ4ô đang có 3món còn chỗ để thêm. Hết ô thì chuyển sang kệ lớn hơn; không phải tự kéo giãn chính kệ cũ. Giá chuyển kệ được chia trên nhiều lần thêm.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| backing array | buffer thực chứa slot | _items |
+| Count | số slot có dữ liệu logic | index hợp lệ dưới Count |
+| Capacity | số slot đã cấp | có thể lớn hơn Count |
+| resize | cấp buffer mới rồi copy | EnsureCapacity |
+
+### Ví dụ nhỏ — tính tay trước
+
+Capacity = 2; thêm 10, 20, 30 khiến buffer tăng lên 4 và copy 2 phần tử cũ. Insert(1,15) dịch 30 rồi 20 sang phải. Remove(20) dịch 30 sang trái và xóa slot dư. Cuối cùng Count = 3, Capacity = 4.
 
 Giả sử cần lưu danh sách sản phẩm được người dùng thêm vào giỏ hàng.
 
@@ -41,7 +69,9 @@ Trong .NET, `List<T>` là collection dynamic array quen thuộc. Nhưng nếu ch
 - remove giữa danh sách phải dịch phần tử;
 - pre-allocate capacity đôi khi giảm allocation đáng kể.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -101,7 +131,7 @@ public sealed class SimpleDynamicArray<T>
 
     public void Add(T item)
     {
-        EnsureCapacity(Count + 1);
+        EnsureCapacity(checked(Count + 1));
 
         _items[Count] = item;
         Count++;
@@ -114,7 +144,7 @@ public sealed class SimpleDynamicArray<T>
             throw new ArgumentOutOfRangeException(nameof(index));
         }
 
-        EnsureCapacity(Count + 1);
+        EnsureCapacity(checked(Count + 1));
 
         for (int i = Count; i > index; i--)
         {
@@ -261,7 +291,20 @@ IndexOf(30) = 2
 
 Sample cố tình viết dynamic array tối giản để nhìn rõ cơ chế. Trong code ứng dụng, ưu tiên `List<T>` thay vì tự viết collection này.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Add kiểm capacity trước khi ghi slot và tăng Count.
+2. Resize cấp/copy xong mới đổi _items, input reference elements không deep clone.
+3. Insert dịch từ phải sang trái; RemoveAt dịch trái rồi clear phần dư.
+4. Đọc index O(1), search O(n); n lần append có tổng chi phí O(n) theo phân tích amortized. ToArray cấp phát và copy O(n). Buffer cũ có thể chờ GC nên bộ nhớ đỉnh lớn hơn buffer mới.
+
+### Mini-check
+
+Vì sao Insert phải dịch ngược còn RemoveAt dịch xuôi để không ghi đè dữ liệu chưa copy?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Array lưu các slot liên tiếp
 
@@ -477,7 +520,45 @@ backing array:
 
 Clear slot giúp tránh giữ object sống không cần thiết.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| array | kích thước cố định | indexO(1), ít metadata |
+| dynamic array | dư capacity để append | amortizedO(1), resize/spare memory |
+| linked nodes | thêm đầu bằng relink | không indexO(1), per-nodeallocation |
+
+### Misconception check
+
+**Đúng hay sai?** Capacity4 cho đọc index3 dù Count 3.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chưa phải phần tử logic.
+
+</details>
+
+**Đúng hay sai?** ToArray tách cả object trong slot.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ shallow copy slot/reference.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace buffer.
+
+- **Working Developer — dùng khi làm việc:** amortized và alias.
+
+- **Deep Dive — có thể quay lại sau:** allocation/GC profile khi nóng.
 
 ### Complexity cơ bản của dynamic array
 
@@ -663,7 +744,17 @@ Collection chuẩn đã xử lý:
 - compatibility;
 - nhiều chi tiết mà sample không có.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tự thay List<T> trong production chỉ vì viết demo được. Không cấp capacity cực lớn cho workload chưa biết số phần tử.
+
+## 8. Production notes & scale check
+
+Gate chạy chuỗi thao tác so List, biên index, remove không thấy và tính độc lập của bản sao. Sample không enumerator versioning/concurrency; checked bảo vệ cộng/growth số học, vẫn có thể thiếu memory.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Clear
 
@@ -697,7 +788,7 @@ Phân tích complexity.
 
 ### Bài 3 — EnsureCapacity công khai
 
-Thêm:
+Đổi method `EnsureCapacity` private hiện có thành API public, bổ sung guard capacity không âm (không khai báo hai method cùng signature):
 
 ```csharp
 public void EnsureCapacity(int capacity)
@@ -743,7 +834,23 @@ Chọn giữa `T[]`, `List<T>`, `HashSet<T>` cho từng yêu cầu:
 
 Giải thích lựa chọn bằng operation chính, không chỉ bằng câu "quen dùng".
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So vector C++ Module03: resize đổi buffer có nghĩa reference tới object C# trong slot bị invalid không? Phân biệt reference object với view vào storage.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Count và Capacity khác gì?
+2. Một Add đắt nhất làm gì?
+3. Vì sao clear slot sau remove?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được vì sao array index access là `O(1)`.
 - [ ] Tôi phân biệt được `Count` và `Capacity`.

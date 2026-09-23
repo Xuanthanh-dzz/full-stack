@@ -1,5 +1,16 @@
 # Hash table và hash function
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Hash table dùng hash chọn vùng rồi equality quyết định key khớp.
+- Dùng Dictionary cho map và HashSet cho membership/uniqueness.
+- Collision bình thường; key đổi phần tham gia hash có thể làm lookup hỏng.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - nhận ra rủi ro khi dùng mutable key.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mã tủ giúp tìm đúng ngăn trước, nhưng trong ngăn vẫn phải xem đúng tên. Hai tên cùng ngăn không phải cùng người; hash chỉ giúp thu hẹp chỗ tìm.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| hash | số tính từ key để chọn vùng | GetHashCode |
+| bucket | vùng ứng viên | có thể chứa nhiều key |
+| collision | key khác cùng hash/vùng | cần equality tiếp |
+| comparer | quy tắc hash và bằng nhau | OrdinalIgnoreCase |
+
+### Ví dụ nhỏ — tính tay trước
+
+Tạo key `Student@Example.com` rồi tìm `student@example.com` sẽ thấy theo quy tắc chuẩn hóa của demo. Hash bằng nhau chưa đủ chứng minh Equals; dictionary vẫn giữ được hai key khác có cùng hash.
 
 Ta có 1.000.000 sản phẩm và cần tìm theo `ProductId`.
 
@@ -34,7 +62,9 @@ lookup trung bình gần `O(1)`.
 
 Điểm cốt lõi: hash table dùng hash của key để đi gần như trực tiếp tới vùng chứa phù hợp.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir HashTableDemo
@@ -43,6 +73,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace HashTableDemo;
@@ -120,7 +167,20 @@ csharp = 2
 dotnet = 3
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main dựng byId và TryGetValue(102) trả reference tới Product.
+2. EmailAddress normalize tại constructor, record equality trên Value.
+3. CountWords split dấu cách, comparer của dictionary gộp dotnet/ DOTNET khác hoa thường.
+4. Tra hash trung bình O(1) theo số key khi phân bố tốt; tính hash chuỗi tốn theo độ dài key. Split tạo các chuỗi; sort k từ để xuất mất O(k log k), không nằm trong chi phí một lookup.
+
+### Mini-check
+
+Equals ignorecase mà hash casesensitive có thể khiến key bằng nhau nằm ở bucket khác ra sao?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Từ key tới bucket
 
@@ -210,7 +270,45 @@ a.GetHashCode() == b.GetHashCode()
 
 Nếu vi phạm, dictionary/hashset có thể tìm sai bucket và hành vi logic bị hỏng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Dictionary | key→value | thêm indexRAMO(n) |
+| HashSet | membership | không value map |
+| linear scan | so từng item | O(n), ítsetup choinputnhỏ |
+
+### Misconception check
+
+**Đúng hay sai?** Hash bằng nhau suy ra key bằng nhau.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: collision là bình thường.
+
+</details>
+
+**Đúng hay sai?** GetHashCode nên lưu làm ID bền qua process.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: không có cam kết ổn định qua process/runtime.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** hash và equality.
+
+- **Working Developer — dùng khi làm việc:** comparer/normalization.
+
+- **Deep Dive — có thể quay lại sau:** collision workload khi cần.
 
 ### Dictionary và HashSet
 
@@ -291,7 +389,17 @@ Hash phải ổn định trong vòng đời key khi nằm trong collection.
 
 Password hashing là chủ đề security khác hoàn toàn.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng GetHashCode để lưu password hay IDbền. Không thêm nhiều dictionaryindex nếu workload không cần và không có cách cập nhật nhất quán.
+
+## 8. Production notes & scale check
+
+Email demo là identifier chọn case-insensitive, chưa validate cú pháp email hay tuyên bố mọi địa chỉ email đều cùng quy tắc so sánh. Word tokenizer chỉ tách space, không tự xử lý dấu câu/tab. Gate kiểm key chuẩn hóa bằng nhau tra được cùng entry, input trắng và đếm từ lặp. Failure Lab riêng tái hiện key đổi hash sau khi được thêm.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Word frequency
 
@@ -325,7 +433,23 @@ Tạo một class mutable override equality/hash theo một property. Insert và
 
 Giải thích kết quả.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ record/equality Module05, field nào phải bất biến khi record làmkey? Với một query trên10items, linear có thể hợp hơn index mới không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Equality quyết định ở bước nào?
+2. AverageO(1) bỏ qua kích thước nào?
+3. Mutationkey có di chuyển entry không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi mô tả được key -> hash -> bucket.
 - [ ] Tôi hiểu collision là bình thường.

@@ -1,5 +1,16 @@
 # Shortest path và minimum spanning tree
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Shortest path tối thiểu một route; MST tối thiểu tổng mạng nối mọi đỉnh.
+- Dijkstra dùng weight không âm; MST dùng graph vô hướng với mục tiêu khác.
+- Early return chỉ đúng khi điều kiện weight được bảo đảm trước.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,23 @@ Sau bài này, bạn có thể:
 - nhận ra khi nào hai bài toán có vẻ giống nhưng mục tiêu khác nhau.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mua vé rẻ nhất đi từ nhà tới ga khác với kéo cáp rẻ nhất nối mọi nhà. Cùng bản đồ nhưng câu hỏi khác dẫn tới tập cạnh khác.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| relaxation | cải thiện distance qua một cạnh | candidate<distance |
+| tentative distance | chi phí tốt nhất hiện biết | distances |
+| stale entry | priority cũ đã bị cải thiện | queuedDistance mismatch |
+| spanning tree | cây nối mọi đỉnh | V-1cạnh khi graphconnected |
+
+### Ví dụ nhỏ — tính tay trước
+
+A→B4,A→C1,C→B2,C→D1: popA0, C1, cập nhậtB3,D2; popD2 hoàn tất. B4 vẫn là entry cũ trong queue.
 
 Graph đường đi:
 
@@ -33,7 +61,9 @@ Câu 2: minimum spanning tree.
 
 Không nên dùng cùng một thuật toán chỉ vì cả hai đều nói về “nhỏ nhất”.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir DijkstraDemo
@@ -42,6 +72,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace DijkstraDemo;
@@ -60,22 +107,38 @@ internal static class Program
 
     private static void Main()
     {
-        (int distance, IReadOnlyList<string> path) =
+        (long distance, IReadOnlyList<string> path) =
             ShortestPath("A", "D");
 
         Console.WriteLine($"Distance = {distance}");
         Console.WriteLine($"Path = {string.Join(" -> ", path)}");
     }
 
-    private static (int Distance, IReadOnlyList<string> Path)
+    private static (long Distance, IReadOnlyList<string> Path)
         ShortestPath(string start, string target)
     {
+        if (!Graph.ContainsKey(start) || !Graph.ContainsKey(target))
+        {
+            throw new KeyNotFoundException("Both endpoints must exist.");
+        }
+
+        // Validate toàn graph trước early return khi start == target.
+        foreach (Edge[] edges in Graph.Values)
+        {
+            foreach (Edge edge in edges)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(edge.Weight);
+                if (!Graph.ContainsKey(edge.To))
+                    throw new ArgumentException("Edge points to an unknown vertex.");
+            }
+        }
+
         var distances = Graph.Keys.ToDictionary(
             vertex => vertex,
-            _ => int.MaxValue);
+            _ => long.MaxValue);
 
         var previous = new Dictionary<string, string?>();
-        var queue = new PriorityQueue<string, int>();
+        var queue = new PriorityQueue<string, long>();
 
         distances[start] = 0;
         previous[start] = null;
@@ -83,7 +146,7 @@ internal static class Program
 
         while (queue.TryDequeue(
             out string? current,
-            out int queuedDistance))
+            out long queuedDistance))
         {
             if (queuedDistance != distances[current])
             {
@@ -99,7 +162,7 @@ internal static class Program
             {
                 ArgumentOutOfRangeException.ThrowIfNegative(edge.Weight);
 
-                int candidate = checked(queuedDistance + edge.Weight);
+                long candidate = checked(queuedDistance + edge.Weight);
 
                 if (candidate >= distances[edge.To])
                 {
@@ -112,9 +175,9 @@ internal static class Program
             }
         }
 
-        if (distances[target] == int.MaxValue)
+        if (distances[target] == long.MaxValue)
         {
-            return (int.MaxValue, []);
+            return (long.MaxValue, []);
         }
 
         var path = new List<string>();
@@ -139,7 +202,20 @@ Distance = 2
 Path = A -> C -> D
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Validate cả graph trước early return: endpoint tồn tại, neighbor biết được, mọi weight>=0.
+2. Khởi tạo long.MaxValue là unreachable và start 0, enqueue start.
+3. Pop đúng distance rồi relax, lưu previous và enqueue distance mới.
+4. Lazy duplicates làm queue có thể O(E); time tổng quát O(V+Elog(E+1)), trong simple graph thường viết O((V+E)logV). Validate O(V+E), path O(V).
+
+### Mini-check
+
+Graph A→B2,A→C5,C→B-10: dừng khi popB2 sẽ bỏ đường nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Relaxation
 
@@ -209,7 +285,45 @@ Negative edge phá giả định này.
 
 Graph có negative weight cần thuật toán khác như Bellman-Ford trong bài toán phù hợp.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| BFS | ít cạnh hoặc equal weight | O(V+E), không general weighted |
+| Dijkstra | route weight không âm | heap và distancemap |
+| MST | tổng mạng kết nối nhỏ nhất | không bảo đảm path từ source ngắn nhất |
+
+### Misconception check
+
+**Đúng hay sai?** Weight âm ở cạnh chưa duyệt không quan trọng nếu target pop sớm.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cạnh ấy có thể tạo đường tốt hơn, phải chặn trước.
+
+</details>
+
+**Đúng hay sai?** int.MaxValue là cost không thể hợp lệ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cạnh int có thể bằng nó; long distance tránh nhầm sentinel int.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** distance và route.
+
+- **Working Developer — dùng khi làm việc:** preconditions/sentinel.
+
+- **Deep Dive — có thể quay lại sau:** lazyheapbounds và alternative algorithms.
 
 ### Complexity Dijkstra
 
@@ -281,7 +395,7 @@ Hai objective khác nhau.
 
 ### Overflow distance
 
-Nếu weight lớn và cộng vào `int.MaxValue`, có thể overflow.
+Nếu weight lớn và cộng vào `long.MaxValue`, có thể overflow.
 
 Sample chỉ cộng từ distance đã được dequeue hợp lệ và dùng `checked`.
 
@@ -290,7 +404,17 @@ Sample chỉ cộng từ distance đã được dequeue hợp lệ và dùng `ch
 Dijkstra có thể không tới target.
 MST trên graph disconnected tạo minimum spanning forest, không phải một tree duy nhất.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng Dijkstra cho cost âm hoặc MST cho route giữa hai điểm. Không thêm MST implementation vào runtime chỉ vì bài giới thiệu thuật ngữ.
+
+## 8. Production notes & scale check
+
+Gate so Dijkstra với oracle Floyd–Warshall trên graph nhỏ, kiểm cạnh cost 0, unreachable, start=target, âm ở nhánh chưa tới và cost int.MaxValue. Prim/Kruskal là phần mô tả/exercise, chưa tuyên bố chạy sample MST. Long vẫn cần policy tài nguyên khi scale.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — All distances
 
@@ -329,7 +453,23 @@ cho ba bài toán:
 2. route rẻ nhất với toll khác nhau;
 3. nối các chi nhánh bằng cáp với tổng chi phí thấp nhất.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So checked và invariant Module06: validate weight lúc boundary khác guard trong loop ở đâu? Với graph đọc nhiều cập nhật ít, chuyển validation sang builder có ích gì?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Relax cập nhật mấy bảng?
+2. Tại sao phải bỏ stale entry?
+3. MST khác shortestpath tree thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt shortest path và MST.
 - [ ] Tôi hiểu relaxation.

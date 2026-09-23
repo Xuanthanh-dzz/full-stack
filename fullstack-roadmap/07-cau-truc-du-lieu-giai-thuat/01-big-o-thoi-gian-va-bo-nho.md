@@ -1,5 +1,16 @@
 # Big-O: thời gian và bộ nhớ
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Big-O mô tả chặn trên tốc độ tăng công việc khi input tăng.
+- Dùng để so scaling theo n và mô hình chi phí đã nêu.
+- Không phải số milliseconds; O(1) theo số key vẫn có thể đọc toàn key dài.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - dùng `Stopwatch` để kiểm chứng xu hướng tăng, nhưng không nhầm benchmark nhỏ với bằng chứng tuyệt đối.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Tìm tên trên từng dòng sổ cần đọc thêm khi sổ dày. Một bảng tra xây sẵn đổi thêm bộ nhớ và công chuẩn bị để giảm lượng đọc mỗi lần. Hãy đếm việc trước khi nhìn đồng hồ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| input size | kích thước bài toán được chọn | n phần tử |
+| time complexity | cách lượng công việc tăng | linear n, pairs n² |
+| auxiliary space | bộ nhớ thêm ngoài input | HashSet index |
+| amortized | chi phí chia đều trên chuỗi thao tác | List.Add qua nhiều resize |
+
+### Ví dụ nhỏ — tính tay trước
+
+Với n = 4, tìm tuyến tính một giá trị không có cần 4 lần so sánh; xét mọi cặp có thứ tự cần 16 lượt. Với n = 8, hai con số là 8 và 64. Input tăng gấp đôi có thể làm công việc tăng gấp đôi hoặc gấp bốn.
 
 Một hệ thống cần kiểm tra một mã sản phẩm có tồn tại trong kho hay không.
 
@@ -40,7 +68,9 @@ Mà còn là:
 
 Big-O cung cấp ngôn ngữ để trả lời câu hỏi thứ hai.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo project:
 
@@ -185,7 +215,20 @@ Hai dòng thời gian ở cuối phụ thuộc máy, runtime, tải hệ thống
 
 > **Lưu ý:** đây là demo để nhìn xu hướng, không phải benchmark production. Khi cần benchmark nghiêm túc, dùng công cụ chuyên dụng như BenchmarkDotNet ở module hiệu năng.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Main sinh array, LinearSearch đếm đến khi tìm thấy hoặc hết.
+2. EstimateOrderedPairOperations tính n² bằng long, không chạy n² loops.
+3. CompareLookupStructures dựng List/HashSet trước vùng đo rồi tìm key thiếu 200 lần.
+4. Warmup và Stopwatch chạy trong process; memory index O(n), string hash tốn theo độ dài. Số đo một sample không là bằng chứng complexity.
+
+### Mini-check
+
+Tra một key10000ký tự trong dictionary10phần tử có thể tốn hơn key5ký tự dù cùng O(1) theo n không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Big-O bỏ qua hằng số và tập trung vào tốc độ tăng
 
@@ -242,7 +285,7 @@ Input tăng 10 lần, công việc tăng gần 10 lần.
 
 ### O(n²) — vòng lặp lồng nhau không phải lúc nào cũng xấu, nhưng phải hiểu chi phí
 
-`CountOrderedPairs` chạy vòng ngoài `n` lần. Mỗi lần vòng ngoài lại chạy vòng trong `n` lần:
+`EstimateOrderedPairOperations` chạy vòng ngoài `n` lần. Mỗi lần vòng ngoài lại chạy vòng trong `n` lần:
 
 ```text
 n * n = n²
@@ -326,7 +369,45 @@ Hai thuật toán đều `O(n)` có thể khác nhau vì:
 
 Big-O là bước đầu của phân tích, không thay thế profiling.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| linear scan | không index, đọc lần lượt | O(n), đủ query hiếm/dữ liệu nhỏ |
+| hash index | đổi memory/build lấy lookup | average O(1) theo n, worstO(n) |
+| benchmark | đo workload trên máy cụ thể | bao gồm constant/noise; không thay chứng minh |
+
+### Misconception check
+
+**Đúng hay sai?** O(n) là đúng n instruction.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: là upper-bound tăng trưởng, bỏ hằng số; thường cần nêu bound chặt và case.
+
+</details>
+
+**Đúng hay sai?** Amortized và average-case là một.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: amortized xét tổng chuỗi operation, không cần phân phối xác suất input.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đếm operation.
+
+- **Working Developer — dùng khi làm việc:** nhiều kích thước input và memory.
+
+- **Deep Dive — có thể quay lại sau:** profiling/bound chặt theo requirement.
 
 ### Quy tắc cộng
 
@@ -489,7 +570,17 @@ correctness
 
 Một vòng `O(n)` gọi database `n` lần thường tệ hơn nhiều so với một vòng `O(n²)` nhỏ chạy hoàn toàn trong RAM. Complexity phải được đặt trong mô hình chi phí thực tế.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không đổi code nhỏ rõ ràng chỉ để có ký hiệu Big-O đẹp. Không so milliseconds khác máy hoặc Debug/Release rồi kết luận thuật toán sai.
+
+## 8. Production notes & scale check
+
+Gate kiểm bộ đếm, tìm ngay phần tử đầu và tìm không thấy; kiểm định dạng số đo nhưng không đặt ngưỡng HashSet phải nhanh hơn bao nhiêu. LINQ Range/Select trong setup chỉ tạo dữ liệu; chưa cần học query provider để hiểu phép đếm.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Phân tích không chạy code
 
@@ -566,7 +657,23 @@ Phân tích complexity nếu có `m` order item và `n` product. Đề xuất c�
 
 **Gợi ý:** xây `Dictionary<int, Product>` một lần rồi lookup theo key.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ Module05 đo allocations, tách build index khỏi lookup khi có 1query và 10000query. Nêu input, cost CPU/memory và thời điểm index đáng giá.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Big-O chặn cái gì?
+2. Worst và amortized khác nhau thế nào?
+3. Chi phí dựng index được trả khi nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được Big-O mô tả tốc độ tăng, không phải số mili-giây.
 - [ ] Tôi phân biệt được `O(1)`, `O(log n)`, `O(n)`, `O(n log n)`, `O(n²)`.

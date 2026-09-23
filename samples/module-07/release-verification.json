@@ -1,0 +1,259 @@
+{
+  "verified_on": "2026-09-23",
+  "sdk": "9.0.121",
+  "target": "net9.0",
+  "language": "C#13",
+  "configuration": "Release",
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/01-big-o-thoi-gian-va-bo-nho.md",
+      "files": {
+        "Program.cs": "d94cd2a63978d8e3b4195618396a6e3c2da21de6b4a6eebb33b9f5122e1a31a3",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/02-de-quy-va-call-stack.md",
+      "files": {
+        "Program.cs": "c0d83f1fe8ce3669532467f643936a75c8721e70367b6d0182b9bc82233f6812",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/03-mang-va-dynamic-array.md",
+      "files": {
+        "Program.cs": "89332e7c15719b83123ff33893016ae6afa58cfee86b106dd2bbbe55ac2a44b1",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/04-linked-list.md",
+      "files": {
+        "Program.cs": "4c0d2abd8b90da821671d8c20f1b9b3eee97a7d4487f5f22bdf86443711d2ec0",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/05-stack-queue-va-deque.md",
+      "files": {
+        "Program.cs": "3ff12da48613ff95b8f826f61322502b9246f9a79a1e545ff14e6bd232960406",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/06-hash-table-va-hash-function.md",
+      "files": {
+        "Program.cs": "e53a49a1d6769191f18573fe5550f85ed74893fb994db3b3efb13dfcaac6e96d",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/07-tree-va-binary-search-tree.md",
+      "files": {
+        "Program.cs": "ec132d282a2190886569687f9f796a5ad685339a45b9e363c2754c46de49a863",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/08-heap-va-priority-queue.md",
+      "files": {
+        "Program.cs": "d9a6716c7939e125bb76e23b8b79fa768270a6c65e0dc41410524ea984191b3a",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/09-trie.md",
+      "files": {
+        "Program.cs": "104808a1ede82453f7ce1f5edc73fe0ec15bb472432e0b9f751f203525ae2ab4",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/10-graph-va-cach-bieu-dien.md",
+      "files": {
+        "Program.cs": "2b9ff3a70b5d8586efc95864d1ae647d53ee8f9e96a44ee7824a65a373ae2e0a",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/11-bfs-va-dfs.md",
+      "files": {
+        "Program.cs": "d852174932df93cd7befc94c63d1225e9a4f73a06e8cea0b9c2e364e5ca25982",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/12-shortest-path-va-minimum-spanning-tree.md",
+      "files": {
+        "Program.cs": "dd785bb5522fb0c06c4c6c11a27b977703dac3f63d9b31e7aa7ba2c6af058b3f",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/13-sorting.md",
+      "files": {
+        "Program.cs": "44e13fd6f5321ab69450904d8d3b95ee5e6d96b6cf1298eb8963d2de38700ddd",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/14-searching.md",
+      "files": {
+        "Program.cs": "ade062dc66a944ef009957e8750009daaefab8d527fbf98154a6e126d99f54b4",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/15-greedy.md",
+      "files": {
+        "Program.cs": "59322604be4dda365b64ab6ded99d782e899cfe7732a2b9d4ac281dfb32aa5da",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/16-backtracking.md",
+      "files": {
+        "Program.cs": "e771202f822da714514b77b32a31bee076e3ee8caebf02b516511de2c12a4b92",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/17-dynamic-programming.md",
+      "files": {
+        "Program.cs": "3e6d5339687ab51439a39fa3f9e6cd5c282145702a38e17aae3bc62209b66c87",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md",
+      "files": {
+        "Program.cs": "c268d9b700893b7e2380341955e19142189f337fd69924e821e23cc8a0b1fde4",
+        "Sample.csproj": "87032b0287579247a05a009176d734ab14348ca2736efd25ebe5f3cf9fe42963"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/19-du-an-engine-tim-duong.md",
+      "files": {
+        "Program.cs": "ef77ccc33efd9cb12dc43f914f16ae2e335b2b46862ec1550939e2af5bf20e21",
+        "Sample.csproj": "04483066d5b31510aab351c38a4e3c353c51002443ccae6b1d9a71a45bcdd398"
+      },
+      "checks": [
+        "published project/source manifest builds with warnings as errors",
+        "published stdout contract, empty stderr and exit zero; timing and heap ties handled explicitly",
+        "independent boundary, mutation and algorithm oracle assertions"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/failure-labs/01-queue.md",
+      "source_sha256": "d2c51fb35fb7c00a490ce2c803fc1d784b7bccd0897446582b1fcf0375fb49b8",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/failure-labs/02-hash.md",
+      "source_sha256": "f99f5647aee301dd5ac6e4096dd3212db48ae7e248c8367e9ae03591f9a6b1cf",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/failure-labs/03-search.md",
+      "source_sha256": "dada0a5719c50586b289502ef8bd0636205c2d67c5f88875aa7cf74b8ccb03c5",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/07-cau-truc-du-lieu-giai-thuat/failure-labs/04-alias.md",
+      "source_sha256": "152c55fe793f561057be223dee9b2e509682965c9707b361cbb27e9a59cefb45",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

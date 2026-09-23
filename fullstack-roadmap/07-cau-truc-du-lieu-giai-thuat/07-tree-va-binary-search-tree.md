@@ -1,5 +1,16 @@
 # Tree và binary search tree
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- BST tổ chức thứ tự để tìm bằng cách bỏ một nhánh.
+- Dùng khi cần ordering/range; complexity phụ thuộc chiều cao h.
+- BST không tự cân bằng; dữ liệu sort có thể tạo chuỗi dài.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - liên hệ tree với cấu trúc thư mục, DOM, index và hệ thống phân cấp.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mỗi biển chỉ đường ghi số mốc: nhỏ hơn đi trái, lớn hơn đi phải. Biển đúng giúp bỏ cả nhánh; nếu mọi biển chỉ sang phải thì vẫn phải đi qua từng biển.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| root | node đầu tiên của cây | _root |
+| height | số cạnh dài nhất xuống lá | h |
+| BST invariant | mọi giá trị trái nhỏ hơn, phải lớn hơn | CompareTo |
+| inorder | trái rồi node rồi phải | sequence tăng dần |
+
+### Ví dụ nhỏ — tính tay trước
+
+Insert 3,1,4,2 → root 3, trái 1 có phải 2, phải 4. Tìm2 đi3→1→2; thêm 2 lần nữa trả false, Count vẫn 4.
 
 Ta cần lưu một tập số và thường xuyên:
 
@@ -31,7 +59,9 @@ left < node < right
 
 để search và insert có thể đi xuống một nhánh thay vì scan toàn bộ — miễn là cây không bị lệch quá mức.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```bash
 mkdir BinarySearchTreeDemo
@@ -40,6 +70,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace BinarySearchTreeDemo;
@@ -60,6 +107,7 @@ public sealed class BinarySearchTree<T>
 
     public bool Add(T value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         if (_root is null)
         {
             _root = new Node(value);
@@ -105,6 +153,7 @@ public sealed class BinarySearchTree<T>
 
     public bool Contains(T value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         Node? current = _root;
 
         while (current is not null)
@@ -126,28 +175,22 @@ public sealed class BinarySearchTree<T>
 
     public IEnumerable<T> InOrder()
     {
-        return TraverseInOrder(_root);
-    }
-
-    private static IEnumerable<T> TraverseInOrder(Node? node)
-    {
-        if (node is null)
+        var pending = new Stack<Node>();
+        Node? current = _root;
+        while (current is not null || pending.Count > 0)
         {
-            yield break;
-        }
+            while (current is not null)
+            {
+                pending.Push(current);
+                current = current.Left;
+            }
 
-        foreach (T value in TraverseInOrder(node.Left))
-        {
-            yield return value;
-        }
-
-        yield return node.Value;
-
-        foreach (T value in TraverseInOrder(node.Right))
-        {
-            yield return value;
+            current = pending.Pop();
+            yield return current.Value;
+            current = current.Right;
         }
     }
+
 }
 
 internal static class Program
@@ -178,7 +221,20 @@ Contains 7 = True
 Contains 9 = False
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Add đi từ root, so CompareTo và chỉ tạo node tại link rỗng.
+2. Contains dùng cùng relation, không duyệt nhánh chắc chắn ngoài mục tiêu.
+3. InOrder đẩy đường trái lên Stack, pop rồi sang phải; yield trả từng value.
+4. Mỗi node push/pop một lần nên traversal O(n), pending stack O(h). Search/insert O(h); build cây lệch bằng n insert có thể O(n²).
+
+### Mini-check
+
+Insert1..5: tổng số lần so sánh tăng thế nào dù mỗi insert chỉ đi một nhánh?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Thuật ngữ
 
@@ -273,13 +329,51 @@ Traversal phải thăm mọi node:
 O(n)
 ```
 
-Call-stack space phụ thuộc height:
+Sample dùng stack tường minh có tối đa h node đang chờ; không dùng đệ quy qua nhiều iterator lồng nhau. Kiểu iterator lồng `foreach/yield` có thể chuyển tiếp mỗi value qua nhiều ancestor, làm tăng chi phí theo độ sâu. Extra space của bản hiện tại:
 
 ```text
 O(h)
 ```
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| BST không cân bằng | giữ ordering bằng links | O(h), worst O(n) mỗi lookup |
+| balanced tree | giữ h gần log n | thêm rotation; dùng thư viện nếu đủ |
+| hash table | exact membership | average O(1), không có ordering tự nhiên |
+
+### Misconception check
+
+**Đúng hay sai?** Cây có hai con mỗi node thì chắc cao log n.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tối đa hai con vẫn cho phép chỉ một nhánh dài.
+
+</details>
+
+**Đúng hay sai?** CompareTo==0 mà Equals false vẫn thêm được vào sample.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample coi comparison0 là duplicate.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đường đi và ordering.
+
+- **Working Developer — dùng khi làm việc:** worst case và comparator.
+
+- **Deep Dive — có thể quay lại sau:** balanced tree khi có driver.
 
 ### Binary tree không đồng nghĩa BST
 
@@ -340,7 +434,17 @@ Nếu nhu cầu chỉ là exact-key lookup, hash table thường đơn giản v�
 
 BST hữu ích khi cần ordering/range traversal.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng BST tự viết khi chỉ exact lookup. Không coi cây nhị phân là cùng cấu trúc B-tree của database.
+
+## 8. Production notes & scale check
+
+Gate so với SortedSet trên input seed cố định và trùng; kiểm null và duyệt cây lệch có độ sâu vừa phải. InOrder đã đổi từ iterator đệ quy lồng foreach sang stack để không chuyển tiếp value qua từng ancestor. Keys không được đổi phần tham gia CompareTo khi đã lưu; không mutate trong iterator.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Min và Max
 
@@ -376,7 +480,23 @@ Insert 1..20 theo thứ tự tăng dần. Vẽ tree và giải thích hiệu nă
 
 Trả các value nằm trong `[min, max]` mà không cần duyệt những nhánh chắc chắn ngoài range.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ invariant Module06, nơi nào giữ ordering và vì sao get-only reference chưa bảo đảm object T bất biến? Với100key nhỏ và ít query, chọn sorted array hay tree.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Search phụ thuộc n hay h?
+2. Policy duplicate là gì?
+3. Iterator giữ state nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt binary tree và BST.
 - [ ] Tôi giải thích invariant trái < node < phải.

@@ -1,5 +1,16 @@
 # Bài toán tổng hợp và chọn cấu trúc dữ liệu
 
+> **Last verified:** 2026-09-23  
+> **Baseline:** .NET SDK 9.0.121 · net9.0 · C# 13 · nullable enabled · warnings as errors  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi sample/contract, SDK/runtime, cấu trúc dữ liệu hoặc thuật toán; CI failure
+
+## TL;DR
+
+- Chọn cấu trúc dữ liệu theo thao tác cần hỗ trợ và cách cập nhật.
+- Một catalog có thể cần index theo ID, tập SKU và truy vấn topK.
+- Nhiều index tạo nghĩa vụ giữ chúng đồng bộ, không miễn phí.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +23,22 @@ Sau bài này, bạn có thể:
 - giải thích trade-off trong code review và phỏng vấn.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một sổ hàng có mục lục theo mã và một trang xếp hạng bán chạy. Cả hai giúp tìm nhanh nhưng mỗi lần sửa hàng phải biết trang nào cũng cần sửa.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| index | dữ liệu phụ để tìm nhanh theo khóa | Dictionary ID |
+| uniqueness | quy tắc không nhận khóa trùng | HashSet SKU |
+| topK | lấy K phần tử tốt nhất | heap giới hạn K |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ba mức phổ biến70,90,80;top 2 →90,80. top 0 trả rỗng ngay; ID trùng bị từ chối thay vì ghi đè âm thầm.
 
 Thiết kế autocomplete sản phẩm có các yêu cầu:
 
@@ -35,7 +62,9 @@ Relation  -> Graph
 
 Đây mới là cách DSA xuất hiện trong phần mềm thật: **phối hợp cấu trúc theo access pattern**.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Sample nhỏ minh họa nhiều index trên cùng domain:
 
@@ -46,6 +75,23 @@ dotnet new console --framework net9.0 --use-program-main
 ```
 
 `Program.cs`:
+
+Project `.csproj` tạo ở bước trên dùng cấu hình sau:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>13</LangVersion>
+  </PropertyGroup>
+</Project>
+```
+
+Mã Program.cs:
 
 ```csharp
 namespace DataStructureSelectionDemo;
@@ -65,6 +111,7 @@ public sealed class ProductIndex
     public void Add(Product product)
     {
         ArgumentNullException.ThrowIfNull(product);
+        ArgumentException.ThrowIfNullOrWhiteSpace(product.Sku);
 
         if (!_byId.TryAdd(product.Id, product))
         {
@@ -89,6 +136,7 @@ public sealed class ProductIndex
     public IReadOnlyList<Product> TopPopular(int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
+        if (count == 0) return Array.Empty<Product>();
 
         var queue = new PriorityQueue<Product, int>();
 
@@ -135,7 +183,29 @@ internal static class Program
 }
 ```
 
-## 4. Giải thích cơ chế
+Output đầy đủ:
+
+```text
+Product { Id = 2, Sku = MS-01, Name = Mouse, Popularity = 90 }
+True
+Mouse: 90
+Monitor: 80
+```
+
+### Walkthrough — execution / state / cost
+
+1. Add validate key rồi duy trì index; lookup dùng Dictionary.
+2. ContainsSku dùng comparer đã chọn, không tự chuẩn hóa mọi quy tắc nghiệp vụ.
+3. TopPopular giữ heap không quá k rồi trả các phần tử theo mức phổ biến.
+4. RAM O(n) cho index, topK thêm O(k); thời gian O(n log k + k log k) khi0<k<n, xử lý k0 riêng.
+
+### Mini-check
+
+Sửa record Product cũ bằng with có tự cập nhật object đang giữ trong index không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Bắt đầu từ operation
 
@@ -211,7 +281,45 @@ Tối ưu sort từ `O(n log n)` xuống một thuật toán đặc thù không 
 
 DSA phải kết hợp với profiling.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| scan list | ít query, ít dữ liệu | không cần đồng bộ index |
+| dictionary/set | lookup nhiều và cần unique | thêm RAM cùng update contract |
+| bounded heap | k nhỏ so với n | tie order phải được định nghĩa nếu cần ổn định |
+
+### Misconception check
+
+**Đúng hay sai?** Có HashSet là mọi chuỗi SKU đã hợp lệ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: null/blank và quy tắc hoa thường vẫn cần boundary.
+
+</details>
+
+**Đúng hay sai?** TopK trả cùng ID khi các điểm hòa là bắt buộc.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai nếu contract chỉ yêu cầu điểm; muốn ổn định phải thêm tie-breaker.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** operation table.
+
+- **Working Developer — dùng khi làm việc:** multi-index invariants.
+
+- **Deep Dive — có thể quay lại sau:** concurrency khi có caller đồng thời.
 
 ### Decision table
 
@@ -272,7 +380,17 @@ Big-O giúp dự đoán scaling; profiler giúp xác định bottleneck thực.
 
 Cần cả hai.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không thêm nhiều index cho catalog vài chục mục đọc một lần. Không sửa từng index rồi để exception ở giữa làm state bất nhất.
+
+## 8. Production notes & scale check
+
+Gate kiểm ID/SKU trùng, null/blank SKU, top 0, k vượt count, thứ tự điểm và đối chiếu sort oracle. Sample chưa cung cấp update/remove; trước khi thêm cần nêu invariant xuyên index.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Notification service
 
@@ -326,7 +444,23 @@ Memory trade-off
 Alternative rejected
 ```
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So repository Module06: nếu hai yêu cầu cùng Add, check-then-add có atomic không? Không tự thêm lock khi demo tuần tự; ghi driver nào buộc thay contract.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Ai giữ index?
+2. TopK cần lưu bao nhiêu mục?
+3. Khi update phải giữ invariant gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi bắt đầu từ operation/constraint.
 - [ ] Tôi biết một domain có thể cần nhiều index.

@@ -1,0 +1,24 @@
+diff --git a/RouteFinder.cs b/RouteFinder.cs
+--- a/RouteFinder.cs
++++ b/RouteFinder.cs
+@@ -1,9 +1,17 @@
+ public sealed class RouteFinder(Graph graph)
+ {
++    private readonly Dictionary<string, Route> cache = new();
+     public Route Find(string start, string target)
+     {
+-        start = start.Trim(); target = target.Trim();
+-        var distances = graph.Vertices.ToDictionary(x => x, _ => long.MaxValue);
+-        return Dijkstra(start, target, distances);
++        if (cache.TryGetValue(start, out var cached)) return cached;
++        var distances = graph.Vertices.ToDictionary(x => x, _ => int.MaxValue);
++        if (start == target) return new Route(true, 0, new[] { start });
++        try
++        {
++            var result = BreadthFirstByHopCount(start, target, distances);
++            cache[start] = result;
++            return result;
++        }
++        catch (Exception) { return new Route(true, 0, Array.Empty<string>()); }
+     }
+ }
