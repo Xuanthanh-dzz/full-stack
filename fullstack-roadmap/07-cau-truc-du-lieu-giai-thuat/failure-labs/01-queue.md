@@ -1,10 +1,10 @@
 # Failure Lab — Hàng đợi bằng RemoveAt(0)
 
-Sau bài 05; .NET SDK9.0.121, net9.0, C#13. Chạy trong thư mục tạm.
+Sau bài 05; .NET SDK 9.0.121, net9.0, C# 13. Chạy trong thư mục tạm.
 
 ## Bối cảnh
 
-Lấy1000 việc theo FIFO, tránh dời lại toàn bộ phần còn lại mỗi lần.
+Lấy 1.000 việc theo FIFO, tránh dời lại toàn bộ phần còn lại mỗi lần.
 
 ## Code lỗi
 

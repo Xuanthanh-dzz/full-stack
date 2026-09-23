@@ -1,10 +1,10 @@
-# Failure Lab — Top2 trả 3 row khi có tie
+# Failure Lab — Top 2 trả 3 row khi có tie
 
 Sau bài 15; SQL Server 2025/T-SQL. Dùng session lab riêng, các table variable/temp table không ghi dữ liệu ứng dụng.
 
 ## Bối cảnh
 
-API cần đúng tối đa2 đơn mỗi khách, hòa tiền thì ID nhỏ trước.
+API cần đúng tối đa 2 đơn mỗi khách, hòa tiền thì ID nhỏ trước.
 
 ## Code lỗi
 
@@ -27,11 +27,11 @@ Output dữ liệu hiện tại: `3` (dấu | ngăn cột, bỏ header). Viết 
 
 ## Cách tái hiện
 
-Kết nối container lab ở bài01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
+Kết nối container lab ở bài 01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
 
 ## Acceptance criteria
 
-- Trả đúng IDs1,2; thêm ca ít hơn2 đơn và không tie. Giữ rõ contract2 row khác2mức hạng.
+- Trả đúng ID 1, 2; thêm ca ít hơn 2 đơn và không tie. Giữ rõ contract 2 row khác 2 mức hạng.
 - Có test đỏ với bản lỗi, xanh với bản sửa và ít nhất một biên.
 - Giải thích nơi code chạy, state trước/sau và cost.
 - Giữ diff lỗi và bằng chứng, không chỉ thay expected cho qua.

@@ -35,7 +35,7 @@ Chạy cùng SDK baseline; ghi version, stdout/stderr và exit code. Verifier t�
 
 ## Acceptance criteria
 
-- Phí qua base và trực tiếp cùng55; Shipping thường vẫn25.
+- Phí qua base và trực tiếp cùng 55; Shipping thường vẫn 25.
 - Không sửa bằng cast tại từng caller hoặc so tên type.
 - Giải thích static type, runtime type, hiding và override bằng trace.
 

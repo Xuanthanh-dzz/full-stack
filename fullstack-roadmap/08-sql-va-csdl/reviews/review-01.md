@@ -25,6 +25,6 @@ UPDATE không WHERE sửa cả table; nêu cách kiểm affected rows và bounda
 
 ## Self-score
 
-Retrieval10 điểm, trace4, debug3, judgment3. Đạt16/20 và không bỏ sót sai grain/transaction contract. Ghi bài cần ôn rồi kiểm lại bằng ví dụ khác sau 2 ngày.
+Retrieval 10 điểm, trace 4, debug 3, judgment 3. Đạt 16/20 và không bỏ sót sai grain/transaction contract. Ghi bài cần ôn rồi kiểm lại bằng ví dụ khác sau 2 ngày.
 
 [Bản đồ](../index.md).

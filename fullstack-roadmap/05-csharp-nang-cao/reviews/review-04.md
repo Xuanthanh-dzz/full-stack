@@ -13,7 +13,7 @@ Không nhìn bài khi retrieval; đối chiếu sau và làm biến thể mới.
 ## Dự đoán output
 
 1. WaitAsync timeout rồi producer complete: task gốc còn trả kết quả không?
-2. Ba file2valid1invalid của capstone: exit code và grand total?
+2. Ba file: 2 hợp lệ, 1 không hợp lệ của capstone: exit code và grand total?
 
 ## Debug
 
@@ -21,8 +21,8 @@ Catch Exception đổi cancellation thành FileResult; chứng minh Task status 
 
 ## Judgment liên module
 
-20file mỗi ngày có cần channel/database/microservice không? Nêu driver đo được để đổi thiết kế.
+20 file mỗi ngày có cần channel, database hoặc microservice không? Nêu số liệu hoặc yêu cầu cụ thể khiến bạn phải đổi thiết kế.
 
 ## Self-score
 
-Retrieval10, prediction4, debug3, judgment3: tổng20. Đạt16 và không nhầm cancellation/ownership thì đi tiếp. Thiếu trace nhận tối đa nửa điểm; dưới14 quay lại cụm và prerequisite được hỏi, rồi làm ví dụ mới. [Bản đồ](../index.md).
+Retrieval 10, prediction 4, debug 3, judgment 3: tổng 20. Đạt 16 và không nhầm cancellation/ownership thì đi tiếp. Thiếu trace nhận tối đa nửa điểm; dưới 14 quay lại cụm và prerequisite được hỏi, rồi làm ví dụ mới. [Bản đồ](../index.md).

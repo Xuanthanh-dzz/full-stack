@@ -1,10 +1,10 @@
 # Failure Lab — Binary search trên dữ liệu chưa sort
 
-Sau bài 15; .NET SDK9.0.121, net9.0, C#13. Chạy trong thư mục tạm.
+Sau bài 15; .NET SDK 9.0.121, net9.0, C# 13. Chạy trong thư mục tạm.
 
 ## Bối cảnh
 
-Tra cứu4 trong danh sách giữ thứ tự nhập; không được báo mất phần tử đang có.
+Tra cứu 4 trong danh sách giữ thứ tự nhập; không được báo mất phần tử đang có.
 
 ## Code lỗi
 

@@ -12,8 +12,8 @@ Sau cụm 16–20; quay lại sau 2 ngày và 1 tuần. Không mở bài ở lư
 
 ## Dự đoán output
 
-1. Stock 5,mua3commit rồi mua4thiếu: kho/order phải còn gì?
-2. A giữ1chờ2,B giữ2chờ1: một victim thì survivor giữ bao nhiêu lần trừ?
+1. Stock 5, mua 3 rồi commit; mua 4 thì thiếu: kho/order phải còn gì?
+2. A giữ 1 chờ 2, B giữ 2 chờ 1: một victim thì survivor giữ bao nhiêu lần trừ?
 
 ## Debug
 
@@ -25,6 +25,6 @@ Query trả 90%table: scan hay ép seek, cần đo gì? Nêu contract, state ở
 
 ## Self-score
 
-Retrieval10 điểm, trace4, debug3, judgment3. Đạt16/20 và không bỏ sót sai grain/transaction contract. Ghi bài cần ôn rồi kiểm lại bằng ví dụ khác sau 2 ngày.
+Retrieval 10 điểm, trace 4, debug 3, judgment 3. Đạt 16/20 và không bỏ sót sai grain/transaction contract. Ghi bài cần ôn rồi kiểm lại bằng ví dụ khác sau 2 ngày.
 
 [Bản đồ](../index.md).

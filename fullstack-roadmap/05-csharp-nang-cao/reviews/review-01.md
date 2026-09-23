@@ -4,7 +4,7 @@ Không nhìn bài khi retrieval; đối chiếu sau và làm biến thể mới.
 
 ## Retrieval
 
-1. Nhắc lại copy/alias Module04 và áp dụng cho closure.
+1. Nhắc lại copy/alias Module 04 và áp dụng cho closure.
 2. Constraint generic cho phép operation nào, không validate gì?
 3. Delegate instance giữ target ra sao?
 4. Event handler ném sau commit thì stock có rollback không?
@@ -12,8 +12,8 @@ Không nhìn bài khi retrieval; đối chiếu sau và làm biến thể mới.
 
 ## Dự đoán output
 
-1. Factory hai counter, A gọi2lần B gọi1lần: kết quả gì?
-2. for capture i rồi gọi sau loop3lượt: output gì?
+1. Factory tạo hai counter; A được gọi 2 lần, B được gọi 1 lần: kết quả gì?
+2. for capture i rồi gọi sau loop 3 lượt: output gì?
 
 ## Debug
 
@@ -25,4 +25,4 @@ Một policy thuế nhỏ và một provider Charge/Refund: chọn delegate/inte
 
 ## Self-score
 
-Retrieval10, prediction4, debug3, judgment3: tổng20. Đạt16 và không nhầm cancellation/ownership thì đi tiếp. Thiếu trace nhận tối đa nửa điểm; dưới14 quay lại cụm và prerequisite được hỏi, rồi làm ví dụ mới. [Bản đồ](../index.md).
+Retrieval 10, prediction 4, debug 3, judgment 3: tổng 20. Đạt 16 và không nhầm cancellation/ownership thì đi tiếp. Thiếu trace nhận tối đa nửa điểm; dưới 14 quay lại cụm và prerequisite được hỏi, rồi làm ví dụ mới. [Bản đồ](../index.md).

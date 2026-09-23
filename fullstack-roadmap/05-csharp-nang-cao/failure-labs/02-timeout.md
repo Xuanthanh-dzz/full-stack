@@ -1,6 +1,6 @@
 # Failure Lab — Timeout nhưng producer vẫn sửa state
 
-Sau bài 10. SDK9.0.121 / net9.0 / C#13; chạy trong thư mục tạm.
+Sau bài 10. SDK 9.0.121 / net9.0 / C# 13; chạy trong thư mục tạm.
 
 ## Bối cảnh
 

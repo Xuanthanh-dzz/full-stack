@@ -22,11 +22,11 @@ Output dữ liệu hiện tại: `1` (dấu | ngăn cột, bỏ header). Viết 
 
 ## Cách tái hiện
 
-Kết nối container lab ở bài01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
+Kết nối container lab ở bài 01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
 
 ## Acceptance criteria
 
-- NULL phải bị từ chối,0vẫn hợp lệ và số âm bị chặn. Chỉ sửa constraint/type cần thiết.
+- NULL phải bị từ chối,0 vẫn hợp lệ và số âm bị chặn. Chỉ sửa constraint/type cần thiết.
 - Có test đỏ với bản lỗi, xanh với bản sửa và ít nhất một biên.
 - Giải thích nơi code chạy, state trước/sau và cost.
 - Giữ diff lỗi và bằng chứng, không chỉ thay expected cho qua.

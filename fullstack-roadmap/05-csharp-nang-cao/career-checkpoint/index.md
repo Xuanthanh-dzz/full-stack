@@ -34,7 +34,7 @@ Nộp hypothesis, evidence, root cause, smallest fix, regression và metric/log 
 
 ## 4. PR review
 
-Review [batch patch](../pr-review-labs/01-batch.md). Phải phát hiện cancellation bị che và release khi chưa acquire; mỗi finding có severity/location/impact/evidence/fix/test. Không bù lỗi correctness bằng nhiều comment style.
+Review [batch patch](../pr-review-labs/01-batch.md). Mỗi finding có severity/location/impact/evidence/fix/test; tự suy ra lỗi từ contract và trace trước khi xem hướng dẫn chấm. Không bù lỗi correctness bằng nhiều comment style.
 
 ## 5. Judgment task
 
@@ -57,6 +57,18 @@ Giải thích miệng3–5phút mỗi câu: vì sao await không giữ thread ng
 | Judgment/explanation | 10 | scale/cost/driver rõ |
 
 Đạt từ80/100 và không còn lỗi nghiêm trọng về cancellation, permit, resource ownership hoặc mất report cũ. Reviewer ghi ngày, commit, môi trường và rubric; điểm build đơn thuần không đủ đạt checkpoint.
+
+### Ba mức năng lực — ghi riêng cho từng hàng
+
+Điểm tổng không thay thế đánh giá từng năng lực. Reviewer ghi mức và link evidence cho từng hàng trong matrix ở trên:
+
+| Mức | Biểu hiện quan sát được |
+|---|---|
+| Chưa đạt | Chưa giải thích đúng state/contract hoặc chưa hoàn thành task đúng; test không bắt được lỗi gốc, cần người khác chỉ ra bước sửa. |
+| Đạt | Tự hoàn thành task trong quy mô đã cho; giải thích execution/state/cost, có test biên và đường lỗi; biết giới hạn của giải pháp. |
+| Vững | Đạt các yêu cầu trên và giải được biến thể chưa thấy; tự tạo phản ví dụ, chọn giải pháp đơn giản theo scale, giải thích trade-off và chuyển kiến thức sang tình huống khác. |
+
+Không suy mức Vững chỉ từ tốc độ làm bài hoặc điểm knowledge test. Với cancellation, ownership và tính toàn vẹn report, mức Chưa đạt vẫn chặn checkpoint dù điểm tổng vượt ngưỡng. Lưu bảng `năng lực | mức | evidence | bài cần ôn | ngày kiểm lại` cùng submission.
 
 ## 8. Remediation map
 

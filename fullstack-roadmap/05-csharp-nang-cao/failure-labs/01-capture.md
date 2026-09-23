@@ -1,6 +1,6 @@
 # Failure Lab — Capture chung biến vòng lặp
 
-Sau bài 05. SDK9.0.121 / net9.0 / C#13; chạy trong thư mục tạm.
+Sau bài 05. SDK 9.0.121 / net9.0 / C# 13; chạy trong thư mục tạm.
 
 ## Bối cảnh
 

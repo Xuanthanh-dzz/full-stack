@@ -7,7 +7,7 @@ Lượt 1 sau cụm; lượt 2 sau 2–3 ngày; lượt 3 sau một tuần. Đó
 1. Nhắc lại output parameter: khi load thất bại caller được giữ state nào?
 2. So sánh EOF bình thường và lỗi đọc file.
 3. Giải thích vì sao header đổi có thể đòi rebuild nhiều object.
-4. Trace parse 12x với errno/end pointer và contract digits-only.
+4. Trace parse `12x` với errno/end pointer và contract digits-only.
 5. Vẽ ownership transfer khi remove rồi load thành công.
 
 ## Dự đoán output

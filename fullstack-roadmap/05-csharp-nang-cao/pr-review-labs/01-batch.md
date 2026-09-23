@@ -1,6 +1,6 @@
 # PR Review — Cancellation và permit
 
-Patch huấn luyện độc lập: gate là SemaphoreSlim, ReadAsync nhận token và trả FileResult; Failure tạo kết quả file lỗi. Contract: chỉ lỗi dữ liệu được chuyển thành result; cancellation đi lên caller; chỉ release permit đã acquire. Không áp trực tiếp patch vào capstone.
+Patch huấn luyện độc lập: `gate` là `SemaphoreSlim`, `ReadAsync` nhận token và trả `FileResult`; `Failure` tạo kết quả file lỗi. Contract: chỉ lỗi dữ liệu được chuyển thành result với thông báo an toàn cho caller; cancellation đi lên caller; chỉ release permit đã acquire. Batch có thể từ 20 tới một triệu file. Không áp trực tiếp patch vào capstone.
 
 ## Diff
 
@@ -8,23 +8,30 @@ Patch huấn luyện độc lập: gate là SemaphoreSlim, ReadAsync nhận toke
 
 ## Nhiệm vụ review
 
-- Phân loại blocker/high/medium/low, dẫn vị trí và state cho mỗi finding.
-- Kiểm tra cancellation propagation, acquire/release và exception bị che.
-- Viết regression có lịch điều khiển, không dùng sleep để hy vọng race.
-- Đánh giá raw exception message ở boundary và policy dữ liệu nhạy cảm.
-- So sánh task-per-file với bounded queue cho20file và1triệufile; không thêm kiến trúc khi thiếu driver.
+- Review cả đường thành công, lỗi dữ liệu, lỗi I/O và yêu cầu hủy ở các thời điểm khác nhau.
+- Vẽ trạng thái task, token và quyền sử dụng tài nguyên qua từng nhánh; tự chỉ ra contract nào bị vi phạm.
+- Mỗi finding cần severity, location, impact, evidence và sửa nhỏ nhất.
+- Đề xuất regression có lịch điều khiển, không dùng sleep ngẫu nhiên để hy vọng gặp lỗi.
+- Xem xét dữ liệu được trả qua error boundary và chi phí của task-per-file ở 20 file so với một triệu file.
 
 ## Rubric
 
+Chấm theo contract, bằng chứng, regression và lựa chọn phù hợp quy mô. Trong review, xét correctness, performance, security, maintainability và operability; nếu một nhóm không có finding, ghi lý do thay vì bịa lỗi. Viết review độc lập trước khi mở tiêu chí chi tiết.
+
+<details markdown="1">
+<summary>Sau khi nộp lượt review đầu: mở tiêu chí chấm chi tiết</summary>
+
 | Nhóm | Điểm |
 |---|---:|
-| Cancellation đúng trạng thái/token | 30 |
-| Permit không release khi acquire lỗi | 30 |
-| Error boundary và regression evidence | 20 |
-| Scale/ownership judgment | 10 |
+| Cancellation đúng trạng thái/token | 25 |
+| Permit và failure boundary | 25 |
+| Thông báo lỗi và regression evidence | 20 |
+| Scale/ownership judgment | 20 |
 | Comment rõ location/severity/smallest fix | 10 |
 
-Đạt80, không bỏ sót hai lỗi lifecycle chính.
+Đạt 80, không bỏ sót hai lỗi lifecycle chính.
+
+</details>
 
 ## Submission format
 

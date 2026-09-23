@@ -41,7 +41,7 @@ Chạy cùng SDK baseline; ghi version, stdout/stderr và exit code. Verifier t�
 
 - Từ chối quantity/price ngoài miền trước mutation.
 - Overflow không làm giảm kho; thành công vẫn trả đúng tiền và giảm đúng số lượng.
-- Test quantity0, thiếu kho, overflow và một đơn hợp lệ.
+- Test quantity 0, thiếu kho, overflow và một đơn hợp lệ.
 
 ## Hints
 

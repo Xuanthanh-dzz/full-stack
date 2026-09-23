@@ -1,15 +1,29 @@
 diff --git a/Batch.cs b/Batch.cs
 --- a/Batch.cs
 +++ b/Batch.cs
-@@ -1,8 +1,7 @@
--await gate.WaitAsync(token);
- try
+@@ -1,19 +1,19 @@
+ public async Task<FileResult> ProcessAsync(string path, CancellationToken token)
  {
--    return await ReadAsync(path, token);
-+    await gate.WaitAsync(token);
-+    return await ReadAsync(path, CancellationToken.None);
+-    await gate.WaitAsync(token);
+     try
+     {
+-        return await ReadAsync(path, token);
++        await gate.WaitAsync(token);
++        return await ReadAsync(path, CancellationToken.None);
+     }
+-    catch (OperationCanceledException) { throw; }
+-    catch (InvalidDataException) { return Failure("invalid input"); }
++    catch (Exception e) { return Failure(e.Message); }
+     finally { gate.Release(); }
  }
--catch (OperationCanceledException) { throw; }
--catch (InvalidDataException e) { return Failure(e.Message); }
-+catch (Exception e) { return Failure(e.Message); }
- finally { gate.Release(); }
+
+ public async Task<IReadOnlyList<FileResult>> RunAsync(IEnumerable<string> paths, CancellationToken token)
+ {
+     var results = new List<FileResult>();
+-    foreach (string path in paths)
+-        results.Add(await ProcessAsync(path, token));
++    var tasks = paths.Select(path => ProcessAsync(path, token)).ToArray();
++    foreach (var task in tasks)
++        results.Add(await task);
+     return results;
+ }

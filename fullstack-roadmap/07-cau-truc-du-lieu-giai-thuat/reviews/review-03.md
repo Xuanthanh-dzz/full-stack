@@ -8,11 +8,11 @@ Sau cụm (11, 15); ôn lại sau 2 ngày và 1 tuần. Lượt đầu không m�
 2. DFS mark khi pop giữ thêm gì?
 3. Dijkstra có nhận cạnh âm không?
 4. Stable sort giữ điều gì?
-5. Ôn Module04: int sentinel có trùng giá trị hợp lệ không?
+5. Ôn Module 04: int sentinel có trùng giá trị hợp lệ không?
 
 ## Dự đoán output
 
-1. LowerBound trên[1,4,4,7] với4 và 8?
+1. LowerBound trên [1, 4, 4, 7] với 4 và 8?
 2. A[1,3),B[3,4),C[1,5): greedy nhận gì?
 
 ## Debug
@@ -25,6 +25,6 @@ Một query trên array chưa sort: chi phí sort có đáng không? Nêu nơi c
 
 ## Self-score
 
-Retrieval10 điểm, trace4, debug3, judgment3. Đạt16/20 và không bỏ sót precondition thuật toán. Ghi bài cần ôn và thử ví dụ khác sau 2 ngày.
+Retrieval 10 điểm, trace 4, debug 3, judgment 3. Đạt 16/20 và không bỏ sót precondition thuật toán. Ghi bài cần ôn và thử ví dụ khác sau 2 ngày.
 
 [Bản đồ](../index.md).

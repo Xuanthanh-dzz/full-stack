@@ -8,12 +8,12 @@ Làm sau cụm bài (6, 10); quay lại sau 2 ngày và 1 tuần. Không mở b�
 2. Role interface có là boundary bảo mật không?
 3. Exists/Save giữ được uniqueness đồng thời không?
 4. Scope giữ handler lâu thì context còn sống không?
-5. Ôn event subscriber Module05: reference nào kéo dài lifetime?
+5. Ôn event subscriber Module 05: reference nào kéo dài lifetime?
 
 ## Dự đoán output
 
 1. Hai scopes dùng chung store: Place A ở cả hai trả gì?
-2. Đơn550000, threshold500000 rồi1triệu: bản static và hai instance khác ra sao?
+2. Đơn 550.000, threshold 500.000 rồi 1 triệu: bản static và hai instance khác ra sao?
 
 ## Debug
 
@@ -21,10 +21,10 @@ Notifier ném sau Save; trace trạng thái và vì sao retry toàn service chư
 
 ## Judgment liên module
 
-100request tuần tự hay đồng thời: chọn lifetime store/log, chỉ ra điều cần test trước khi thêm khóa. Nêu contract, nơi code chạy, state được giữ, cost và lựa chọn đơn giản nhất.
+100 request tuần tự hay đồng thời: chọn lifetime store/log, chỉ ra điều cần test trước khi thêm khóa. Nêu contract, nơi code chạy, state được giữ, cost và lựa chọn đơn giản nhất.
 
 ## Self-score
 
-Retrieval10điểm (mỗi câu2), trace4điểm, debug3điểm, judgment3điểm. Đạt16/20 và không bỏ sót mutation/lifetime failure. Câu sai: ghi bài cần ôn rồi dùng ví dụ khác để kiểm lại sau2ngày.
+Retrieval 10 điểm (mỗi câu 2), trace 4 điểm, debug 3 điểm, judgment 3 điểm. Đạt 16/20 và không bỏ sót lỗi thay đổi state/vòng đời. Câu sai: ghi bài cần ôn rồi dùng ví dụ khác để kiểm lại sau 2 ngày.
 
 [Bản đồ](../index.md).

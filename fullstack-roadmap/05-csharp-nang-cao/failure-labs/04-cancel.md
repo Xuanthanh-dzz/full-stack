@@ -1,6 +1,6 @@
 # Failure Lab — Biến cancellation thành kết quả thành công
 
-Sau bài 19. SDK9.0.121 / net9.0 / C#13; chạy trong thư mục tạm.
+Sau bài 19. SDK 9.0.121 / net9.0 / C# 13; chạy trong thư mục tạm.
 
 ## Bối cảnh
 

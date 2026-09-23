@@ -1,6 +1,6 @@
 # Failure Lab — Đáp án backtracking cùng trỏ một list
 
-Sau bài 19; .NET SDK9.0.121, net9.0, C#13. Chạy trong thư mục tạm.
+Sau bài 19; .NET SDK 9.0.121, net9.0, C# 13. Chạy trong thư mục tạm.
 
 ## Bối cảnh
 

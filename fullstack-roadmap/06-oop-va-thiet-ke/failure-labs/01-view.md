@@ -1,6 +1,6 @@
 # Failure Lab — View đọc được nhưng dữ liệu vẫn bị sửa
 
-Sau bài 05; .NET SDK9.0.121, net9.0, C#13. Chạy trong thư mục tạm.
+Sau bài 05; .NET SDK 9.0.121, net9.0, C# 13. Chạy trong thư mục tạm.
 
 ## Bối cảnh
 

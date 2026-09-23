@@ -4,7 +4,7 @@ Không nhìn bài khi retrieval; đối chiếu sau và làm biến thể mới.
 
 ## Retrieval
 
-1. Nhắc lại required/init Module04 và runtime guard.
+1. Nhắc lại required/init Module 04 và runtime guard.
 2. Nullable flow khác scope và definite assignment thế nào?
 3. with clone phần nào của graph?
 4. WhenAll có tự tạo thread không?
@@ -25,4 +25,4 @@ Hai I/O độc lập và hai I/O phụ thuộc: chọn concurrent/sequential awa
 
 ## Self-score
 
-Retrieval10, prediction4, debug3, judgment3: tổng20. Đạt16 và không nhầm cancellation/ownership thì đi tiếp. Thiếu trace nhận tối đa nửa điểm; dưới14 quay lại cụm và prerequisite được hỏi, rồi làm ví dụ mới. [Bản đồ](../index.md).
+Retrieval 10, prediction 4, debug 3, judgment 3: tổng 20. Đạt 16 và không nhầm cancellation/ownership thì đi tiếp. Thiếu trace nhận tối đa nửa điểm; dưới 14 quay lại cụm và prerequisite được hỏi, rồi làm ví dụ mới. [Bản đồ](../index.md).

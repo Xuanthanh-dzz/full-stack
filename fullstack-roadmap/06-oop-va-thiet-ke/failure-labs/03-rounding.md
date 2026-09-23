@@ -1,6 +1,6 @@
 # Failure Lab — Refactor đổi thứ tự làm tròn
 
-Sau bài 14; .NET SDK9.0.121, net9.0, C#13. Chạy trong thư mục tạm.
+Sau bài 14; .NET SDK 9.0.121, net9.0, C# 13. Chạy trong thư mục tạm.
 
 ## Bối cảnh
 

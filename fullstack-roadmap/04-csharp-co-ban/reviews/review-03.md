@@ -4,7 +4,7 @@
 
 ## Retrieval
 
-1. Ôn Module03: cleanup có tự phục hồi state khi lỗi không?
+1. Ôn Module 03: cleanup có tự phục hồi state khi lỗi không?
 2. default Money bỏ qua kiểm tra constructor thế nào?
 3. Queue và stack quyết định thứ tự xử lý/undo ra sao?
 4. Namespace, assembly và project reference khác gì?
@@ -25,6 +25,6 @@ File todo vài chục việc chuyển thành hai process ghi đồng thời: can
 
 ## Self-score
 
-Retrieval 5×2, prediction 2×2, debug3, judgment3: tổng20. Kết quả đúng thiếu trace state/cost nhận tối đa nửa điểm. Từ16 và không còn nhầm alias/commit thì đi tiếp; nếu chưa đạt, đọc phần liên quan rồi làm ví dụ khác. Nộp câu trả lời, trace và test expected/actual.
+Retrieval 5 × 2, prediction 2 × 2, debug 3, judgment 3: tổng 20. Kết quả đúng thiếu trace state/cost nhận tối đa nửa điểm. Từ 16 điểm và không còn nhầm alias/commit thì đi tiếp; nếu chưa đạt, đọc phần liên quan rồi làm ví dụ khác. Nộp câu trả lời, trace và test expected/actual.
 
 [Bản đồ module](../index.md).

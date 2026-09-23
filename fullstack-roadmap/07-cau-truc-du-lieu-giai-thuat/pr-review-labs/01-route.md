@@ -6,11 +6,18 @@
 
 ## Nhiệm vụ review
 
-Đánh giá mất normalization, thu hẹp distance, early return cho đỉnh chưa tồn tại đổi đại lượng tối ưu, cache thiếu target và nuốt exception thành route “thành công”. Có sáu nhóm lỗi cần phân biệt. Dựng graph3 đỉnh có đường trực tiếp đắt hơn đường2cạnh. Mỗi finding ghi severity, dòng, input, actual/expected và sửa nhỏ nhất. Nêu điều kiện riêng khiến BFS hợp lệ.
+Review theo contract về input, kết quả đường đi, trạng thái giữ giữa các lần gọi và cách báo lỗi. Tự dựng graph nhỏ, tính tay route mong muốn rồi trace patch; có ít nhất một chuỗi nhiều lần gọi cùng finder. Mỗi finding cần severity, dòng, expected/actual, state và regression test. Phân biệt lỗi chắc chắn với câu hỏi về yêu cầu. Chỉ đề xuất thuật toán hoặc cache khi giải thích được điều kiện đúng và chi phí.
 
 ## Rubric
 
-10 điểm: correctness4, boundary2, regression evidence2, scale judgment2. Đạt8 và không bỏ sót shortest-cost khác fewest-hops. Không chấm thêm framework hoặc cache nếu chưa có driver.
+Chấm theo contract, bằng chứng, regression và lựa chọn phù hợp quy mô. Viết review độc lập trước khi mở tiêu chí chi tiết.
+
+<details markdown="1">
+<summary>Sau khi nộp lượt review đầu: mở tiêu chí chấm chi tiết</summary>
+
+10 điểm: correctness 4, boundary 2, regression evidence 2, scale judgment 2. Đạt 8 và không bỏ sót shortest-cost khác fewest-hops. Không chấm thêm framework hoặc cache nếu chưa có driver.
+
+</details>
 
 ## Submission format
 

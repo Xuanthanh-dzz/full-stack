@@ -12,8 +12,8 @@ Sau cụm 11–15; quay lại sau 2 ngày và 1 tuần. Không mở bài ở lư
 
 ## Dự đoán output
 
-1. Amounts100,90,90: RANK<=2 trả bao nhiêu row?
-2. Cây1→2→3: depths và sốrow từ anchor1?
+1. Amounts 100, 90, 90: RANK<=2 trả bao nhiêu row?
+2. Cây 1 → 2 → 3: depths và số row từ anchor 1?
 
 ## Debug
 
@@ -21,10 +21,10 @@ Trigger lấy biến scalar từ inserted khi UPDATE nhiều row; nêu test audi
 
 ## Judgment liên module
 
-Schema có surrogate key nhưng CustomerName lặp theo CustomerId: đã3NF chưa? Nêu contract, state ở client/server, chi phí và điều kiện phải đổi quyết định.
+Schema có surrogate key nhưng CustomerName lặp theo CustomerId: đã 3NF chưa? Nêu contract, state ở client/server, chi phí và điều kiện phải đổi quyết định.
 
 ## Self-score
 
-Retrieval10 điểm, trace4, debug3, judgment3. Đạt16/20 và không bỏ sót sai grain/transaction contract. Ghi bài cần ôn rồi kiểm lại bằng ví dụ khác sau 2 ngày.
+Retrieval 10 điểm, trace 4, debug 3, judgment 3. Đạt 16/20 và không bỏ sót sai grain/transaction contract. Ghi bài cần ôn rồi kiểm lại bằng ví dụ khác sau 2 ngày.
 
 [Bản đồ](../index.md).

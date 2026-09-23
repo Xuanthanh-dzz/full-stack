@@ -4,10 +4,10 @@
 
 ## Retrieval
 
-1. Từ Module03, copy value và copy owner/reference khác nhau thế nào?
+1. Từ Module 03, copy value và copy owner/reference khác nhau thế nào?
 2. SDK, runtime và target framework có vai trò gì?
 3. Parse thành công còn thiếu kiểm tra nghiệp vụ nào?
-4. Trace continue/break của đơn4 và7.
+4. Trace continue/break của đơn 4 và 7.
 5. ref parameter khác copy reference class thế nào?
 
 ## Dự đoán output
@@ -21,10 +21,10 @@ TryReserveItem trừ kho trước phép nhân decimal; input cận lớn làm l�
 
 ## Judgment liên module
 
-So sánh hóa đơn C Module01 với C#: chọn kiểu tiền, cận input, parse/rounding và test, không chỉ thay cú pháp.
+So sánh hóa đơn C Module 01 với C#: chọn kiểu tiền, cận input, parse/rounding và test, không chỉ thay cú pháp.
 
 ## Self-score
 
-Retrieval 5×2, prediction 2×2, debug3, judgment3: tổng20. Kết quả đúng thiếu trace state/cost nhận tối đa nửa điểm. Từ16 và không còn nhầm alias/commit thì đi tiếp; nếu chưa đạt, đọc phần liên quan rồi làm ví dụ khác. Nộp câu trả lời, trace và test expected/actual.
+Retrieval 5 × 2, prediction 2 × 2, debug 3, judgment 3: tổng 20. Kết quả đúng thiếu trace state/cost nhận tối đa nửa điểm. Từ 16 điểm và không còn nhầm alias/commit thì đi tiếp; nếu chưa đạt, đọc phần liên quan rồi làm ví dụ khác. Nộp câu trả lời, trace và test expected/actual.
 
 [Bản đồ module](../index.md).

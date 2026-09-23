@@ -1,18 +1,44 @@
 diff --git a/library.cpp b/library.cpp
 --- a/library.cpp
 +++ b/library.cpp
-@@ -1,11 +1,10 @@
+@@ -1,21 +1,19 @@
  void add(std::unique_ptr<Book> book)
  {
 -    const std::string id = book->id();
+-    if (contains(id)) throw DuplicateId(id);
      books.push_back(std::move(book));
 -    log(id);
 +    log(book->id());
  }
+
  void replace(const std::string& path)
  {
 -    auto next = parse_all(path);
 -    books.swap(next);
 +    books.clear();
 +    books = parse_all(path);
+ }
+
+ const Book* find(const std::string& id) const
+ {
+     for (const auto& book : books) {
+-        if (book->id() == id) return book.get();
++        if (book->id().starts_with(id)) return book.get();
+     }
+     return nullptr;
+ }
+@@ -23,11 +21,11 @@
+ void sortById()
+ {
+     std::sort(books.begin(), books.end(),
+-        [](const auto& a, const auto& b) { return a->id() < b->id(); });
++        [](const auto& a, const auto& b) { return a->id() <= b->id(); });
+ }
+
+ void eraseById(const std::string& id)
+ {
+-    books.erase(std::remove_if(books.begin(), books.end(),
+-        [&](const auto& book) { return book->id() == id; }), books.end());
++    std::remove_if(books.begin(), books.end(),
++        [&](const auto& book) { return book->id() == id; });
  }

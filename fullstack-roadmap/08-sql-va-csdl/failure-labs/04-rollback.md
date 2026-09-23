@@ -27,7 +27,7 @@ Output dữ liệu hiện tại: `1|5` (dấu | ngăn cột, bỏ header). Viế
 
 ## Cách tái hiện
 
-Kết nối container lab ở bài01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
+Kết nối container lab ở bài 01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
 
 ## Acceptance criteria
 
@@ -38,7 +38,7 @@ Kết nối container lab ở bài01, chạy block bằng sqlcmd với `-b -C -W
 
 ## Hints
 
-1. UPDATE0 row có tự là exception không?
+1. UPDATE 0 row có tự là exception không?
 2. Trace từng bước theo semantics SQL; không nhầm logical order với physical plan.
 3. Chọn sửa nhỏ nhất bảo vệ contract, nêu điều kiện phải xem lại khi scale.
 

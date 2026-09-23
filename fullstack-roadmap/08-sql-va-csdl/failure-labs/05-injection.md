@@ -24,11 +24,11 @@ Output dữ liệu hiện tại: `2` (dấu | ngăn cột, bỏ header). Viết 
 
 ## Cách tái hiện
 
-Kết nối container lab ở bài01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
+Kết nối container lab ở bài 01, chạy block bằng sqlcmd với `-b -C -W -h -1 -s "|"`. Ghi engine build, output, lỗi và exit code. Không chạy trên database ứng dụng. Verifier tái hiện bản lỗi; learner phải nộp test bản sửa riêng.
 
 ## Acceptance criteria
 
-- Input trên trả 0,Keyboard trả 1,tên chứa dấu nháy được xử lý đúng. SQL text cố định và value truyền bằng parameter; không sửa bằng replace dấu nháy.
+- Input trên trả 0,Keyboard trả 1, tên chứa dấu nháy được xử lý đúng. SQL text cố định và value truyền bằng parameter; không sửa bằng replace dấu nháy.
 - Có test đỏ với bản lỗi, xanh với bản sửa và ít nhất một biên.
 - Giải thích nơi code chạy, state trước/sau và cost.
 - Giữ diff lỗi và bằng chứng, không chỉ thay expected cho qua.

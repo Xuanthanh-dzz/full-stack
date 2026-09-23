@@ -2,15 +2,22 @@
 
 ## Diff
 
-Đọc [diff thật](./diffs/report.diff). Contract: trả chỉ OrderId/TotalAmount đã commit của đúng customer và status, theo OrderId. Caller truyền dữ liệu ngoài, không mở transaction trước. ReportRequests(Id,LastUsedAt) có row1; các request dùng chung row này. Runtime không cần quyền ghi report metadata. Không gửi input thử nghiệm tới DB thật.
+Đọc [diff thật](./diffs/report.diff). Contract: trả chỉ OrderId/TotalAmount đã commit của đúng customer và status, theo OrderId. Caller truyền dữ liệu ngoài, không mở transaction trước. ReportRequests(Id,LastUsedAt) có row 1; các request dùng chung row này. Runtime không cần quyền ghi report metadata. Không gửi input thử nghiệm tới DB thật.
 
 ## Nhiệm vụ review
 
-Tìm ít nhất6nhóm lỗi: mất customer predicate, concatenate input, NOLOCK đổi consistency, SELECT* đổi shape, mất ORDER BY, ghi/giữ lock metadata trong transaction chờ10giây, và thiếu cleanup transaction khi dynamic SQL lỗi. Mỗi finding cần dòng, severity, input, state/failure mode và sửa tối thiểu. Đánh giá riêng nhu cầu ghi LastUsedAt; không đề xuất thêm index để che mất filter.
+Review quyền truy cập, phạm vi dữ liệu, shape/thứ tự kết quả và vòng đời transaction theo contract đã nêu. Tự chọn input thường, input biên và lỗi runtime; trace state của session trước/sau mỗi đường đi. Mỗi finding cần dòng, severity, expected/actual, hậu quả và regression test. Đánh giá riêng thay đổi nghiệp vụ ghi LastUsedAt. Nộp review trước diff sửa; không dùng thêm index như câu trả lời mặc định cho mọi vấn đề.
 
 ## Rubric
 
-10 điểm: quyền và code/data3, semantics/grain/order3, transaction/failure2, test/evidence2. Đạt8 và không bỏ sót rò dữ liệu customer hoặc injection. Không chấm bằng số công cụ được thêm.
+Chấm theo contract, bằng chứng, regression và lựa chọn phù hợp quy mô. Viết review độc lập trước khi mở tiêu chí chi tiết.
+
+<details markdown="1">
+<summary>Sau khi nộp lượt review đầu: mở tiêu chí chấm chi tiết</summary>
+
+10 điểm: quyền và code/data 3, semantics/grain/order 3, transaction/failure 2, test/evidence 2. Đạt 8 và không bỏ sót rò dữ liệu customer hoặc injection. Không chấm bằng số công cụ được thêm.
+
+</details>
 
 ## Submission format
 
