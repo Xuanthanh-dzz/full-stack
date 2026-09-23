@@ -1,6 +1,6 @@
 # Filter, sort và pagination
 
-> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Last verified:** 2026-09-23  
 > **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
 > **Review cycle:** 180 days  
 > **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
