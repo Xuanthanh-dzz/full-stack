@@ -1,5 +1,16 @@
 # Backup, restore và migration dữ liệu
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Backup chỉ có giá trị khi có thể restore và dữ liệu phục hồi đáp ứng yêu cầu.
+- Dùng restore drill và migration theo bước có thể kiểm chứng.
+- VERIFYONLY, replica và rollback application đều không tự thay thế backup/restore.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,24 @@ Sau bài này, bạn có thể:
 - hiểu schema migration khác data migration.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Chụp một bản sổ rồi cất đi chưa biết có đọc được khi cần. Phải thử mở bản đó ở nơi khác, kiểm nội dung và đo thời gian; đồng thời tránh sửa mẫu sổ mới khiến phần mềm cũ không đọc được.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| RPO | mức mất dữ liệu tối đa chấp nhận theo thời gian | mất tối đa1 giờ |
+| RTO | thời gian mục tiêu khôi phục dịch vụ | trở lại trong30 phút |
+| backfill | điền dữ liệu cũ vào cột mới | FirstName/LastName |
+| expand-contract | thêm tương thích rồi mới bỏ cũ | hai release |
+| restore drill | thử phục hồi có kiểm dữ liệu | database tên khác |
+
+### Ví dụ nhỏ — tính tay trước
+
+Nguyễn Văn An được demo tách LastName=Nguyễn,FirstName=Văn An. Đây là quy tắc đơn giản cho fixture, không hiểu tên mọi nền văn hóa. FullName được giữ để đối chiếu và sửa ca mơ hồ.
 
 Một migration đổi:
 
@@ -33,7 +62,9 @@ Nếu migration sai mà không có backup/rollback plan, downtime kéo dài.
 
 Production data cần kế hoạch thay đổi có kiểm chứng.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -104,16 +135,57 @@ Backup command chạy trong môi trường có folder backup mà SQL Server proc
 ```sql
 BACKUP DATABASE CommerceLab08_24
 TO DISK = N'/var/opt/mssql/backup/CommerceLab08_24.bak'
-WITH INIT, CHECKSUM, STATS = 10;
+WITH COPY_ONLY, INIT, CHECKSUM, STATS = 10;
 
 RESTORE VERIFYONLY
 FROM DISK = N'/var/opt/mssql/backup/CommerceLab08_24.bak'
 WITH CHECKSUM;
 ```
 
-Restore nên thực hành vào database tên khác để không phá lab đang chạy.
+VERIFYONLY kiểm khả năng đọc/kiểm tra backup nhưng không thay thế restore và kiểm dữ liệu ([Microsoft Learn](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-verifyonly-transact-sql?view=sql-server-ver17)). Trong container lab riêng, folder `/var/opt/mssql/backup` phải tồn tại và SQL Server có quyền ghi. File .bak này là artifact lab có thể ghi đè bằng INIT.
 
-## 4. Giải thích cơ chế
+Restore thực tế vào tên khác, giữ nguyên database nguồn:
+
+```sql
+USE master;
+GO
+IF DB_ID(N'CommerceLab08_24_Restore') IS NOT NULL
+BEGIN
+    ALTER DATABASE CommerceLab08_24_Restore SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE CommerceLab08_24_Restore;
+END;
+GO
+RESTORE DATABASE CommerceLab08_24_Restore
+FROM DISK = N'/var/opt/mssql/backup/CommerceLab08_24.bak'
+WITH
+    MOVE N'CommerceLab08_24' TO N'/var/opt/mssql/data/CommerceLab08_24_Restore.mdf',
+    MOVE N'CommerceLab08_24_log' TO N'/var/opt/mssql/data/CommerceLab08_24_Restore_log.ldf',
+    CHECKSUM;
+GO
+DBCC CHECKDB(N'CommerceLab08_24_Restore') WITH NO_INFOMSGS;
+GO
+SELECT CustomerId, FullName, FirstName, LastName
+FROM CommerceLab08_24_Restore.dbo.Customers
+ORDER BY CustomerId;
+GO
+```
+
+Tên logical file trong MOVE là tên do CREATE DATABASE của lab tạo. Với backup khác, đọc RESTORE FILELISTONLY trước; không đoán tên hoặc ghi đè file của database khác.
+
+### Walkthrough — execution / state / cost
+
+1. ALTER thêm cột nullable, UPDATE backfill và SELECT kiểm mapping.
+2. BACKUP COPY_ONLY CHECKSUM ghi file ở filesystem server, không phải máy client.
+3. VERIFYONLY đọc kiểm backup; RESTORE với MOVE tạo database và files khác nguồn.
+4. CHECKDB và query đối chiếu dữ liệu kiểm restore. Log/storage/locks và thời gian phục hồi là cost thật; chưa đo RTO production chỉ từ 2 row.
+
+### Mini-check
+
+BACKUP path nằm ở container: copy file ra host rồi xóa container có còn đủ dữ liệu/khóa cần để restore không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Backup không phải HA
 
@@ -146,7 +218,45 @@ Pattern an toàn:
 5. chuyển read/write sang schema mới;
 6. remove cũ ở release sau.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| backup | bản để phục hồi ở thời điểm trước | cần bảo vệ file và thử restore |
+| replica/failover | giảm gián đoạn khi node lỗi | có thể sao chép cả xóa nhầm |
+| VERIFYONLY / restore | kiểm backup có thể đọc / tạo DB rồi kiểm thực tế | VERIFYONLY không chứng minh toàn bộ cấu trúc và nội dung đúng |
+
+### Misconception check
+
+**Đúng hay sai?** Backup file tồn tại nghĩa là mục tiêu RTO đã đạt.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phải thử phục hồi cả dịch vụ trong thời gian yêu cầu.
+
+</details>
+
+**Đúng hay sai?** Tách tên theo dấu cách đầu luôn ra FirstName/LastName đúng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần policy, dữ liệu quốc tế và review ca mơ hồ.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** restore end-to-end.
+
+- **Working Developer — dùng khi làm việc:** backfill validation và compatibility.
+
+- **Deep Dive — có thể quay lại sau:** log chain/PITR khi requirement cần.
 
 ### Full, differential, log backup
 
@@ -190,11 +300,25 @@ Rollback application trở nên khó.
 
 Log, lock và downtime có thể bùng nổ.
 
+### Tách tên theo một dấu cách rồi coi là quy tắc quốc tế
+
+Code chỉ minh họa backfill cho hai tên mẫu: từ đầu đưa vào LastName, phần còn lại vào FirstName. Tên một từ, tên ghép, khoảng trắng thừa hoặc quy ước văn hóa khác không được giải đúng tự động. Giữ FullName gốc, xác định policy với nghiệp vụ và đưa ca mơ hồ vào hàng đợi review.
+
 ### Rename semantics mà không verify backfill
 
 Dữ liệu có thể sai âm thầm.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không DROP cột cũ cùng lúc đổi application khi cần rollback phiên bản. Không dùng INIT vào file backup quan trọng ngoài lab; không đoán logical file name của backup khác.
+
+## 8. Production notes & scale check
+
+Gate chạy cả3block: migration, backup/VERIFYONLY, restore/CHECKDB và so dữ liệu nguồn–đích. Đây là full backup nhỏ, chưa kiểm log chain/PITR, encryption key recovery hay RPO/RTO thực tế. Restore target dùng tên riêng trong container tạm.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -216,7 +340,23 @@ Thiết kế expand-contract cho Email bắt buộc unique.
 
 Viết validation checklist cho data migration 10 triệu row.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ snapshot Module 07 và commit point Module 06: bản sao RAM khác backup bền vững ở đâu? Viết kế hoạch thêm Email bắt buộc gồm backfill, validation và rollback app trước bỏ cột cũ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Backup path thuộc máy nào?
+2. VERIFYONLY thiếu bằng chứng gì?
+3. Expand-contract giữ tương thích lúc nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt backup và HA.
 - [ ] Tôi hiểu RPO/RTO.

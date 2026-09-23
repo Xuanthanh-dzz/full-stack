@@ -1,5 +1,16 @@
 # Execution plan và statistics
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Execution plan mô tả cách engine thực hiện query; statistics giúp ước lượng dữ liệu.
+- Dùng actual rows, reads, CPU và waits để tìm bottleneck có bằng chứng.
+- Phần trăm cost là ước lượng tương đối, không phải số thời gian đo được.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,24 @@ Sau bài này, bạn có thể:
 - tránh tối ưu chỉ dựa trên cost percentage.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Hai lộ trình giao hàng cùng tới đích nhưng một đường đi vòng qua nhiều phố. Plan cho biết lộ trình engine chọn; số row thực tế và lượng page đọc cho biết nó đã phải mang bao nhiêu hàng qua từng đoạn.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| optimizer | thành phần chọn phương án thực thi | seek/scan/join |
+| cardinality estimate | số row dự đoán | ước lượng cho customer42/Paid |
+| statistics | tóm tắt phân bố dữ liệu | histogram/density |
+| actual plan | plan kèm metrics của lần chạy | actual rows |
+| spill | ghi dữ liệu xử lý trung gian ra tempdb | sort/hash thiếu memory grant |
+
+### Ví dụ nhỏ — tính tay trước
+
+Seed có 20000 đơn,12000thuộc customer1. Cùng query cho customer1 và 42 có volume rất khác. Actual rows là số đo; estimated rows là dự đoán trước hoặc trong lựa chọn plan, không phải hai tên cho cùng số.
 
 Một query chạy chậm:
 
@@ -31,7 +60,9 @@ Cần trả lời:
 - actual bao nhiêu row?
 - operator nào xử lý volume lớn?
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -75,7 +106,7 @@ SELECT
         WHEN rn <= 12000 THEN 1
         ELSE ((rn - 1) % 200) + 2
     END,
-    CASE WHEN rn % 4 = 0 THEN 'Paid' ELSE 'Pending' END,
+    CASE WHEN rn % 3 = 0 THEN 'Paid' ELSE 'Pending' END,
     DATEADD(minute, rn, CAST('2026-01-01' AS datetime2)),
     CAST(100000 + rn AS decimal(19,4))
 FROM n;
@@ -114,9 +145,24 @@ ORDER BY s.name;
 GO
 ```
 
+Seed dùng chu kỳ status 3 khác chu kỳ customer 200 để CustomerId=42 có cả Paid và Pending; tránh một query rỗng che mất bài toán estimate.
+
 Để xem plan, bật **Actual Execution Plan** trong công cụ SQL rồi chạy query.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Seed tạo dữ liệu lệch, index cover query và FULLSCAN cập nhật statistics.
+2. Optimizer dùng metadata/stats và parameters để chọn plan.
+3. STATISTICS IO/TIME ghi lượng công việc; actual plan cần bật công cụ hoặc STATISTICS XML.
+4. Plan cache giữ phương án có thể được reuse; buffer cache giữ pages, hai cache khác nhau. CPU, reads, memory grant và waits đều có thể góp latency.
+
+### Mini-check
+
+Operator estimate1 row nhưng actual100000 row: điều gì có thể xảy ra với join choice hoặc memory grant?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Query optimizer
 
@@ -136,7 +182,45 @@ Actual plan bổ sung số row runtime và metrics thực tế.
 
 Logical reads cho biết số page đọc từ buffer cache.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| estimated plan | không chạy query để có runtime rows | hữu ích dự đoán nhưng chưa có evidence thực thi |
+| actual plan | chạy query và thu runtime metrics | có overhead và DML vẫn gây thay đổi |
+| cost percentage | tỷ trọng estimate trong plan | không là profiler thời gian tuyệt đối |
+
+### Misconception check
+
+**Đúng hay sai?** FULLSCAN statistics bảo đảm mọi estimate chính xác.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: correlation, histogram và query model vẫn có giới hạn.
+
+</details>
+
+**Đúng hay sai?** Query trả ít row chắc chắn rẻ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể đọc rất nhiều rồi mới lọc còn ít.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** đọc rows/reads.
+
+- **Working Developer — dùng khi làm việc:** estimate mismatch.
+
+- **Deep Dive — có thể quay lại sau:** parameter sensitivity theo workload.
 
 ### Cardinality estimate
 
@@ -172,7 +256,17 @@ Không sửa được schema/query sai.
 
 Bỏ lỡ tín hiệu quan trọng.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không ép seek hoặc dùng hint chỉ để biểu tượng plan đẹp hơn. Không chạy actual plan của DML trên dữ liệu thật như thể đó chỉ là thao tác xem.
+
+## 8. Production notes & scale check
+
+Gate kiểm seed lệch, query có kết quả và stats đã cập nhật; lưu IO và plan XML để review. Không ép estimate/physical operator cố định qua mọi SQL build. Mốc baseline ghi engine build và compatibility level; thay cấu hình/phiên bản có thể đổi plan hợp lệ.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -194,7 +288,23 @@ Tạo join và xác định physical join operator.
 
 Viết checklist khi nhận ticket “query chậm”.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ benchmark Module 07: vì sao một elapsed time chưa đủ kết luận? Đặt câu hỏi về input distribution, cache, concurrency trước khi đề xuất index mới.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Actual plan có chạy DML không?
+2. Stats khác index ra sao?
+3. Plan cache khác buffer cache thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi phân biệt estimated và actual plan.
 - [ ] Tôi nhận ra Scan/Seek/Sort/Join operator cơ bản.

@@ -1,5 +1,16 @@
 # Tối ưu truy vấn và SARGability
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- SARGability là khả năng predicate giúp index giới hạn vùng key cần tìm.
+- Giữ column có thể so theo range và dùng parameter type phù hợp.
+- SARGable không bảo đảm optimizer chọn seek hoặc query nhanh.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 - phân biệt tuning query với tuning schema.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Mục lục đã theo ngày, hỏi từ đầu2026 tới trước2027 giúp mở đúng đoạn. Nếu bắt tính YEAR trên từng ngày rồi mới so, engine có thể phải xét nhiều entry hơn trước khi biết entry nào thuộc năm cần tìm.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| SARGable | predicate có thể làm điều kiện tìm key/range | OrderedAt>=from AND <to |
+| implicit conversion | engine tự đổi type để so sánh | parameter lệch column type |
+| half-open range | gồm đầu, loại cuối | [2026-01-01,2027-01-01) |
+| residual predicate | điều kiện kiểm thêm sau bước truy cập | không phải mọi filter đều là seek key |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ngày31/12/2026 23:59:59 thuộc khoảng >=01/01/2026 và <01/01/2027. Dùng <=31/12/2026 với mốc00:00 dễ bỏ phần còn lại của ngày cuối.
 
 Query:
 
@@ -32,7 +60,9 @@ WHERE OrderedAt >= '2026-01-01'
 
 giữ column searchable.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -106,7 +136,20 @@ SET STATISTICS IO OFF;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Seed30000 row trải qua nhiều năm, tạo index OrderedAt và ExternalCode.
+2. Query YEAR và query range phải trả cùng số row trước khi so performance.
+3. Range để engine có lựa chọn truy cập vùng key, nhưng optimizer vẫn cân nhắc scan.
+4. Đọc page, tính expression, lookup và network đều là cost; chạy STATISTICS IO trên cùng dữ liệu và ghi plan/cấu hình.
+
+### Mini-check
+
+Tại sao kiểm hai query trả cùng tập row cần làm trước so logical reads?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### SARGable
 
@@ -124,7 +167,45 @@ Parameter type lệch schema có thể tạo conversion và plan xấu.
 
 Tối ưu thường bắt đầu bằng lấy ít row/column hơn, filter sớm và index đúng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| function trên column | có thể hạn chế range seek | một số conversion có tối ưu đặc biệt, không kết luận bằng cú pháp đơn lẻ |
+| range trên column | diễn đạt biên trực tiếp | vẫn phụ thuộc selectivity/index |
+| computed indexed expression | phục vụ expression cần lặp nhiều | thêm storage/write và điều kiện DDL |
+
+### Misconception check
+
+**Đúng hay sai?** SARGable luôn có seek trong plan.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: scan có thể rẻ hơn.
+
+</details>
+
+**Đúng hay sai?** Full-text search thay thế chính xác mọi LIKE %term%.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tìm theo token/ngôn ngữ khác semantics substring tùy ý.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** equivalence trước tuning.
+
+- **Working Developer — dùng khi làm việc:** range/type và reads.
+
+- **Deep Dive — có thể quay lại sau:** computed index/search khi có driver.
 
 ### Leading wildcard
 
@@ -164,7 +245,17 @@ Có thể làm predicate không SARGable.
 
 Cần xem IO, CPU, row count và concurrency.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng query hint để che schema/query sai. Không thay substring bằng full-text mà không xác nhận semantics tìm kiếm với người dùng.
+
+## 8. Production notes & scale check
+
+Gate kiểm hai count bằng nhau và bằng8760 giờ của2026 trong seed, lookup ExternalCode đúng, thêm biên timestamp. Lưu IO để review, không đặt tỷ lệ tốc độ cố định. Parameterization chống trộn syntax không tự sửa type mismatch hoặc wildcard semantics.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -186,7 +277,23 @@ Thu hẹp projection của ba query SELECT *.
 
 Lập bảng before/after: reads, CPU, elapsed, rows.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ lower bound Module 07: range index giống giới hạn khoảng tìm kiếm ở đâu? Với report trả 80%table, vì sao scan có thể là lựa chọn đơn giản đúng?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Range nửa mở bảo vệ biên nào?
+2. SARGable bảo đảm điều gì và không bảo đảm gì?
+3. Type conversion nằm phía column có thể gây gì?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi giải thích được SARGability.
 - [ ] Tôi rewrite function-on-column predicate.

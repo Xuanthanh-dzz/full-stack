@@ -1,5 +1,16 @@
 # Index B-tree, clustered và nonclustered
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Index sắp key thành cấu trúc giúp tìm vùng dữ liệu phù hợp.
+- Dùng theo query đọc thường xuyên và độ chọn lọc thực tế.
+- Index tiêu tốn storage/write; seek không mặc định rẻ hơn scan.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Mục lục khách hàng dẫn tới đoạn sổ của khách42, thay vì lật mọi trang. Nhưng mỗi lần thêm hóa đơn, cả sổ lẫn mục lục phải được cập nhật; một mục lục quá rộng có thể gần bằng sổ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| B+tree | cây cân bằng nhiều key mỗi page, dữ liệu/locator ở lá | rowstore index |
+| clustered index | lá chứa row dữ liệu của table | PK OrderId |
+| nonclustered index | cấu trúc key riêng kèm row locator | CustomerId,OrderedAt |
+| logical read | một lần truy cập page trong buffer cache | STATISTICS IO |
+
+### Ví dụ nhỏ — tính tay trước
+
+Khách42 có 100 đơn trong seed10000 row. Index bắt đầu CustomerId dẫn tới vùng100 row; query lấy20 đơn mới nhất có thể dừng sớm. Cột Status/Total không nằm trong index phụ này nên plan có thể cần lookup.
+
 Table Orders có 10 triệu row.
 
 Query thường xuyên:
@@ -27,7 +55,9 @@ Không có index phù hợp, SQL Server có thể phải scan lượng dữ li�
 
 Index tạo cấu trúc được sắp xếp để tìm vùng cần đọc nhanh hơn.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -99,7 +129,20 @@ SET STATISTICS IO OFF;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Seed tạo10000 row, clustered PK giữ row tại leaf theo key logic.
+2. CREATE INDEX đọc dữ liệu và dựng cây phụ theo CustomerId rồi OrderedAt giảm.
+3. Optimizer ước lượng phạm vi cần đọc, chọn index/lookup hoặc scan.
+4. Query chạy trên server; buffer pages và memory plan ở RAM, files/log trên storage. Kết quả cần ORDER BY dù có clustered index.
+
+### Mini-check
+
+Query cần90%table: vì sao đọc tuần tự nhiều page có thể hợp hơn hàng nghìn lookup?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### B-tree trực giác
 
@@ -127,7 +170,45 @@ Scan đọc toàn bộ hoặc phần lớn structure.
 
 Scan không luôn xấu.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| heap table | không clustered index | locator khác, không là heap priority queue |
+| clustered | một thứ tự key logic cho data leaf | không cam kết vị trí page vật lý liên tục hay output order |
+| nonclustered | nhiều đường truy cập theo workload | thêm storage/write và có thể lookup |
+
+### Misconception check
+
+**Đúng hay sai?** Clustered index bảo đảm SELECT không ORDER BY vẫn theo key.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: presentation order cần ORDER BY.
+
+</details>
+
+**Đúng hay sai?** Index seek luôn đọc ít hơn scan.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: range rộng/lookup nhiều có thể rất tốn.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** seek/scan trực giác.
+
+- **Working Developer — dùng khi làm việc:** key/locator và logical reads.
+
+- **Deep Dive — có thể quay lại sau:** page splits/concurrency khi có workload.
 
 ### Index key order
 
@@ -159,7 +240,17 @@ Làm nonclustered index lớn hơn.
 
 Elapsed time một lần chạy dễ nhiễu.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không index mọi cột hoặc chọn key rộng chỉ vì dễ đọc. Không coi heap table SQL là cùng cấu trúc binary heap bài08 Module 07.
+
+## 8. Production notes & scale check
+
+Gate kiểm seed/index key và kết quả query; IO được ghi làm evidence, không ép một plan shape cố định. Sample10000 row không đại diện10 triệu row production. Đo cardinality, reads và write workload trước giữ thêm index.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -181,7 +272,23 @@ Dùng STATISTICS IO ghi logical reads.
 
 Liệt kê index ứng viên rồi chọn theo workload.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ BST Module 07: cây index page-based giảm số lần đọc page thế nào so mỗi node một giá trị? Với table nhỏ, chi phí duy trì index có đáng cho một query/ngày không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Leaf clustered chứa gì?
+2. Nonclustered locator dùng làm gì?
+3. Cost ghi tăng ở đâu?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi hiểu index giảm search space.
 - [ ] Tôi phân biệt clustered/nonclustered.

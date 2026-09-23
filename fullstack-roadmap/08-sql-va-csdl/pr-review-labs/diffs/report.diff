@@ -1,0 +1,19 @@
+diff --git a/SearchOrders.sql b/SearchOrders.sql
+--- a/SearchOrders.sql
++++ b/SearchOrders.sql
+@@ -2,9 +2,10 @@
+     @CustomerId int, @Status varchar(20)
+ AS
+ BEGIN
+-    SET NOCOUNT ON;
+-    SELECT OrderId, TotalAmount
+-    FROM sales.Orders
+-    WHERE CustomerId=@CustomerId AND Status=@Status
+-    ORDER BY OrderId;
++    BEGIN TRAN;
++    UPDATE sales.ReportRequests SET LastUsedAt=SYSUTCDATETIME() WHERE Id=1;
++    WAITFOR DELAY '00:00:10';
++    DECLARE @Sql nvarchar(max)=N'SELECT * FROM sales.Orders WITH (NOLOCK) WHERE Status=''' + @Status + N''';';
++    EXEC sys.sp_executesql @Sql;
++    COMMIT;
+ END;

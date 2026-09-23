@@ -1,5 +1,16 @@
 # CRUD: SELECT, INSERT, UPDATE, DELETE
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- CRUD là đọc, thêm, sửa và xóa row bằng các statement theo tập.
+- Dùng predicate rõ và OUTPUT để quan sát thay đổi.
+- SELECT xem trước không khóa tập row cho UPDATE sau; OUTPUT chưa phải bằng chứng transaction đã commit.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,23 @@ Sau bài này, bạn có thể:
 - hiểu CRUD SQL khác CRUD HTTP.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Một lệnh tăng giá có thể tác động cả nhóm sản phẩm. Trước khi bấm chạy, phải chỉ rõ nhóm nào và kiểm số row thực sự đổi; khác với vòng lặp sửa từng object trong RAM.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| predicate | điều kiện chọn row | WHERE Sku=... |
+| DML | lệnh đọc/ghi dữ liệu theo ngữ cảnh bài | INSERT/UPDATE/DELETE |
+| OUTPUT | rowset mô tả row bị tác động | inserted/deleted |
+| soft delete | giữ row và đổi cờ/trạng thái | IsActive=0 |
+
+### Ví dụ nhỏ — tính tay trước
+
+Có KB750000,MS450000,MN5200000. UPDATE KB→790000; ngừng bán MN; DELETE MS. Cuối cùng còn KB active và MN inactive, không còn MS.
 
 Admin cần:
 
@@ -32,7 +60,9 @@ Delete
 
 Nhưng trong hệ thống thương mại, “delete” đôi khi phải là soft delete hoặc state transition để giữ lịch sử.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -112,7 +142,20 @@ ORDER BY ProductId;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. INSERT ba row; OUTPUT trả ID/SKU được tạo, thứ tự OUTPUT không được hứa.
+2. UPDATE theo SKU chỉ đổi KB; deleted.Price là giá cũ, inserted.Price là giá mới.
+3. UPDATE IsActive giữ row MN; DELETE bỏ MS và ghi log.
+4. SELECT cuối ORDER BY ProductId để đọc kết quả ổn định. Server chịu đọc/index/log/lock; client nhận rowset qua network.
+
+### Mini-check
+
+Chạy UPDATE SET Price=Price có thể làm trigger/rowversion hoạt động không dù giá không đổi?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### INSERT
 
@@ -165,7 +208,45 @@ Hữu ích khi:
 - debug;
 - batch operation.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| hard delete | xóa row khỏi table | FK/history có thể cấm |
+| soft delete | đổi trạng thái, giữ row | mọi query liên quan phải tôn trọng trạng thái |
+| transaction nhiều lệnh | nhóm cần cùng thành công | chỉ dùng khi invariant yêu cầu, học ở bài19 |
+
+### Misconception check
+
+**Đúng hay sai?** SELECT trước UPDATE bảo đảm không ai đổi dữ liệu xen giữa.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: hai statement có thể thấy state khác nếu thiếu contract transaction phù hợp.
+
+</details>
+
+**Đúng hay sai?** OUTPUT trả row nghĩa là đã commit.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần kiểm kết quả lệnh và transaction; không phát external side effect chỉ dựa vào row đã nhận.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace CRUD.
+
+- **Working Developer — dùng khi làm việc:** affected rows và transaction result.
+
+- **Deep Dive — có thể quay lại sau:** audit/retention theo nghiệp vụ.
 
 ### CRUD SQL và HTTP
 
@@ -238,7 +319,17 @@ Nếu nghiệp vụ cần all-or-nothing, CRUD riêng lẻ chưa đủ.
 
 Transaction sẽ học ở bài 19.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không hard delete lịch sử hóa đơn để dọn màn hình. Không thêm soft delete cho dữ liệu tạm chỉ vì đó là pattern phổ biến.
+
+## 8. Production notes & scale check
+
+Gate kiểm state cuối và affected rows cho predicate không match. Statement đơn là đơn vị atomic trong điều kiện transaction thông thường; nhiều statement không tự thành một business transaction. Không suy ra idempotency của side effect từ việc cột có cùng giá trị.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -260,7 +351,23 @@ Thiết kế soft delete cho Product.
 
 Viết checklist an toàn trước khi chạy DELETE production.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ command/query Module 06, API “ngừng bán” nên đổi state hay xóa record? Nêu tác động tới lịch sử order và số row được phép đổi.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. inserted/deleted chứa gì khi UPDATE?
+2. OUTPUT có thứ tự cố định không?
+3. Soft delete thêm nghĩa vụ nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi dùng được SELECT/INSERT/UPDATE/DELETE.
 - [ ] Tôi liệt kê column khi INSERT.

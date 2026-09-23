@@ -1,5 +1,16 @@
 # GROUP BY, aggregate và HAVING
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Aggregate gom nhiều row thành kết quả ở một grain mới.
+- Dùng GROUP BY cho tổng theo khách, tháng hoặc trạng thái.
+- WHERE lọc row còn HAVING lọc nhóm; chọn nhầm có thể đổi metric.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -14,6 +25,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Xếp hóa đơn thành chồng theo khách rồi cộng từng chồng. Trước khi xếp, có thể bỏ hóa đơn chưa thanh toán; sau khi cộng mới biết chồng nào đạt ngưỡng doanh thu.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| grain | một row kết quả đại diện cho cái gì | một customer summary |
+| aggregate | phép tính trên nhiều row | SUM/COUNT/AVG |
+| HAVING | điều kiện trên nhóm đã tính | SUM>=5000000 |
+| logical order | mô hình nghĩa của query | không phải thứ tự operator vật lý |
+
+### Ví dụ nhỏ — tính tay trước
+
+Khách1 có 3 đơn với amounts3 triệu,4.5 triệu,NULL: COUNT(*)=3,COUNT(amount)=2,SUM=7.5 triệu,AVG=3.75 triệu. NULL không tự tính là0 trong AVG.
+
 Business hỏi:
 
 - có bao nhiêu order mỗi customer?
@@ -23,7 +51,9 @@ Business hỏi:
 
 Đây không còn là query từng row riêng lẻ; cần biến nhiều row thành summary.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -100,7 +130,20 @@ ORDER BY OrderYear, OrderMonth;
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Theo nghĩa logic: FROM →WHERE →GROUP BY →HAVING →SELECT →ORDER BY.
+2. Query1 gom mọi status; query2 chỉ giữ Paid trước khi tính ngưỡng.
+3. Query tháng đầu tiên đang cộng giá trị mọi đơn, không tự chứng minh đó là tiền đã thu.
+4. Optimizer chọn hash/sort/stream aggregate ở server; có thể giữ state nhóm và spill ra tempdb. Kết quả ít row không đồng nghĩa đọc ít row.
+
+### Mini-check
+
+AVG(COALESCE(amount,0)) trên ví dụ khách1 bằng bao nhiêu, và đang trả lời câu hỏi khác gì?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Grain
 
@@ -144,7 +187,45 @@ WHERE Status = 'Paid'
 HAVING SUM(TotalAmount) >= 5000000
 ```
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| WHERE | lọc từng row trước group | không dùng aggregate cùng level |
+| HAVING | lọc nhóm theo metric | không thay WHERE nếu cần loại row trước cộng |
+| window | giữ detail và thêm metric | học bài12, không collapse như GROUP BY |
+
+### Misconception check
+
+**Đúng hay sai?** COUNT(column) luôn bằng COUNT(*).
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai khi column có NULL.
+
+</details>
+
+**Đúng hay sai?** Thứ tự logic là trace chính xác execution plan.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: optimizer có thể biến đổi cách thực thi mà giữ semantics.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** group/metric.
+
+- **Working Developer — dùng khi làm việc:** NULL và grain.
+
+- **Deep Dive — có thể quay lại sau:** physical aggregate/memory khi xem plan.
 
 ### Logical query processing
 
@@ -195,7 +276,17 @@ Cần hiểu data type của expression để tránh mất phần thập phân.
 
 NULL làm kết quả khác.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không GROUP BY mọi cột chỉ để làm hết lỗi compiler khi chưa biết grain. Không gọi tổng Pending là paid revenue.
+
+## 8. Production notes & scale check
+
+Gate đối chiếu count/sum/average, Paid threshold và nhóm tháng với dữ liệu xác định. SUM trên tập rỗng có thể NULL còn COUNT trả 0; COUNT lớn có giới hạn int, chọn COUNT_BIG nếu miền dữ liệu cần. Không dùng thời gian chạy nhỏ để kết luận plan tốt.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -217,7 +308,23 @@ Tính tỷ lệ cancelled bằng conditional aggregate.
 
 Giải thích grain của ba query bạn vừa viết.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Từ dictionary counting Module 07: hash group giữ state gì theo số nhóm? So10 khách nhiều đơn với1 triệu khách ít đơn, đề xuất metric bộ nhớ cần xem.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Grain trước/sau là gì?
+2. AVG bỏ NULL khác thêm 0 thế nào?
+3. HAVING chạy logic sau bước nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi dùng được COUNT/SUM/AVG/MIN/MAX.
 - [ ] Tôi xác định được grain.

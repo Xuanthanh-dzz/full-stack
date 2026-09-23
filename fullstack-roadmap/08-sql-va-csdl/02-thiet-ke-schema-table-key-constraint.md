@@ -1,5 +1,16 @@
 # Thiết kế schema, table, key và constraint
 
+> **Last verified:** pending — chưa chạy lại gate retrofit  
+> **Baseline:** SQL Server 2025 (17.x) · T-SQL · compatibility level 170 · sqlcmd 18  
+> **Review cycle:** 180 days  
+> **Re-verify triggers:** đổi SQL sample/schema, engine build, compatibility/isolation/plan; CI failure
+
+## TL;DR
+
+- Constraint đặt quy tắc dữ liệu ngay tại nơi mọi writer phải đi qua.
+- Dùng PK/FK/UNIQUE/CHECK cho invariant biểu diễn được trong schema.
+- Constraint không tự suy ra quy tắc nghiệp vụ chưa được khai báo.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -13,6 +24,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Số đơn phải duy nhất, khách được ghi trên đơn phải có trong sổ khách, giá không được âm. Dù người nhập dùng form hay script, cửa kiểm của database vẫn áp dụng cùng quy tắc.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| schema | namespace chứa object trong database | sales, catalog |
+| foreign key | khóa tham chiếu row hợp lệ ở bảng khác | Orders.CustomerId |
+| UNIQUE | không cho các key trùng theo quy tắc so sánh | Email/Sku |
+| CHECK | từ chối row khi biểu thức là FALSE | Price>=0 |
+| DEFAULT | giá trị dùng khi INSERT bỏ qua cột | CreatedAt |
+
+### Ví dụ nhỏ — tính tay trước
+
+Có customer1. Order(customer1) được nhận; Order(customer99) bị FK chặn. Price=-1 bị CHECK chặn. DEFAULT không thay thế NULL được truyền tường minh vào cột NOT NULL.
+
 Hệ thống bán hàng cần bảo đảm:
 
 - email customer không trùng;
@@ -25,7 +54,9 @@ Nếu chỉ kiểm tra trong C#, một script SQL hoặc service khác vẫn có
 
 Constraint đặt invariant ngay tại database.
 
-## 3. Lời giải bằng SQL
+<a id="3-loi-giai-bang-sql"></a>
+
+## 3. Lời giải chạy được
 
 ```sql
 USE master;
@@ -125,7 +156,20 @@ JOIN sales.Customers AS c
 GO
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. DDL tạo schemas, bảng và constraints ở server.
+2. INSERT customer/product chạy trước order để FK có row đích.
+3. Mỗi write kiểm NOT NULL, key và CHECK; vi phạm làm statement lỗi.
+4. Constraints giữ state trong metadata/index, FK cần tìm key cha. UNIQUE thường có index hỗ trợ; foreign key không tự tạo index phía child trong SQL Server.
+
+### Mini-check
+
+Nếu muốn mỗi customer có ít nhất một order, FK từ Orders sang Customers đã đủ chưa?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Schema
 
@@ -174,7 +218,45 @@ CHECK (Price >= 0)
 
 Constraint đơn giản nhưng cực giá trị: dữ liệu sai bị chặn bất kể nguồn ghi.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| validation application | phản hồi sớm, thông báo theo UI | writer khác có thể bỏ qua |
+| database constraint | áp dụng cho mọi writer chịu constraint | có cost write và lỗi cần ánh xạ |
+| trigger | xử lý quy tắc phức tạp hơn | side effect khó thấy, không thay constraint đơn giản |
+
+### Misconception check
+
+**Đúng hay sai?** CHECK Price>=0 tự cấm NULL.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: CHECK không từ chối UNKNOWN; cần NOT NULL nếu giá bắt buộc.
+
+</details>
+
+**Đúng hay sai?** Có FK nghĩa là luôn có index trên cột child.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần thiết kế index child theo workload riêng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** PK/FK/UQ.
+
+- **Working Developer — dùng khi làm việc:** NULL/default và negative tests.
+
+- **Deep Dive — có thể quay lại sau:** index child và migration constraints.
 
 ### Natural key và surrogate key
 
@@ -251,7 +333,17 @@ Cần phân biệt:
 - dữ liệu child thật sự owned;
 - dữ liệu lịch sử cần giữ.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không bật cascade delete chỉ vì tiện. Không thay tất cả validation bằng trigger; PK/FK/CHECK diễn đạt được thì dùng chúng trước.
+
+## 8. Production notes & scale check
+
+Kiểm lỗi duplicate, giá âm, FK không tồn tại và DEFAULT trong lab. Collation — quy tắc so sánh chuỗi — ảnh hưởng uniqueness hoa/thường; policy email/SKU cần rõ. Constraint trusted không bảo vệ rule chưa viết, ví dụ trim chuỗi trắng là bài tập riêng.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1
 
@@ -283,7 +375,23 @@ Cố insert:
 
 Ghi lại constraint nào chặn từng lỗi.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So invariant constructor Module 06: nhiều service hoặc script ghi cùng DB thì guard C# còn thiếu lớp nào? Chọn hai rule nên đặt ở DB và một rule cần application.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. CHECK xử lý UNKNOWN ra sao?
+2. DEFAULT chạy khi nào?
+3. FK bảo vệ phía nào của quan hệ?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi dùng được schema.
 - [ ] Tôi phân biệt PK/FK/UQ.
