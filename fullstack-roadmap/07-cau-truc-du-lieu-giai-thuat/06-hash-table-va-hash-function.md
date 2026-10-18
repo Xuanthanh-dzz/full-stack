@@ -4,282 +4,338 @@
 
 Sau bài này, bạn có thể:
 
-- giải thích vì sao hash table cho tra cứu `O(1)` **trung bình** — điều `List<T>` không làm được;
-- mô tả vai trò của **hash function**: biến khóa thành chỉ số bucket;
-- xử lý **đụng độ (collision)** bằng chaining và biết open addressing là gì;
-- hiểu **load factor** và vì sao hash table phải resize;
-- nêu vì sao trường hợp xấu nhất của hash table là `O(n)`;
-- tôn trọng hợp đồng `GetHashCode`/`Equals` khi dùng type tự định nghĩa làm khóa.
+- giải thích hash table ánh xạ key tới bucket;
+- hiểu vai trò của hash function và equality;
+- phân tích lookup trung bình `O(1)` và worst case `O(n)`;
+- giải thích collision;
+- dùng `Dictionary<TKey,TValue>` và `HashSet<T>` đúng cách;
+- hiểu vì sao `GetHashCode` phải nhất quán với `Equals`;
+- nhận ra rủi ro khi dùng mutable key.
 
 ## 2. Bài toán mở đầu
 
-Ở bài [01](./01-big-o-thoi-gian-va-bo-nho.md) ta thấy: kiểm tra một giá trị có trong `List<T>` là `O(n)` (phải quét), còn `HashSet<T>`/`Dictionary<K,V>` làm việc đó ở `O(1)` trung bình. Lúc đó ta chấp nhận điều này như một sự thật. Bài này trả lời câu hỏi *bằng cách nào*.
+Ta có 1.000.000 sản phẩm và cần tìm theo `ProductId`.
 
-Ý tưởng cốt lõi đơn giản đến bất ngờ: thay vì đi tìm khóa, hãy **tính thẳng ra chỗ chứa nó**. Nếu một hàm biến khóa `"buoi"` thành một chỉ số mảng, ta nhảy tới đúng ô đó ngay — không quét. Hàm đó là **hash function**, mảng đó là **bảng bucket**. Toàn bộ nghệ thuật nằm ở chỗ: tính nhanh, phân bố đều, và xử lý khi hai khóa khác nhau lỡ tính ra cùng một ô. Ta sẽ dựng một hash table để thấy cả ba.
+Dùng `List<Product>`:
+
+```csharp
+Product? product = products.FirstOrDefault(p => p.Id == id);
+```
+
+worst case phải scan toàn bộ: `O(n)`.
+
+Dùng dictionary:
+
+```csharp
+Dictionary<int, Product> byId;
+```
+
+lookup trung bình gần `O(1)`.
+
+Điểm cốt lõi: hash table dùng hash của key để đi gần như trực tiếp tới vùng chứa phù hợp.
 
 ## 3. Lời giải bằng code
 
-Tạo project .NET 9 tên `HashTableDemo` với cấu hình `.csproj` chuẩn của module, rồi thay `Program.cs`:
+```bash
+mkdir HashTableDemo
+cd HashTableDemo
+dotnet new console --framework net9.0 --use-program-main
+```
+
+`Program.cs`:
 
 ```csharp
 namespace HashTableDemo;
+
+public sealed record Product(int Id, string Name);
+
+public sealed record EmailAddress
+{
+    public EmailAddress(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Value = value.Trim().ToLowerInvariant();
+    }
+
+    public string Value { get; }
+
+    public override string ToString() => Value;
+}
 
 internal static class Program
 {
     private static void Main()
     {
-        Console.WriteLine("== Hash function: khóa -> chỉ số bucket ==");
-        var table = new SimpleHashTable<int>(capacity: 4);
-        string[] keys = { "cam", "quyt", "buoi", "chanh", "tao" };
-        foreach (string k in keys)
+        var products = new Dictionary<int, Product>
         {
-            int bucket = SimpleHashTable<int>.BucketOf(k, 4);
-            Console.WriteLine($"  hash(\"{k}\") % 4 = bucket {bucket}");
+            [101] = new Product(101, "Keyboard"),
+            [102] = new Product(102, "Mouse"),
+            [103] = new Product(103, "Monitor")
+        };
+
+        if (products.TryGetValue(102, out Product? product))
+        {
+            Console.WriteLine(product);
         }
 
-        Console.WriteLine();
-        Console.WriteLine("== Thêm vào bảng và xử lý đụng độ bằng chaining ==");
-        for (int i = 0; i < keys.Length; i++)
+        var emails = new HashSet<EmailAddress>
         {
-            table.Put(keys[i], i + 1); // giá trị = số thứ tự cho dễ theo dõi
-        }
-        table.PrintBuckets();
+            new("Student@Example.com")
+        };
 
-        Console.WriteLine();
-        Console.WriteLine("== Tra cứu vẫn đúng dù có đụng độ ==");
-        foreach (string k in new[] { "buoi", "tao", "xoai" })
+        Console.WriteLine(
+            emails.Contains(new EmailAddress("student@example.com")));
+
+        var counts = CountWords(
+            "dotnet csharp dotnet api csharp dotnet");
+
+        foreach ((string word, int count) in counts.OrderBy(x => x.Key))
         {
-            bool found = table.TryGet(k, out int value);
-            Console.WriteLine($"  Get(\"{k}\") -> {(found ? value.ToString() : "không có")}");
-        }
-
-        Console.WriteLine();
-        Console.WriteLine($"Số phần tử: {table.Count}, số bucket: 4");
-        Console.WriteLine($"Load factor = {table.Count / 4.0:0.00} (trung bình mỗi bucket)");
-    }
-}
-
-internal sealed class SimpleHashTable<TValue>
-{
-    // Mỗi bucket là một danh sách các cặp (key, value) — đây là "chaining".
-    private readonly List<(string Key, TValue Value)>[] _buckets;
-
-    public int Count { get; private set; }
-
-    public SimpleHashTable(int capacity)
-    {
-        _buckets = new List<(string, TValue)>[capacity];
-        for (int i = 0; i < capacity; i++)
-        {
-            _buckets[i] = new List<(string, TValue)>();
+            Console.WriteLine($"{word} = {count}");
         }
     }
 
-    // Hàm băm tự viết, tất định (khác string.GetHashCode() vốn ngẫu nhiên mỗi tiến trình).
-    public static int BucketOf(string key, int capacity)
+    private static Dictionary<string, int> CountWords(string text)
     {
-        int hash = 0;
-        foreach (char c in key)
-        {
-            hash = hash * 31 + c; // polynomial rolling hash, cơ số 31
-        }
-        // & int.MaxValue để bỏ dấu âm do tràn số, rồi lấy dư theo số bucket.
-        return (hash & int.MaxValue) % capacity;
-    }
+        var counts = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase);
 
-    public void Put(string key, TValue value)
-    {
-        var bucket = _buckets[BucketOf(key, _buckets.Length)];
-        for (int i = 0; i < bucket.Count; i++)
+        foreach (string word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
-            if (bucket[i].Key == key)
-            {
-                bucket[i] = (key, value); // đã có -> cập nhật
-                return;
-            }
+            counts[word] = counts.GetValueOrDefault(word) + 1;
         }
-        bucket.Add((key, value)); // chưa có -> thêm vào cuối chuỗi
-        Count++;
-    }
 
-    public bool TryGet(string key, out TValue value)
-    {
-        var bucket = _buckets[BucketOf(key, _buckets.Length)];
-        foreach (var entry in bucket)
-        {
-            if (entry.Key == key)
-            {
-                value = entry.Value;
-                return true;
-            }
-        }
-        value = default!;
-        return false;
-    }
-
-    public void PrintBuckets()
-    {
-        for (int i = 0; i < _buckets.Length; i++)
-        {
-            string content = _buckets[i].Count == 0
-                ? "(trống)"
-                : string.Join(" -> ", _buckets[i].Select(e => $"{e.Key}={e.Value}"));
-            Console.WriteLine($"  bucket {i}: {content}");
-        }
+        return counts;
     }
 }
 ```
 
-Build và chạy (`dotnet build -c Release` rồi `dotnet run -c Release --no-build`). Kết quả:
+Output:
 
 ```text
-== Hash function: khóa -> chỉ số bucket ==
-  hash("cam") % 4 = bucket 3
-  hash("quyt") % 4 = bucket 3
-  hash("buoi") % 4 = bucket 1
-  hash("chanh") % 4 = bucket 2
-  hash("tao") % 4 = bucket 2
-
-== Thêm vào bảng và xử lý đụng độ bằng chaining ==
-  bucket 0: (trống)
-  bucket 1: buoi=3
-  bucket 2: chanh=4 -> tao=5
-  bucket 3: cam=1 -> quyt=2
-
-== Tra cứu vẫn đúng dù có đụng độ ==
-  Get("buoi") -> 3
-  Get("tao") -> 5
-  Get("xoai") -> không có
-
-Số phần tử: 5, số bucket: 4
-Load factor = 1.25 (trung bình mỗi bucket)
+Product { Id = 102, Name = Mouse }
+True
+api = 1
+csharp = 2
+dotnet = 3
 ```
 
 ## 4. Giải thích cơ chế
 
-### 4.1 Hash function biến khóa thành chỉ số
+### Từ key tới bucket
 
-`BucketOf` gộp các ký tự của khóa thành một số nguyên (polynomial rolling hash, `hash = hash*31 + c`), rồi lấy dư theo số bucket để ra chỉ số trong `[0, capacity)`. Nhờ vậy, từ `"buoi"` ta tính thẳng ra **bucket 1** và nhảy tới đó — không dò tìm.
-
-Một hash function tốt cần: **nhanh** (tính trong `O(độ dài khóa)`), **tất định** (cùng khóa luôn ra cùng chỉ số), và **phân bố đều** (rải khóa ra khắp các bucket). Cơ số 31 (số nguyên tố) là lựa chọn kinh điển giúp trộn các ký tự để hai chuỗi gần giống nhau vẫn cho hash khác nhau.
-
-### 4.2 Đụng độ là không tránh khỏi
-
-Output cho thấy `"cam"` và `"quyt"` cùng ra **bucket 3**; `"chanh"` và `"tao"` cùng ra **bucket 2**. Đó là **collision** — hai khóa khác nhau băm về cùng ô. Với 4 bucket mà 5 khóa, theo nguyên lý chuồng bồ câu (pigeonhole) chắc chắn có ít nhất một bucket chứa từ hai khóa trở lên. Ngay cả với bảng lớn, collision vẫn xảy ra vì không gian khóa lớn hơn số bucket.
-
-### 4.3 Chaining: mỗi bucket là một chuỗi
-
-Cách xử lý đụng độ ở đây là **chaining**: mỗi bucket giữ một danh sách các cặp `(key, value)`. Khi hai khóa trùng bucket, chúng cùng nằm trong danh sách đó, nối tiếp nhau:
+Khái niệm đơn giản:
 
 ```text
-bucket 3:  [cam=1] -> [quyt=2]
+key
+ |
+ v
+GetHashCode()
+ |
+ v
+hash
+ |
+ v
+bucket index
+ |
+ v
+bucket
 ```
 
-Khi `Put`, ta băm ra bucket rồi duyệt danh sách nhỏ đó: nếu khóa đã có thì cập nhật, chưa có thì thêm vào cuối. Khi `TryGet("quyt")`, ta băm ra bucket 3, rồi so `"cam"` (không khớp) và `"quyt"` (khớp) — trả `2`. Việc so khớp cuối cùng dùng `==` trên khóa, nên dù đụng độ, kết quả vẫn **đúng**.
+Ví dụ hash table có 8 bucket:
 
-### 4.4 Vì sao trung bình là `O(1)`, xấu nhất là `O(n)`
+```text
+0: -
+1: key A
+2: -
+3: key B -> key C
+4: -
+5: key D
+6: -
+7: -
+```
 
-- **Trung bình `O(1)`:** nếu hash phân bố đều và số phần tử xấp xỉ số bucket, mỗi bucket chỉ chứa vài phần tử. Băm ra bucket là `O(1)`, duyệt chuỗi ngắn cũng gần như `O(1)`. Đó là lý do `Dictionary`/`HashSet` nhanh.
-- **Xấu nhất `O(n)`:** nếu hash tồi (mọi khóa về cùng một bucket) hoặc bị cố ý tấn công, một bucket chứa cả `n` phần tử, và tra cứu suy biến thành quét tuyến tính một linked list — `O(n)`. Đây là "trường hợp xấu" mà bài [01](./01-big-o-thoi-gian-va-bo-nho.md) đã nhắc.
+B và C cùng rơi vào bucket 3: đó là collision.
 
-### Đào sâu (có thể quay lại sau)
+### Collision là bình thường
 
-- **Load factor và resize.** Load factor = số phần tử / số bucket (ở đây `1.25`). Khi nó vượt một ngưỡng (thường ~0,7–1,0), bảng **cấp thêm bucket** (thường gấp đôi) và băm lại toàn bộ khóa vào bảng mới — thao tác `O(n)` nhưng hiếm, nên trung bình `Put` vẫn amortized `O(1)`. Resize giữ các chuỗi ngắn để tra cứu ở lại `O(1)`.
-- **Open addressing.** Cách xử lý đụng độ khác chaining: không dùng danh sách phụ, mà khi bucket bận thì **dò sang ô kế tiếp** (linear/quadratic probing) cho tới khi thấy ô trống. Tiết kiệm bộ nhớ, thân thiện cache hơn, nhưng phức tạp khi xóa. `Dictionary<K,V>` của .NET dùng một biến thể chaining trên mảng.
-- **Hash ngẫu nhiên theo tiến trình.** `string.GetHashCode()` trong .NET **được random hóa mỗi lần chạy** để chống tấn công collision cố ý (hash flooding). Vì thế ta tự viết `BucketOf` cho bài này để output tất định; đừng bao giờ lưu trữ hay dựa vào giá trị `GetHashCode()` giữa các lần chạy.
+Không thể bảo đảm mọi key có bucket riêng khi tập key lớn hoặc số bucket hữu hạn.
+
+Implementation phải có chiến lược xử lý collision, ví dụ chaining hoặc probing.
+
+Điều quan trọng:
+
+> Hai key bằng nhau phải có cùng hash.
+
+Nhưng:
+
+> Hai key có cùng hash không nhất thiết bằng nhau.
+
+### Lookup trung bình O(1)
+
+Nếu hash phân bố tốt, bucket nhỏ và load factor được kiểm soát, chương trình chỉ cần:
+
+1. tính hash;
+2. tìm bucket;
+3. kiểm tra một số ít entry.
+
+Số bước trung bình không tăng tuyến tính với tổng số phần tử.
+
+### Worst case O(n)
+
+Nếu mọi key rơi vào một bucket:
+
+```text
+bucket 3:
+A -> B -> C -> D -> ... -> n
+```
+
+lookup biến thành scan tuyến tính.
+
+Đó là lý do chất lượng hash và chính sách resize quan trọng.
+
+### Equality và hash code
+
+Nếu:
+
+```csharp
+a.Equals(b) == true
+```
+
+thì bắt buộc:
+
+```csharp
+a.GetHashCode() == b.GetHashCode()
+```
+
+Nếu vi phạm, dictionary/hashset có thể tìm sai bucket và hành vi logic bị hỏng.
 
 ## 5. Kiến thức nền
 
-### Hợp đồng `GetHashCode` và `Equals`
+### Dictionary và HashSet
 
-Khi dùng type tự định nghĩa làm **khóa** của `Dictionary`/`HashSet`, C# gọi `GetHashCode()` để chọn bucket và `Equals()` để so khớp trong bucket. Hai quy tắc bắt buộc:
+`Dictionary<TKey,TValue>`:
 
-1. Hai object **bằng nhau** (`Equals` trả `true`) **phải** có cùng `GetHashCode()`. Vi phạm quy tắc này khiến tra cứu "mất" phần tử đã thêm.
-2. `GetHashCode()` nên phân bố đều và tính nhanh; và không được đổi khi object đang nằm trong bảng.
+```text
+key -> value
+```
 
-`record` (đã học ở [module 05](../05-csharp-nang-cao/07-record-init-required-va-immutability.md)) tự sinh `Equals`/`GetHashCode` theo giá trị các thuộc tính — nên record bất biến là khóa lý tưởng.
+Dùng khi cần map.
 
-### Ba cấu trúc dựa trên hash trong .NET
+`HashSet<T>`:
 
-| Kiểu | Dùng khi |
-|---|---|
-| `HashSet<T>` | tập hợp không trùng, chỉ cần biết "có/không" |
-| `Dictionary<K,V>` | ánh xạ khóa → giá trị |
-| `Dictionary<K,V>` với khóa record | khóa phức hợp nhiều trường |
+```text
+value có tồn tại không?
+```
 
-Tất cả đều cho thao tác trung bình `O(1)`. Trong công việc thực tế, **dùng chúng** thay vì tự viết hash table; bài này tự viết chỉ để hiểu bên trong.
+Dùng cho membership/uniqueness.
 
-### Hash table so với các cấu trúc khác
+### String comparer
 
-- Cần tra cứu theo khóa cực nhanh, **không** cần thứ tự → hash table.
-- Cần giữ **thứ tự sắp xếp** và tra cứu theo khoảng → cây tìm kiếm (bài [07](./07-tree-va-binary-search-tree.md)), cho `O(log n)` nhưng có thứ tự.
-- Cần tra theo chỉ số số nguyên liên tục → mảng, `O(1)` mà không cần băm.
+Đừng tự lower-case ở mọi nơi nếu mục tiêu chỉ là so sánh key không phân biệt hoa thường.
+
+```csharp
+new Dictionary<string, User>(StringComparer.OrdinalIgnoreCase)
+```
+
+thể hiện policy rõ hơn.
+
+### Mutable key nguy hiểm
+
+Nếu key thay đổi field tham gia hash sau khi đã insert:
+
+```text
+insert -> bucket 2
+mutate key -> hash mới thuộc bucket 7
+lookup -> tìm bucket 7
+entry thật vẫn ở bucket 2
+```
+
+Kết quả: collection có entry nhưng không tìm lại được đúng cách.
+
+Vì vậy key nên immutable theo các field tham gia equality/hash.
+
+### Resize
+
+Khi hash table quá đầy, implementation thường:
+
+1. allocate bucket array lớn hơn;
+2. phân phối lại entry;
+3. cập nhật cấu trúc.
+
+Một insert cụ thể có thể đắt, nhưng thao tác trung bình vẫn gần `O(1)`.
 
 ## 6. Lỗi thường gặp
 
-### Ghi đè `Equals` mà quên `GetHashCode` (và ngược lại)
+### Dùng Dictionary nhưng vẫn scan Values
 
-Đây là bug hash kinh điển: hai object "bằng nhau" nhưng khác `GetHashCode` rơi vào hai bucket khác nhau, nên `dictionary` không tìm thấy khóa vừa thêm. Luôn ghi đè **cả hai** cùng nhau, hoặc dùng `record`.
+```csharp
+dictionary.Values.First(x => x.Email == email)
+```
 
-### Dùng object khả biến làm khóa
+Đây vẫn là `O(n)`.
 
-Nếu sửa một trường ảnh hưởng `GetHashCode` **sau khi** đã đưa object vào bảng, khóa "lạc" sang bucket mới còn bảng vẫn giữ nó ở bucket cũ — không bao giờ tìm lại được. Khóa nên bất biến.
+Muốn lookup email nhanh, cần index/dictionary theo email.
 
-### Lưu hoặc so sánh `GetHashCode()` giữa các lần chạy
+### Override Equals mà quên GetHashCode
 
-Vì `string.GetHashCode()` random theo tiến trình, ghi nó xuống file rồi so ở lần chạy sau sẽ sai. Hash code chỉ dùng trong bộ nhớ, một lần chạy.
+Hai method phải tuân contract cùng nhau.
 
-### Tưởng hash table luôn `O(1)`
+### Dùng random hash
 
-Với hash tồi hoặc load factor quá cao, tra cứu tụt về `O(n)`. Chọn/để cho thư viện lo hàm băm tốt và để bảng tự resize; đừng cố định capacity quá nhỏ cho dữ liệu lớn.
+Hash phải ổn định trong vòng đời key khi nằm trong collection.
 
-### Trông đợi thứ tự duyệt ổn định
+### Dùng hash cho security
 
-Duyệt `Dictionary`/`HashSet` **không** bảo đảm thứ tự (theo thứ tự thêm, sắp xếp, hay bất cứ gì). Cần thứ tự thì sắp xếp riêng, hoặc dùng cấu trúc có thứ tự.
+`GetHashCode` không phải cryptographic hash và không dùng để lưu password.
+
+Password hashing là chủ đề security khác hoàn toàn.
 
 ## 7. Bài tập
 
-### Bài 1 — Thêm `Remove`
+### Bài 1 — Word frequency
 
-Thêm `bool Remove(string key)` vào `SimpleHashTable`: băm ra bucket, tìm và xóa cặp khỏi danh sách, giảm `Count`. Trả `false` nếu không có khóa.
+Đếm tần suất từ trong một đoạn text bằng dictionary.
 
-**Gợi ý:** `bucket.RemoveAll(e => e.Key == key)` trả số phần tử bị xóa; dùng nó để biết có xóa được không.
+### Bài 2 — Duplicate detector
 
-### Bài 2 — Đo phân bố
+Trả về phần tử trùng đầu tiên trong mảng bằng `HashSet<int>`.
 
-Băm 1.000 khóa `"key0".."key999"` vào bảng 128 bucket và in số phần tử ở mỗi bucket. Nhận xét mức độ đều.
+Phân tích time/space.
 
-**Gợi ý:** nếu hàm băm tốt, các bucket có kích thước gần nhau (~8 phần tử); một hàm băm tồi sẽ dồn cục.
+### Bài 3 — Two Sum
 
-### Bài 3 — Hàm băm tồi
+Tìm hai số có tổng bằng target bằng dictionary/hashset.
 
-Thay `BucketOf` bằng một hàm chỉ trả `key.Length % capacity`. Thêm nhiều khóa cùng độ dài rồi in buckets. Giải thích vì sao tra cứu chậm hẳn.
+So sánh với hai vòng lặp.
 
-**Gợi ý:** mọi khóa cùng độ dài dồn về một bucket, biến bảng thành một linked list — `O(n)`.
+### Bài 4 — Composite key
 
-### Bài 4 — Resize khi load factor cao
+Tạo value object:
 
-Cho bảng tự cấp đôi số bucket và băm lại khi `Count / capacity > 0.75`. Xác nhận các phần tử cũ vẫn tra cứu được sau resize.
+```csharp
+record StudentCourseKey(int StudentId, int CourseId);
+```
 
-**Gợi ý:** tạo mảng bucket mới rồi `Put` lại từng cặp; chỉ số bucket đổi vì `capacity` đổi.
+dùng làm key dictionary.
 
-### Bài 5 — Khóa record
+### Bài 5 — Mutable-key experiment
 
-Định nghĩa `record Point(int X, int Y)`, dùng `Dictionary<Point, string>` gán tên cho vài điểm. Thử tra bằng một `Point` **mới** có cùng `X, Y` và giải thích vì sao tìm thấy.
+Tạo một class mutable override equality/hash theo một property. Insert vào `HashSet`, sau đó đổi property và thử `Contains`.
 
-**Gợi ý:** record so sánh và băm theo giá trị, nên hai `Point(1,2)` khác object vẫn "bằng nhau" và cùng bucket.
+Giải thích kết quả.
 
 ## 8. Checklist tự đánh giá và điều hướng
 
-- [ ] Tôi giải thích được hash function biến khóa thành chỉ số bucket thế nào.
-- [ ] Tôi mô tả được collision và cách chaining xử lý nó.
-- [ ] Tôi nêu được vì sao tra cứu trung bình `O(1)`, xấu nhất `O(n)`.
-- [ ] Tôi hiểu load factor và vì sao bảng phải resize.
-- [ ] Tôi tôn trọng hợp đồng `Equals`/`GetHashCode` khi tạo khóa tùy chỉnh.
-- [ ] Tôi biết không được lưu/so sánh `GetHashCode()` giữa các lần chạy.
+- [ ] Tôi mô tả được key -> hash -> bucket.
+- [ ] Tôi hiểu collision là bình thường.
+- [ ] Tôi biết lookup average `O(1)`, worst `O(n)`.
+- [ ] Tôi hiểu contract giữa `Equals` và `GetHashCode`.
+- [ ] Tôi tránh mutable key.
+- [ ] Tôi chọn được Dictionary hay HashSet theo use case.
 
 Điều hướng:
 
-- Bài prerequisite: [Stack, queue và deque](./05-stack-queue-va-deque.md)
-- Ôn lại nền tảng: [Collection: List, Dictionary, HashSet, Queue và Stack](../04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack.md), [Record, `init`, `required` và tính bất biến](../05-csharp-nang-cao/07-record-init-required-va-immutability.md)
+- Bài trước: [Stack, queue và deque](./05-stack-queue-va-deque.md)
+- Ôn lại Dictionary/HashSet: [Collection trong C#](../04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack.md)
 - Bài tiếp theo: [Tree và binary search tree](./07-tree-va-binary-search-tree.md)

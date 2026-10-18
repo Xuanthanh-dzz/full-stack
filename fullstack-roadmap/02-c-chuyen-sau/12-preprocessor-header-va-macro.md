@@ -1,5 +1,19 @@
 # Preprocessor, header và macro
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Preprocessor xử lý chỉ thị trước compiler; header chia sẻ khai báo, macro thay token.
+- Dùng header guard, hằng cấu hình và hàm nhỏ đúng kiểu để chia sẻ code.
+- Macro không hiểu kiểu như hàm và có thể đánh giá đối số nhiều lần; ARRAY_COUNT chỉ dùng với mảng thật.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -13,6 +27,24 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Trước khi dịch, có một bước chuẩn bị văn bản: chèn nội dung header, bật/tắt khối code, thay tên macro. Đây không phải một hàm chạy lúc chương trình đang xử lý dữ liệu. Phân biệt hai thời điểm giúp hiểu vì sao đổi -D phải build lại.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| preprocessor | bước xử lý chỉ thị và token trước biên dịch | include, define, if |
+| header guard | chốt tránh nội dung header bị chèn lặp trong một đơn vị dịch | ifndef/define/endif |
+| macro | quy tắc thay token | ARRAY_COUNT |
+| static inline | hàm có kiểu, định nghĩa dùng nội bộ đơn vị dịch | clamp_non_negative; không hứa compiler inline |
+| stderr | luồng báo chẩn đoán riêng stdout | TRACE |
+
+### Ví dụ nhỏ — tính tay trước
+
+Đối số i++ truyền vào hàm được đánh giá một lần trước lời gọi; macro viết đối số hai chỗ có thể đánh giá hai lần. Với i = 2, đừng suy macro có cùng hành vi hàm chỉ vì tên trông giống lời gọi.
+
 Capacity tối đa và hàm chuẩn hóa số lượng đang bị lặp trong source code. Ta muốn:
 
 - đặt contract dùng chung trong `inventory_limits.h`;
@@ -22,7 +54,9 @@ Capacity tối đa và hàm chuẩn hóa số lượng đang bị lặp trong so
 
 Bài này vẫn chỉ biên dịch một file `.c`. Bài sau mới tách nhiều translation unit và link chúng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `inventory_limits.h`:
 
@@ -119,7 +153,20 @@ TRACE: Bat dau chuan hoa
 
 Standard output vẫn giữ hai dòng như trên.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Preprocessor chèn inventory_limits.h và chọn nhánh TRACE_ENABLED khi build, chưa có dữ liệu runtime.
+2. main giữ mảng [-3, 3, 7, -1]; ARRAY_COUNT tính số phần tử tại nơi còn kiểu mảng.
+3. clamp_non_negative lần lượt cho [0, 3, 7, 0]; mỗi lần là một hàm có kiểm tra kiểu.
+4. Bản build TRACE_ENABLED=1 thêm một dòng stderr, stdout giữ nguyên. Runtime duyệt n phần tử, state mảng O(n); macro không tạo vùng nhớ tự thân.
+
+### Mini-check
+
+Đổi TRACE_ENABLED khi chương trình đã chạy có tác dụng không? Cần làm bước nào để nhánh mới tồn tại trong executable?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Preprocessor chạy trước compiler
 
@@ -186,7 +233,45 @@ Với mảng fixed-size `quantities` của sample, hai toán hạng `sizeof` kh�
 
 Khi tắt, `((void)0)` tạo một statement không làm gì và không đánh giá `message`. Không đặt side effect bắt buộc bên trong đối số trace vì nó sẽ biến mất ở build không trace.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Macro | thay token trước compile | cần cho điều kiện compile; không dùng thay hàm chỉ để tối ưu tưởng tượng |
+| static inline function | hàm có kiểm tra kiểu/đối số | phù hợp phép biến đổi nhỏ; inline không bắt buộc bỏ lời gọi |
+| const object | giá trị có kiểu và storage theo khai báo | dễ debug; không thay mọi nhu cầu #if trong C |
+
+### Misconception check
+
+**Đúng hay sai?** Header guard ngăn mọi lỗi nhiều định nghĩa giữa các file .c.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ ngăn include lặp trong một đơn vị dịch; linkage vẫn cần thiết kế đúng.
+
+</details>
+
+**Đúng hay sai?** Từ khóa inline bảo đảm machine code không còn lời gọi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: đó không phải cam kết tối ưu của compiler.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** theo dõi include và cấu hình build.
+
+- **Working Developer — dùng khi làm việc:** ưu tiên hàm có kiểu, kiểm tra stdout/stderr.
+
+- **Deep Dive — có thể quay lại sau:** xem output tiền xử lý khi macro khó debug.
 
 ### `#include "..."` và `<...>`
 
@@ -264,7 +349,17 @@ Header phải include các standard header cần cho chính declaration của n�
 
 `TRACE(save_data())` có thể chạy ở debug nhưng biến mất ở release. Tách side effect khỏi logging.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng macro function cho phép tính thông thường khi static inline rõ kiểu và ít rủi ro hơn. Không gọi ARRAY_COUNT trên pointer trong callee. Không bật trace ghi dữ liệu nhạy cảm chỉ vì là debug build.
+
+## 8. Production notes & scale check
+
+Demo có một header và một source; hai cấu hình trace đều phải build/test. Giữ output nghiệp vụ ở stdout để script tiêu thụ ổn định, log ở stderr. Đừng tăng hệ cấu hình phức tạp cho một cờ; driver là có hai build mode thực sự cần kiểm tra.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Header giới hạn
 
@@ -290,7 +385,23 @@ Chạy `cc -E main.c` và tìm phần source đến từ header.
 
 **Gợi ý:** output rất dài vì standard header; tìm tên `clamp_quantity`.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Module 01 kiểm tra expected output bằng script. Nếu bật trace, làm sao giữ assertion nghiệp vụ ổn định mà vẫn lưu log? Nêu luồng output và hai lệnh build cần có trong CI.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Macro được xử lý lúc nào so với main?
+2. Header guard giải quyết phạm vi trùng nào?
+3. Vì sao ARRAY_COUNT đổi ý nghĩa khi nhận pointer?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi biết `#include` là chèn source ở bước tiền xử lý.
 - [ ] Tôi tạo header có include guard và tự đủ dependency.

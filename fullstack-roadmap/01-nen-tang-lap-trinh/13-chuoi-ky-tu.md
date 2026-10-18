@@ -1,5 +1,19 @@
 # Chuỗi ký tự
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Chuỗi C là dãy char kết thúc bằng byte zero, không phải mọi mảng char đều là chuỗi.
+- Dùng khi cần đọc, in và so sánh nội dung text theo byte.
+- Capacity phải chừa terminator; số byte khác số ký tự người dùng nhìn thấy.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,11 +26,30 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một dãy chữ cần dấu kết thúc để người đọc biết dừng ở đâu. Trong C dấu đó là byte có giá trị 0. Nếu không để chỗ cho dấu kết thúc, thao tác in chuỗi có thể đọc tiếp ra ngoài dãy vì không biết đã hết tên.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| null terminator | byte zero đánh dấu hết chuỗi | '\0' |
+| length | số byte nội dung trước terminator | strlen |
+| capacity | toàn bộ chỗ có thể ghi | 31 byte |
+| overflow input | dòng dài hơn sức chứa | báo lỗi nhưng đọc hết dòng |
+
+### Ví dụ nhỏ — tính tay trước
+
+Tên An cần ba slot: A, n, \0. strlen cho 2, sizeof mảng `char name[] = "An"` cho 3. Mảng capacity 2 chỉ giữ tối đa một byte nội dung nếu phải là chuỗi.
+
 Chương trình đăng ký cần đọc cả tên có khoảng trắng, tối đa **30 byte
 nội dung**, rồi kiểm tra có trùng `"Lan Anh"` không. `getchar` một lần
 không đủ; ta cần mảng ký tự, byte kết thúc và validation overflow.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `name_check.c`:
 
@@ -102,7 +135,20 @@ Trung ten mau: 1
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. read_line đọc từng byte Lan Anh, length tăng tới 7 rồi đặt '\0' ở index 7.
+2. Nếu dòng vượt 30 byte, hàm ngừng ghi nhưng vẫn đọc tới newline/EOF và trả -1.
+3. Caller chỉ gọi strlen/strcmp sau khi đã kiểm tra status và tên rỗng.
+4. name nằm trong main, local đọc dòng nằm trong invocation read_line. CPU đọc từng byte; strlen lại duyệt tới terminator, không có độ dài được lưu sẵn trong chuỗi.
+
+### Mini-check
+
+Dòng 31 byte bị từ chối; vì sao vẫn phải đọc hết dòng thay vì return ngay khi buffer đầy?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. String là mảng `char` có terminator
 
@@ -136,7 +182,7 @@ thái trả về:
 
 ### 4.3. `strlen` và `strcmp`
 
-- `strlen(name)` đếm ký tự trước `'\0'`, không tính terminator; kết quả dùng format `%zu`.
+- `strlen(name)` đếm byte trước `'\0'`, không tính terminator; kết quả dùng format `%zu`.
 - `strcmp(left, right)` trả `0` khi hai string bằng nhau; nhỏ/lớn hơn 0 cho thứ tự từ điển theo character code.
 
 Không viết `name == expected` để so nội dung mảng.
@@ -157,7 +203,45 @@ read_line frame giữ length, overflow, character
 
 Như bài 11, array parameter cho hàm truy cập cùng các element. Cơ chế pointer đầy đủ thuộc module 02.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| strlen | đếm byte tới terminator | tốn một lượt duyệt; không dùng để đếm ký tự Unicode hiển thị |
+| sizeof array | size storage tại nơi còn full array | không duyệt text; không thay cho length |
+| strcmp / == | so nội dung / không so nội dung mảng | dùng strcmp==0; không suy bằng nhau từ tên biến |
+
+### Misconception check
+
+**Đúng hay sai?** strlen gồm cả terminator.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: nó đếm byte trước terminator.
+
+</details>
+
+**Đúng hay sai?** Capacity 31 chứa được 31 byte nội dung như một chuỗi C.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ 30 nếu còn cần terminator.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** terminator, length, capacity.
+
+- **Working Developer — dùng khi làm việc:** biên input và status.
+
+- **Deep Dive — có thể quay lại sau:** UTF-8, embedded zero, lỗi I/O.
 
 ### String literal và mảng sửa được
 
@@ -209,7 +293,17 @@ Kết quả `strlen` có type phù hợp `%zu`, không bảo đảm là `int`.
 
 `'\0'` là character value zero; `'0'` là chữ số có mã khác zero.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng char đơn cho một tên hoặc so == để so text. Không dùng parser ASCII này để khẳng định đã xử lý tên Unicode theo ký tự. Với text người dùng, xác định contract byte hoặc dùng thư viện phù hợp khi yêu cầu vượt byte-level.
+
+## 8. Production notes & scale check
+
+Team nhỏ vẫn cần biên 0,30,31 byte và EOF. Tên có dấu có thể chiếm nhiều byte; đừng đổi nhãn giới hạn thành “30 ký tự”. Input có byte zero bên trong hoặc lỗi stream chưa được sample phân loại riêng: với nguồn binary cần contract khác. Muốn lưu tên lâu dài phải copy đủ buffer và xác định vòng đời.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Đếm ký tự cụ thể
 
@@ -236,7 +330,26 @@ Test dòng rỗng, đúng 30 byte, 31 byte và EOF.
 **Gợi ý:** 30 byte phải vừa buffer; 31 byte phải báo quá dài. Kiểm tra cả
 exit status, không chỉ output.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Khi chuyển sang C# Module 04, string không có cùng API/representation C. Quy tắc “tối đa 30 ký tự hiển thị” nên đo byte hay ký tự? Nêu yêu cầu còn thiếu trước khi chọn cách validate.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ memory của An cùng terminator.
+2. Vì sao strlen không biết capacity?
+3. Tên quá dài có ảnh hưởng lần đọc tiếp theo thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi vẽ string gồm nội dung và `'\0'`.
 - [ ] Tôi phân biệt length với capacity.

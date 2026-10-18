@@ -1,0 +1,18 @@
+diff --git a/library.cpp b/library.cpp
+--- a/library.cpp
++++ b/library.cpp
+@@ -1,11 +1,10 @@
+ void add(std::unique_ptr<Book> book)
+ {
+-    const std::string id = book->id();
+     books.push_back(std::move(book));
+-    log(id);
++    log(book->id());
+ }
+ void replace(const std::string& path)
+ {
+-    auto next = parse_all(path);
+-    books.swap(next);
++    books.clear();
++    books = parse_all(path);
+ }

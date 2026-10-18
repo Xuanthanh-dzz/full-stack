@@ -1,5 +1,19 @@
 # Từ C sang C++20
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- C++20 giữ nhiều cú pháp quen từ C nhưng có thư viện chuỗi/stream và quy tắc kiểu riêng.
+- Dùng để viết chương trình C++ bằng compiler C++ và baseline rõ ràng.
+- std::string quản lý storage, không tự kiểm tra nghiệp vụ hoặc làm mọi input hợp lệ.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn vẫn nhận dữ liệu, tính rồi in như bài C. Khác biệt đầu tiên là chuỗi có một object tự quản lý ký tự và các luồng nhập/xuất chọn cách xử lý theo kiểu. Học hai công cụ này trước khi nghĩ đến hệ thống class.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| std::string | kiểu thư viện giữ và quản lý chuỗi | product_name |
+| stream | luồng đọc/ghi có trạng thái thành công hoặc lỗi | cin/cout |
+| namespace | nhóm tên để tránh trùng | std:: |
+| constexpr | khai báo giá trị có thể xác định khi compile | vat_percent = 8 |
+
+### Ví dụ nhỏ — tính tay trước
+
+2 sản phẩm × 100 đồng = 200; VAT 8% = 16; tổng 216. Với subtotal 101, phép chia nguyên cho VAT 8, không tự làm tròn lên 9.
+
 Chương trình C quản lý kho ở module trước đã dùng mảng `char`, `printf` và `scanf`. Bây giờ cửa hàng cần một chương trình nhỏ lập hóa đơn:
 
 - nhập tên sản phẩm có khoảng trắng;
@@ -21,7 +52,9 @@ Chương trình C quản lý kho ở module trước đã dùng mảng `char`, `
 
 Ta có thể tiếp tục viết C, nhưng đây là cơ hội chuyển sang công cụ nhập/xuất và kiểu chuỗi của C++ mà chưa cần biết OOP.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `main.cpp`:
 
@@ -96,11 +129,24 @@ Total: 810000 VND
 
 Mẫu này đã được kiểm tra bằng `g++ 15.2.0`, chế độ C++20 và toàn bộ cờ cảnh báo trong lệnh trên.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Compiler C++20 dịch source và liên kết thư viện trước khi executable chạy.
+2. getline nhận tên, hai phép >> nhận quantity/price; kiểm tra trạng thái stream và miền trước phép nhân.
+3. Input 3 × 250000 cho subtotal 750000, VAT 60000, tổng 810000.
+4. State nằm trong các object cục bộ; string quản lý ký tự và tự cleanup. Tính số cost cố định; đọc tên/in text theo số byte.
+
+### Mini-check
+
+Nếu nhập chữ vào quantity, bước nào ngăn code dùng số sai để tính? --no-build hay chạy binary cũ có thực hiện source vừa sửa không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Chương trình vẫn bắt đầu tại `main`
 
-Giống C, hệ điều hành chuyển quyền điều khiển cho hàm `main`. `return 0` báo thành công; `return 1` báo dữ liệu không hợp lệ.
+Trong môi trường hosted của bài, phần khởi động chương trình/runtime chuẩn bị môi trường rồi gọi `main`; không nên hiểu hệ điều hành trực tiếp gọi hàm C++ này. `return 0` báo thành công; `return 1` báo dữ liệu không hợp lệ.
 
 Các cấu trúc đã học trong C vẫn giữ ý nghĩa quen thuộc:
 
@@ -165,7 +211,45 @@ stack frame của main (mô hình triển khai phổ biến)
 
 Chương trình không gọi `malloc` hoặc `free` cho chuỗi. Chính object `std::string` chịu trách nhiệm quản lý phần lưu trữ của nó.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| C char buffer | caller quản lý capacity/terminator | phù hợp API C; phải kiểm tra biên |
+| std::string | object quản lý chuỗi | dễ copy và cleanup; vẫn có chi phí allocation/copy |
+| cin >> và getline | đọc token so với cả dòng | chọn theo format; phải xử lý newline khi trộn |
+
+### Misconception check
+
+**Đúng hay sai?** C++ là chế độ compiler chấp nhận mọi chương trình C.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: hai ngôn ngữ riêng, có cú pháp và conversion khác nhau.
+
+</details>
+
+**Đúng hay sai?** std::string giúp mọi chuỗi nhập đều hợp lệ nghiệp vụ.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: vẫn phải kiểm tra rỗng, độ dài và quy tắc ứng dụng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** build/chạy, đọc stream và string.
+
+- **Working Developer — dùng khi làm việc:** validation, baseline và test input lỗi.
+
+- **Deep Dive — có thể quay lại sau:** so sánh storage object với buffer do thư viện quản lý.
 
 ### `constexpr`, `const` và khởi tạo
 
@@ -234,7 +318,17 @@ std::getline(std::cin >> std::ws, product_name);
 
 Không phải mọi chương trình C đều biên dịch hoặc có cùng ý nghĩa trong C++. Hãy biên dịch file C bằng chế độ C và file C++ bằng đúng chuẩn C++20.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không đổi một công cụ C đang đúng sang C++ chỉ để thay printf. Bài này đổi ngôn ngữ để học công cụ và chuẩn bị quản lý tài nguyên tự động; production cần driver bảo trì hoặc tích hợp rõ.
+
+## 8. Production notes & scale check
+
+Demo một hóa đơn cần validation và expected output, chưa cần hierarchy hay database. Giới hạn quantity/price giữ cả subtotal × 8 trong miền long long. Chương trình chưa từ chối mọi ký tự thừa sau token cuối; nếu cần input dòng nghiêm ngặt, định nghĩa format và parser riêng.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Đổi hóa đơn
 
@@ -266,7 +360,23 @@ Thử `subtotal = 101` và VAT `8%`. Mô tả chính xác vì sao kết quả VA
 
 **Gợi ý:** muốn làm tròn gần nhất cho số không âm, nghiên cứu việc cộng nửa mẫu số trước phép chia.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với hóa đơn C Module 01 và kho Module 02, trách nhiệm nào string nhận thay caller, trách nhiệm nào vẫn phải tự kiểm tra? Chọn ba test: tên rỗng, input chữ và giới hạn số.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ compile → executable → main → input/output.
+2. Vì sao string không cần free thủ công?
+3. Giải thích VAT của 101 đồng theo phép chia nguyên.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

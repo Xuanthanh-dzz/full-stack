@@ -1,5 +1,19 @@
 # Exception và RAII
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Exception chuyển xử lý lỗi tới handler; RAII gắn việc trả tài nguyên với vòng đời object.
+- Dùng RAII cho memory/file/lock và bắt lỗi ở nơi có thể xử lý hoặc báo thất bại.
+- Cleanup không đồng nghĩa rollback hay dữ liệu đã bền trên đĩa.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn mượn chìa khóa khi vào phòng; dù ra cửa thường hay phải rời sớm vì lỗi, người giữ chìa vẫn phải trả nó. RAII đặt trách nhiệm trả vào object quản lý, không rải lời gọi cleanup khắp các nhánh.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| exception | object báo thao tác không hoàn thành contract | invalid_argument |
+| handler | đoạn nhận xử lý exception phù hợp | catch ở main |
+| stack unwinding | rời scope giữa throw và handler, hủy object đã dựng | writer được cleanup |
+| RAII | gắn tài nguyên với object chịu trách nhiệm thu hồi | ofstream member |
+| strong guarantee | thất bại giữ nguyên state quan sát được | khác chỉ không leak |
+
+### Ví dụ nhỏ — tính tay trước
+
+Dựng writer → ghi A → phép tính B ném lỗi → hủy writer trước catch. File có thể vẫn chứa A; đóng file không tự xóa phần đã ghi để quay về state cũ.
+
 Chương trình ghi đơn hàng ra file. Ba lỗi có thể xảy ra:
 
 - đường dẫn không mở được;
@@ -22,7 +54,9 @@ Nếu mỗi bước trả mã lỗi, caller dễ quên kiểm tra. Nguy hiểm h
 
 Ta sẽ dùng exception để chuyển quyền xử lý đến boundary của chương trình và RAII để cleanup không phụ thuộc đường đi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```cpp
 #include <fstream>
@@ -138,7 +172,20 @@ Report file: ORD-001,750000
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20. File được mở ở chế độ mặc định của `std::ofstream`, nên nội dung cũ bị truncate khi chạy lại.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. ReportWriter mở file trong thư mục lab riêng, ofstream member giữ tài nguyên.
+2. Đơn hợp lệ 3 × 250000 được ghi; phép tính quantity 0 ném invalid_argument trước tạo xong đơn thứ hai.
+3. Runtime hủy các automatic object đã dựng trong try trước khi vào catch; ofstream đóng file.
+4. main báo lỗi rồi đọc dòng ORD-001. I/O theo byte; exception có chi phí riêng phụ thuộc toolchain, không dùng làm vòng lặp thường. State file đã thay dù resource được thu hồi.
+
+### Mini-check
+
+Dòng Saved được in trước khi ofstream đóng: nó đã chứng minh mọi dữ liệu ghi thành công và bền sau mất điện chưa?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. `throw` dừng đường đi hiện tại
 
@@ -216,7 +263,45 @@ unit_price > max / quantity
 
 phát hiện trước khi phép nhân vượt miền. Thứ tự validation làm phép chia an toàn vì `quantity` đã được xác nhận dương.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Status return | caller kiểm tra kết quả tường minh | hợp thất bại thường gặp; dễ quên nếu API yếu |
+| Exception | chuyển điều khiển tới handler | hợp lỗi cần vượt nhiều tầng; phải chọn boundary |
+| RAII | cleanup theo lifetime | dùng được với cả status và exception; không tự rollback |
+
+### Misconception check
+
+**Đúng hay sai?** Constructor throw thì destructor của object chưa dựng xong sẽ chạy.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: member/base đã dựng được hủy, destructor của object hoàn chỉnh đó không chạy.
+
+</details>
+
+**Đúng hay sai?** RAII tự cung cấp strong guarantee cho mọi thao tác.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: nó quản lý cleanup; state có thể đã đổi trước khi lỗi.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace throw/catch và destructor.
+
+- **Working Developer — dùng khi làm việc:** boundary lỗi và tài nguyên tự cleanup.
+
+- **Deep Dive — có thể quay lại sau:** exception guarantees, chi phí và durability.
 
 ### Exception hierarchy chuẩn
 
@@ -289,7 +374,17 @@ Nếu input invalid là kết quả thường xuyên và caller cần rẽ nhán
 
 Destructor đóng resource nhưng không phải kênh báo lỗi đáng tin cậy. Nếu durability quan trọng, chủ động `flush`/`close`, kiểm tra trạng thái và thiết kế transaction/file replacement phù hợp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng throw cho mỗi lần không tìm thấy trong một vòng tra cứu thường xuyên nếu status rõ hơn. Không catch rồi bỏ qua để biến thất bại thành thành công. Không tự viết destructor nếu member RAII đã làm đủ.
+
+## 8. Production notes & scale check
+
+Demo có một file và một lỗi dự kiến. Destructor không phải kênh báo lỗi ghi cuối đáng tin; nếu cần xác nhận ghi, thêm close/kiểm tra trước thông báo thành công, và xác định riêng yêu cầu durability. Test đường dẫn không mở được, số âm, tràn số và dữ liệu file thực tế.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Đơn giá âm
 
@@ -321,7 +416,23 @@ Thiết kế operation thay nội dung report bằng cách ghi file tạm trư�
 
 **Gợi ý:** đây là bài thiết kế; API filesystem và atomic rename phụ thuộc nền tảng sẽ học sâu hơn ở DevOps.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với cleanup label của kho C Module 02, RAII giảm trách nhiệm thủ công nào? Liệt kê phần vẫn cần thiết kế để load lỗi giữ state cũ; không nhầm cleanup với commit.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Object nào bị hủy trước catch trong sample?
+2. Vì sao catch theo const reference?
+3. Basic guarantee khác strong guarantee bằng ví dụ file thế nào?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

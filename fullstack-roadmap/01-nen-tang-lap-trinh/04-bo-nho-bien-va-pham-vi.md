@@ -1,5 +1,19 @@
 # Bộ nhớ, biến và phạm vi
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Scope quyết định nơi dùng được tên; vòng đời quyết định khoảng thời gian object tồn tại.
+- Dùng để xác định biến nào đang được đọc/sửa và khi nào state hết hiệu lực.
+- Copy giá trị không tạo liên kết; sơ đồ local không bảo đảm layout vật lý trên stack.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Chụp một con số vào giấy khác rồi sửa bản gốc thì bản chụp không đổi. Block giống một khu vực chỉ cho dùng một số tên bên trong; rời khu vực, tên tạm không dùng tiếp được. Điều này giúp việc tính thử không làm thay đổi số dư chính thức.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| scope | phần source được phép dùng một tên | block chứa temporary_fee |
+| vòng đời | thời gian object còn tồn tại | từ lúc vào đến lúc ra block của local thường |
+| storage | chỗ giữ giá trị của object | balance và before_payment riêng |
+| shadowing | tên bên trong che tên ngoài | hai biến cùng tên trong hai block |
+
+### Ví dụ nhỏ — tính tay trước
+
+a = 10; b nhận giá trị a; a đổi thành 20 → a là 20, b vẫn 10. Đó là hai object chứa hai số, không phải hai tên của cùng một số.
+
 Một quầy thu ngân giữ số dư ban đầu `500`. Trước khi trừ giao dịch `120`, chương trình lưu một bản chụp vào `before_payment`. Sau đó một block kiểm tra tạm tính phí `30`.
 
 Ta cần trả lời chính xác:
@@ -22,7 +53,9 @@ Ta cần trả lời chính xác:
 
 Đây là câu hỏi về copy, scope và lifetime, không chỉ là phép tính.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `scope.c`:
 
@@ -74,7 +107,20 @@ So du chinh thuc: 380
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. balance nhận 500; before_payment sao chép 500.
+2. Trừ 120 chỉ thay balance thành 380.
+3. Block trong giữ temporary_fee=30 và projected_balance=350; nó chỉ đọc balance.
+4. Ra block, các local tạm hết vòng đời; main vẫn giữ balance=380. Chi phí là vài phép tính và số local cố định; compiler có thể dùng thanh ghi thay chỗ nhớ vật lý.
+
+### Mini-check
+
+Nếu gán balance = projected_balance bên trong block, giá trị nào còn sau dấu }?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Gán số tạo một bản sao giá trị
 
@@ -155,7 +201,45 @@ Với các local đơn giản ở bài này, scope và lifetime đi gần nhau:
 
 Đây là hai khái niệm khác nhau. Ở module 02, storage duration và object được cấp phát động sẽ cho thấy lifetime có thể không trùng block scope.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Scope | quy tắc dùng tên trong source | compiler kiểm tra; không mô tả toàn bộ thời gian tồn tại |
+| Vòng đời | quy tắc object còn tồn tại lúc chạy | cần biết khi giữ cách truy cập; sâu hơn ở Module 02 |
+| Bản sao số | object khác nhận cùng giá trị | tốn storage riêng; không dùng nếu yêu cầu cập nhật cùng state |
+
+### Misconception check
+
+**Đúng hay sai?** Sửa balance sẽ cập nhật before_payment.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phép gán số sao chép giá trị.
+
+</details>
+
+**Đúng hay sai?** Mỗi tên local chắc chắn chiếm một ô stack vật lý.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: compiler có thể dùng thanh ghi hoặc tối ưu bỏ storage.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** copy số và block scope.
+
+- **Working Developer — dùng khi làm việc:** thu hẹp state và tránh shadowing.
+
+- **Deep Dive — có thể quay lại sau:** phân biệt mô hình logic với bố trí của compiler.
 
 ### Declaration, definition và assignment trong phạm vi bài
 
@@ -214,7 +298,17 @@ Scope hợp lệ không đảm bảo biến đã được khởi tạo. `int fee
 
 Call stack là mô hình quan trọng, nhưng optimization có thể dùng register hoặc bỏ biến. Hãy nói “local có automatic lifetime trong lần gọi” trước khi khẳng định vị trí vật lý.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không mở scope mọi biến lên toàn chương trình để dùng cho tiện. Giữ biến gần đoạn cần nó; với phép tính tạm, block nhỏ giảm nhầm state. Tránh shadowing khi hai biến có vai trò khác, dù C cho phép.
+
+## 8. Production notes & scale check
+
+Một quầy nhỏ chỉ cần state local cho phép tính một hóa đơn. Khi state phải sống qua nhiều thao tác, xác định chủ sở hữu trước khi mở rộng vòng đời. Debug bằng breakpoint trước/sau assignment và quan sát đúng scope; nhiều người dùng đồng thời cần bài toán state khác, không chữa bằng biến toàn cục.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Dự đoán bản sao
 
@@ -246,7 +340,26 @@ Tạo một `score` ở scope ngoài và một `score` khác trong block; in c�
 
 **Gợi ý:** theo dấu `{` và `}` của block chứa declaration.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Module 02 sẽ cho hàm giữ cách truy cập dữ liệu. Trước khi học cú pháp đó, hãy quyết định: phí tạm cần tồn tại sau phép tính hay chỉ trả kết quả số? Nêu lợi ích của trả bản sao thay vì giữ state tạm lâu hơn.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ hai object sau phép gán số.
+2. Scope khác vòng đời ở câu hỏi nào?
+3. Tại sao số dư chính thức vẫn là 380?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi phân biệt tên, giá trị và storage của biến.
 - [ ] Tôi biết assignment giữa các số tạo bản sao giá trị.

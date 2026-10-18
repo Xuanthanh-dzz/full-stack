@@ -1,5 +1,19 @@
 # Con trỏ với mảng và chuỗi
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Mảng chứa các phần tử; con trỏ có thể chỉ tới phần tử nhưng không tự mang chiều dài mảng.
+- Dùng pointer + count để hàm xử lý dãy, hoặc mượn vị trí trong chuỗi.
+- Đi ra ngoài biên hoặc coi sizeof(pointer) là kích thước mảng làm contract sai.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,6 +26,24 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Mảng giống dãy ô đánh số. Con trỏ là ngón tay chỉ một ô; nó không biết dãy dài bao nhiêu. Muốn nhờ hàm cộng dãy, bạn cần đưa cả vị trí ô đầu và số ô được phép đọc.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| count | số phần tử hợp lệ cho thao tác | 4 phần tử quantities |
+| pointer arithmetic | dịch vị trí theo đơn vị phần tử cùng mảng | values + i |
+| one-past | vị trí ngay sau phần tử cuối, không được đọc | values + count |
+| borrowed pointer | con trỏ mượn dữ liệu do nơi khác giữ sống | suffix nằm trong chuỗi ban đầu |
+| sizeof | số byte của kiểu/object ở biểu thức đang xét | mảng thật khác tham số pointer |
+
+### Ví dụ nhỏ — tính tay trước
+
+Với [2, 5, 1], p trỏ ô 0: *p = 2, *(p + 1) = 5. Tổng chạy là 0 → 2 → 7 → 8. p + 3 chỉ là mốc kết thúc, không có phần tử thứ tư để đọc.
+
 Hệ thống kho cần:
 
 1. tính tổng các số lượng trong một mảng;
@@ -19,7 +51,9 @@ Hệ thống kho cần:
 
 Hàm không biết kích thước mảng chỉ từ một pointer. Vì vậy, contract phải truyền cả pointer tới phần tử đầu và giới hạn cần duyệt.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -107,7 +141,20 @@ Dau '-' o vi tri: 4
 Phan sau dau '-': 2026
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main giữ mảng [4, 7, 3, 6]; sum nhận địa chỉ ô đầu và count = 4.
+2. Vòng lặp duyệt i = 0..3, kiểm tra cộng không tràn, total đổi 0 → 4 → 11 → 14 → 20.
+3. Hàm tìm ký tự duyệt BOOK-2026 tới dấu - ở chỉ số 4 rồi trả địa chỉ bên trong chuỗi.
+4. Không có bản sao suffix hay cấp phát mới. Cộng/tìm tuyến tính theo số phần tử được duyệt; state phụ là biến chạy và tổng, kích thước cố định.
+
+### Mini-check
+
+Nếu count = 0, cần đọc values[0] không? Vì sao contract có thể cho phép values = NULL trong ca này?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Mảng là một object gồm các phần tử liên tiếp
 
@@ -199,7 +246,45 @@ separator - product_code
 
 cho số phần tử giữa hai pointer khi cả hai trỏ vào cùng mảng. Kết quả bằng `4`. Không trừ hai pointer thuộc hai object mảng khác nhau.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Mảng thật | chứa liên tiếp các phần tử | sizeof biết tổng byte tại nơi còn kiểu mảng; không thay bằng pointer để suy chiều dài |
+| Pointer + count | địa chỉ và giới hạn do caller cung cấp | không copy dãy; caller phải cung cấp biên đúng |
+| Chuỗi C | dãy char kết thúc bằng byte 0 | tìm kết thúc phải duyệt; không dùng với buffer chưa có terminator |
+
+### Misconception check
+
+**Đúng hay sai?** Tham số int values[] giữ toàn bộ kích thước mảng caller.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: trong tham số hàm nó được điều chỉnh thành pointer.
+
+</details>
+
+**Đúng hay sai?** Có thể tạo và dereference pointer one-past.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Chỉ tạo mốc/so sánh trong điều kiện chuẩn cho phép; không được dereference.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** duyệt bằng chỉ số đúng biên.
+
+- **Working Developer — dùng khi làm việc:** truyền count và ghi rõ borrow.
+
+- **Deep Dive — có thể quay lại sau:** điều kiện hợp lệ của phép trừ/so sánh pointer.
 
 ### `size_t`
 
@@ -298,7 +383,17 @@ Dùng `char text[] = "ABC"` nếu cần vùng nhớ có thể sửa.
 
 Vòng lặp chuỗi dựa vào `'\0'`. Nếu buffer không có terminator trong phạm vi hợp lệ, vòng lặp sẽ đọc vượt giới hạn. Khi tự xây chuỗi, luôn dành một phần tử cho `'\0'`.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng strlen để đo buffer nhị phân có byte 0 bên trong. Không bỏ count rồi đoán biên bằng sizeof ở callee; giữ chiều dài tường minh đơn giản hơn tìm lỗi vượt mảng.
+
+## 8. Production notes & scale check
+
+Với bốn số, một vòng lặp là đủ. Với hàng triệu số, vẫn đo số lượt duyệt và kiểm tra tràn; chưa cần cấu trúc phức tạp. Kết quả tìm là mượn: không free, không giữ lâu hơn chuỗi nguồn. Test count 0, không tìm thấy, phần tử cuối và phép cộng sát INT_MAX.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tìm giá trị lớn nhất
 
@@ -324,7 +419,23 @@ Với `"BOOK-2026"`, in các ký tự trước `'-'` mà không sửa chuỗi ng
 
 **Gợi ý:** dùng pointer bắt đầu và pointer kết thúc; in từng ký tự trong khoảng nửa mở `[begin, end)`.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đưa hàm tổng Module 01 sang API dùng pointer + count: ai đảm bảo count không lớn hơn mảng thật? Viết tiền điều kiện, test biên và giải thích vì sao callee không thể tự phát hiện mọi caller nói sai.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Tại sao p + 1 không nhất thiết tăng địa chỉ một byte?
+2. Vẽ suffix và chuỗi nguồn mà không nhân đôi dữ liệu.
+3. Phân biệt tạo mốc kết thúc với đọc mốc đó.
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi biết tên mảng thường chuyển thành pointer tới phần tử đầu.
 - [ ] Tôi luôn truyền số phần tử cùng pointer mảng.

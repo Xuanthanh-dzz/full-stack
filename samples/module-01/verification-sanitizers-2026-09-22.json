@@ -1,0 +1,151 @@
+{
+  "date": "2026-09-22",
+  "compiler": "cc (GCC) 16.2.1 20260810",
+  "sanitize": true,
+  "scope": "published primary programs and listed contracts; not every exercise solution",
+  "lessons": [
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode.md",
+      "source_sha256": "457a77a08b4cbefba7a67e55a77c1ea5bb65c417d0105bfe82fdad386b2b68ee",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/02-chuong-trinh-c-dau-tien.md",
+      "source_sha256": "82fe901044a6f96ac7a8204a138982e8e37fe28c568ae59066cdd6d7a43e3bda",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/03-bien-hang-so-kieu-du-lieu.md",
+      "source_sha256": "fd5722010980375916483a17bc119f01629e6132b08dbd3457fa337216203497",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/04-bo-nho-bien-va-pham-vi.md",
+      "source_sha256": "54b2cc877fdde3c2ee33a2b590ba2e6606f102f3dc005d54dd987606f58151ad",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/05-toan-tu-va-bieu-thuc.md",
+      "source_sha256": "c09309f5399eeddd597120e0002b719113ac66b915c333222c700f90b3b940c5",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/06-nhap-xuat-voi-stdio.md",
+      "source_sha256": "232591634dec510f26f81f359b85f163fc055baf8f1c52f0f1191c11eee83d8d",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/07-dieu-kien-if-switch.md",
+      "source_sha256": "1fdc64a1cad5b7cfab2bcc9dc3972fb1fda58f4d734f396f0dc2986f15526b88",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "input='1\\n': exit=0, contract assertion passed",
+        "input='3\\n': exit=0, contract assertion passed",
+        "input='x\\n': exit=1, contract assertion passed",
+        "input='': exit=1, contract assertion passed"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/08-vong-lap-for-while-do-while.md",
+      "source_sha256": "25823aab84d276abadf7a6df12f66e06dacef09872e0e0f47001aed65405b424",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/09-ham-tham-so-gia-tri-tra-ve.md",
+      "source_sha256": "2d06da0d79d2f3abf295121adcd527b1fb685a1cb79b9097d249c0fbb74fb033",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "boundary/invalid-domain function contracts passed"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham.md",
+      "source_sha256": "ffd6a5ee0138a77a7c7da766df9bbe1851099452c91ffdb035b400fcc083c430",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "boundary/invalid-domain function contracts passed"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/11-mang-mot-chieu.md",
+      "source_sha256": "0f43ec30deb45fd530b95c954f7f11b9c7ed42cda23c2265afe1544cb19d582c",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "boundary/invalid-domain function contracts passed"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/12-mang-hai-chieu.md",
+      "source_sha256": "814d2c40cbb7ec33c29e0b1a6b92ee19fff58cb9690ed51c5cdafebedcb038c0",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "boundary/invalid-domain function contracts passed"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/13-chuoi-ky-tu.md",
+      "source_sha256": "f9681db3a3f5c73ae043aa480ebb0bcfe1acb4653e431af31c9b3d2fe84bbb63",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "input='': exit=1, contract assertion passed",
+        "input='\\n': exit=3, contract assertion passed",
+        "input='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\\n': exit=0, contract assertion passed",
+        "input='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\\n': exit=2, contract assertion passed",
+        "boundary/invalid-domain function contracts passed"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/14-debug-va-kiem-thu-chuong-trinh-c.md",
+      "source_sha256": "68cfad6e16f30d2ff9ebaad0ac34171c108d11525e95c1fa459f3f534d7625d1",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        ">= to > mutation rejected by published assert"
+      ]
+    },
+    {
+      "lesson": "fullstack-roadmap/01-nen-tang-lap-trinh/15-du-an-console-quan-ly-diem.md",
+      "source_sha256": "25e92c3f8792062c5ad0bd5f649cbb864abb24a83c56bd96d5930fff2289b80d",
+      "checks": [
+        "published stdout exactly matches; stderr empty; exit 0",
+        "input='': exit=0, contract assertion passed",
+        "input='1\\nAn\\n8\\n7\\n': exit=0, contract assertion passed",
+        "input='2\\n4\\n': exit=0, contract assertion passed",
+        "input='1\\nStudent0\\n8\\n7\\n9\\n1\\nStudent1\\n8\\n7\\n9\\n1\\nStudent2\\n8\\n7\\n9\\n1\\nStudent3\\n8\\n7\\n9\\n1\\nStudent4\\n8\\n7\\n9\\n1\\n4\\n': exit=0, contract assertion passed",
+        "input='1\\nAn\\n11\\n8\\n7\\n9\\n4\\n': exit=0, contract assertion passed",
+        "input='1\\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\\n4\\n': exit=0, contract assertion passed",
+        "boundary/invalid-domain function contracts passed"
+      ]
+    }
+  ],
+  "failure_labs": [
+    {
+      "lab": "fullstack-roadmap/01-nen-tang-lap-trinh/failure-labs/01-tien-va-chia-nguyen.md",
+      "source_sha256": "f3ab38667fe477dc204b5748fc9a06e87ecdac288925ed793690e9f6911017fd",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/01-nen-tang-lap-trinh/failure-labs/02-sentinel-thanh-diem.md",
+      "source_sha256": "b71a868e88685e82067062455824e5e6d274b56cd28fa71e1a5f8ca7a7d184e0",
+      "documented_failure_reproduced": true
+    },
+    {
+      "lab": "fullstack-roadmap/01-nen-tang-lap-trinh/failure-labs/03-count-vuot-mang.md",
+      "source_sha256": "99e9a6b88de175e3189c0ef4c4b9afeca8a6f482ddb66ea98d5054cf984067c5",
+      "documented_failure_reproduced": true
+    }
+  ]
+}

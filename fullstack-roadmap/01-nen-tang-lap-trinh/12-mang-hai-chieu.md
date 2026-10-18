@@ -1,5 +1,19 @@
 # Mảng hai chiều
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Mảng hai chiều là mảng gồm các row; hai index chọn một phần tử.
+- Dùng cho bảng chữ nhật có ý nghĩa row/column rõ.
+- Bảng vuông dễ che lỗi đảo hai trục; phải kiểm tra biên từng chiều.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một bảng điểm có học sinh theo hàng và môn theo cột. Chọn hàng trước rồi ô trong hàng giống chọn một mảng một chiều rồi chọn phần tử. C giữ các ô của hàng đầu liên tiếp trước khi tới hàng sau.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| row | hàng trong bảng | một học sinh |
+| column | cột trong bảng | một môn |
+| nested loop | vòng lặp nằm trong vòng khác | mỗi row duyệt các column |
+| row-major | lưu trọn một row rồi row kế | layout của mảng C |
+
+### Ví dụ nhỏ — tính tay trước
+
+Bảng [[8,6,10],[4,5,6]] có 2 row, 3 column. [1][2]=6; trung bình row 0 là 8. Đảo [1][2] thành [2][1] sẽ vượt biên dù ví dụ 3×3 có thể che lỗi.
+
 Ba học sinh có điểm ba môn:
 
 ```text
@@ -22,7 +53,9 @@ An:   9 9 8
 
 Ta cần in bảng và trung bình từng học sinh. Dữ liệu có hai trục cố định: row là học sinh, column là môn.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `score_table.c`:
 
@@ -89,7 +122,20 @@ Hoc sinh 3: 9 9 8 | TB 8.67
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main giữ 3 row, mỗi row 3 int.
+2. row=0 truyền scores[0] cùng 3 vào row_average; total=24.0, average=8.0.
+3. Sau khi kiểm tra sentinel, loop column in 8,7,9; hai row sau tương tự.
+4. Duyệt R row × C column làm số lượt đọc tỷ lệ R*C; storage dữ liệu cũng R*C phần tử. Hàm average chỉ giữ total và vị trí hiện tại.
+
+### Mini-check
+
+Để tính tổng từng môn, biến nào cần cố định trong một lượt tính tổng?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Hai index chọn đúng một element
 
@@ -128,7 +174,45 @@ Các element được lưu liên tiếp theo từng row:
 
 Vì vậy loop row ngoài, column trong vừa tự nhiên vừa thường có locality tốt. Chi tiết địa chỉ và phép tính offset thuộc module 02.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| 1D | một trục index | hợp một danh sách; không tự mang ý nghĩa hàng/cột |
+| 2D chữ nhật | mỗi row có cùng số column | hợp bảng điểm; không dùng để ép các row dài khác nhau |
+| Row trước / column trước | cùng dữ liệu, khác thứ tự duyệt | row trước thường gần layout hơn; đo trước khi tối ưu |
+
+### Misconception check
+
+**Đúng hay sai?** Bảng 2×3 có index cuối [2][3].
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: index cuối là [1][2].
+
+</details>
+
+**Đúng hay sai?** Duyệt column trước luôn sai kết quả.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể đúng nếu index và mục tiêu đúng; khác thứ tự truy cập và chi phí.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** hai index và loop.
+
+- **Working Developer — dùng khi làm việc:** contract số cột, test không vuông.
+
+- **Deep Dive — có thể quay lại sau:** layout, locality và giới hạn stack.
 
 ### Khởi tạo theo row
 
@@ -174,7 +258,17 @@ phép chia; caller xử lý sentinel.
 
 Sẽ trộn zero/default vào nghiệp vụ. Duyệt theo count thực.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không ép danh sách có số phần tử mỗi row khác nhau vào bảng chữ nhật nếu phần trống gây lãng phí đáng kể. Với 3 môn cố định, mảng 2D đơn giản nhất. Chưa cần mô hình database chỉ để tính trung bình một bảng nhỏ.
+
+## 8. Production notes & scale check
+
+Demo 9 ô; bảng lớn cần ước lượng bộ nhớ trước khi đặt local lớn trên stack. Team nhỏ dùng test không vuông 2×4 để bắt đảo trục. Khi dữ liệu phải lưu lâu dài và nhiều người sửa, vấn đề vượt khỏi layout mảng; Module 08 sẽ mô hình hóa quan hệ. Không lấy tốc độ của 9 ô để khẳng định hiệu năng bảng lớn.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tổng từng column
 
@@ -200,7 +294,26 @@ In số môn có điểm `>= 5` ở mỗi row.
 
 **Gợi ý:** reset counter khi bắt đầu row mới.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Bảng điểm hiện chỉ dùng trong một lần chạy. Khi sang Module 08, nhu cầu lưu qua lần chạy có bắt buộc đổi công thức trung bình không? Tách quyết định lưu trữ khỏi thuật toán duyệt; chưa cần viết SQL.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Trace average cho row [2,4,9].
+2. Giải thích row-major bằng thứ tự 6 ô của bảng 2×3.
+3. Vì sao test bảng không vuông có giá trị?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi phân biệt row và column.
 - [ ] Tôi truy cập đúng `scores[row][column]`.

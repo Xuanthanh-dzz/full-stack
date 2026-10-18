@@ -1,5 +1,19 @@
 # File I/O
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- File I/O đưa dữ liệu ra khỏi vòng đời process; đọc lại phải kiểm tra format và lỗi từng bước.
+- Dùng file text cho dữ liệu nhỏ, một người ghi, cần mở lại ở lần chạy sau.
+- Mở chế độ w có thể xóa nội dung cũ; parse thành công một phần chưa phải file hợp lệ.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -13,6 +27,24 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Biến giống ghi chú trên bảng sẽ mất khi đóng chương trình; file giống sổ để lần sau đọc lại. Nhưng sổ có thể thiếu dòng, sai chữ hoặc không ghi hết. Chương trình phải kiểm tra cả lúc ghi lẫn lúc đọc thay vì tin file do mình từng tạo.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| stream | đối tượng thư viện quản lý đọc/ghi tuần tự | FILE * |
+| format | quy tắc biểu diễn dữ liệu thành byte | header và trường ngăn bằng dấu `&#124;` |
+| parse | chuyển văn bản theo quy tắc thành giá trị | chuỗi chữ số thành quantity |
+| EOF | đã tới cuối dữ liệu đọc được | khác lỗi đọc ferror |
+| close | kết thúc dùng stream, có thể phát hiện lỗi ghi còn đệm | fclose |
+
+### Ví dụ nhỏ — tính tay trước
+
+File hai dòng: header INV1 rồi BOOK|2|100. Đọc header đúng → tách ba trường → kiểm tra mã → đổi 2 và 100 → mới tạo record. Nếu quantity là 2x, không lấy tiền tố 2 rồi bỏ x.
+
 Danh sách sản phẩm đang mất khi chương trình kết thúc. Ta cần ghi hai sản phẩm vào `inventory.txt`, mở lại, kiểm tra version, parse từng dòng và xóa file demo.
 
 Ta chọn text format:
@@ -25,7 +57,9 @@ PEN-02|20|150
 
 Mỗi dòng sản phẩm có `code|quantity|price_cents`. Code không được chứa dấu `|`; độ dài tối đa là 15 ký tự. Format có header version để loader từ chối dữ liệu không tương thích.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -305,7 +339,20 @@ Da doc 2 san pham
 Da xoa file demo
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main chuẩn bị BOOK-01 và PEN-02 trong memory rồi gọi lưu inventory.txt ở thư mục thử riêng.
+2. Hàm kiểm tra dữ liệu trước fopen(w), ghi header/record và kiểm tra cả fclose.
+3. Hàm đọc dùng buffer dòng hữu hạn, đòi newline và các trường hợp lệ trước đổi số; giá trị quá lớn bị chặn trước tràn.
+4. Đọc xong đóng file và sample xóa file thử. Memory dùng theo buffer/record; cost chủ yếu là số byte I/O và parse, không chỉ số lời gọi fopen.
+
+### Mini-check
+
+File kết thúc giữa một dòng không có newline: sample coi hợp lệ hay lỗi? Vì sao quyết định đó phải nằm trong format contract?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### `FILE *` là handle tới stream
 
@@ -364,11 +411,49 @@ Sau vòng lặp, `ferror(file)` phân biệt lỗi. EOF bình thường không l
 
 ### Dữ liệu `Product` nằm ở đâu
 
-Trong mỗi vòng lặp, `Product product` là object automatic trong stack frame. Parser chỉ ghi member sau khi kiểm tra từng field. Code chỉ in rồi bỏ object; không trả pointer tới nó.
+Trong mỗi vòng lặp, `Product product` là object có automatic storage duration (thường minh họa bằng stack frame, không phải yêu cầu vị trí vật lý). Parser chỉ ghi member sau khi kiểm tra từng field. Code chỉ in rồi bỏ object; không trả pointer tới nó.
 
 File chứa text độc lập với layout/padding của `Product`. Không có pointer hoặc địa chỉ process nào được ghi vào file.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Memory | state trong process | nhanh, mất khi thoát; đủ dữ liệu tạm |
+| File text | state thành byte ngoài process | dễ xem nhưng phải parse/validate; hợp kho nhỏ một writer |
+| Database | hệ quản trị lưu và truy vấn dữ liệu | thêm vận hành; chỉ cân nhắc khi truy vấn/đồng thời và durability có yêu cầu cụ thể |
+
+### Misconception check
+
+**Đúng hay sai?** fgets trả NULL luôn nghĩa là EOF bình thường.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cần phân biệt EOF và lỗi qua trạng thái stream.
+
+</details>
+
+**Đúng hay sai?** Validate trước fopen(w) bảo đảm file cũ không bao giờ mất.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: chỉ ngăn truncate do input biết trước là sai; lỗi ghi sau khi mở vẫn có thể xảy ra.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** mở/đọc/ghi/đóng và kiểm tra kết quả.
+
+- **Working Developer — dùng khi làm việc:** validate format và giới hạn dòng/số.
+
+- **Deep Dive — có thể quay lại sau:** phân tích truncate, partial write và thay file an toàn.
 
 ### Các mode thường gặp
 
@@ -435,7 +520,17 @@ EOF chỉ được đặt sau một lần đọc không lấy được dữ li�
 
 Raw memory layout không phải file contract portable. Serialize field theo format đã định nghĩa.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng raw struct dump khi file phải đọc được qua compiler/phiên bản khác. Không dùng file text một writer làm kho dùng chung nhiều process nếu chưa có cơ chế phối hợp. Với demo, không cần database chỉ để lưu hai dòng.
+
+## 8. Production notes & scale check
+
+Team nhỏ cần test file thiếu, dòng dài, thiếu trường, số tràn và lỗi đóng/ghi. Sample chạy trong thư mục riêng, đường dẫn tin cậy; không tự nhận an toàn với path do người lạ cung cấp. Giữ bản sao file thật trước thử chế độ w; đây chưa phải giao thức lưu chống crash.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Nhật ký text
 
@@ -467,7 +562,23 @@ Thử đọc đường dẫn không tồn tại và ghi vào vị trí không c�
 
 **Gợi ý:** thông báo lỗi đi vào `stderr`.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Capstone điểm Module 01 cần giữ dữ liệu qua lần chạy. Đề xuất header/version và cách từ chối file thiếu điểm cuối; giải thích khác biệt giữa validation trước ghi và bảo vệ dữ liệu cũ khi disk lỗi.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. EOF khác ferror thế nào?
+2. Vì sao phải kiểm tra fclose sau ghi?
+3. Một parser chấp nhận 12x thành 12 gây lỗi contract gì?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi ghép mỗi `fopen` thành công với đúng một `fclose`.
 - [ ] Tôi kiểm tra cả kết quả ghi lẫn `fclose`.

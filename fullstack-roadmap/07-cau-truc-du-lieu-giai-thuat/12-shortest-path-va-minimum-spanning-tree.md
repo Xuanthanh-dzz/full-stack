@@ -4,313 +4,341 @@
 
 Sau bài này, bạn có thể:
 
-- giải thích vì sao đồ thị **có trọng số** cần thuật toán khác BFS để tìm đường rẻ nhất;
-- cài đặt **Dijkstra** tìm đường đi ngắn nhất một nguồn bằng priority queue;
-- cài đặt **Prim** tìm **cây khung nhỏ nhất (MST)** nối mọi đỉnh với tổng trọng số bé nhất;
-- phân biệt hai bài toán: đường rẻ nhất giữa hai đỉnh khác với nối tất cả đỉnh rẻ nhất;
-- nêu giới hạn của Dijkstra (không dùng được với trọng số âm) và biết Bellman-Ford, Kruskal là gì;
-- đọc độ phức tạp `O(E log V)` của cả hai và hiểu vai trò của heap.
+- phân biệt shortest path với minimum spanning tree;
+- cài Dijkstra cho graph có weight không âm;
+- hiểu vai trò của priority queue;
+- phân tích complexity ở mức ứng dụng;
+- mô tả ý tưởng Prim/Kruskal cho MST;
+- nhận ra khi nào hai bài toán có vẻ giống nhưng mục tiêu khác nhau.
 
 ## 2. Bài toán mở đầu
 
-Bài [11](./11-bfs-va-dfs.md), BFS tìm đường **ít cạnh nhất**. Nhưng thực tế cạnh có **chi phí** khác nhau: quãng đường km, giá vé, độ trễ mạng. Đi từ A tới E qua **2 chặng** (A-B-E) có thể tốn 14, trong khi đi **4 chặng** (A-C-B-D-E) chỉ tốn 11. BFS chọn ít chặng, nên chọn sai. Ta cần **Dijkstra** — thuật toán tìm đường **rẻ nhất theo tổng trọng số**.
+Graph đường đi:
 
-Một bài toán họ hàng nhưng khác hẳn: cần rải cáp nối **tất cả** các thành phố sao cho tổng chiều dài cáp nhỏ nhất, không cần biết đường giữa hai thành phố cụ thể. Đó là **minimum spanning tree** — chọn một tập cạnh nối liền mọi đỉnh, không tạo chu trình, tổng trọng số bé nhất. **Prim** giải nó. Cả hai thuật toán đều dựa vào priority queue (bài [08](./08-heap-va-priority-queue.md)) để mỗi bước lấy ra lựa chọn rẻ nhất.
+```text
+A --4-- B
+|      /|
+1     2 5
+|   /   |
+C --1-- D
+```
+
+Hai câu hỏi khác nhau:
+
+1. Từ A tới D, route có tổng cost nhỏ nhất là gì?
+2. Chọn tập edge có tổng cost nhỏ nhất để kết nối tất cả vertex là gì?
+
+Câu 1: shortest path.
+Câu 2: minimum spanning tree.
+
+Không nên dùng cùng một thuật toán chỉ vì cả hai đều nói về “nhỏ nhất”.
 
 ## 3. Lời giải bằng code
 
-Tạo project .NET 9 tên `PathMstDemo` với cấu hình `.csproj` chuẩn của module, rồi thay `Program.cs`:
+```bash
+mkdir DijkstraDemo
+cd DijkstraDemo
+dotnet new console --framework net9.0 --use-program-main
+```
+
+`Program.cs`:
 
 ```csharp
-namespace PathMstDemo;
+namespace DijkstraDemo;
+
+public sealed record Edge(string To, int Weight);
 
 internal static class Program
 {
+    private static readonly Dictionary<string, Edge[]> Graph = new()
+    {
+        ["A"] = [new("B", 4), new("C", 1)],
+        ["B"] = [new("A", 4), new("C", 2), new("D", 5)],
+        ["C"] = [new("A", 1), new("B", 2), new("D", 1)],
+        ["D"] = [new("B", 5), new("C", 1)]
+    };
+
     private static void Main()
     {
-        var g = new WeightedGraph();
-        // (u, v, trọng số) — khoảng cách giữa các thành phố
-        g.AddEdge("A", "B", 4);
-        g.AddEdge("A", "C", 1);
-        g.AddEdge("C", "B", 2);
-        g.AddEdge("B", "D", 5);
-        g.AddEdge("C", "D", 8);
-        g.AddEdge("D", "E", 3);
-        g.AddEdge("B", "E", 10);
+        (int distance, IReadOnlyList<string> path) =
+            ShortestPath("A", "D");
 
-        Console.WriteLine("== Dijkstra: đường đi RẺ NHẤT từ A (theo trọng số) ==");
-        var (dist, prev) = g.Dijkstra("A");
-        foreach (var kv in dist.OrderBy(k => k.Key))
-        {
-            Console.WriteLine($"  A -> {kv.Key}: chi phí {kv.Value}");
-        }
-        Console.WriteLine($"Đường A -> E: {string.Join(" -> ", WeightedGraph.BuildPath(prev, "A", "E"))}");
-        Console.WriteLine("(BFS chỉ đếm số cạnh, sẽ chọn A-B-E = 2 cạnh nhưng chi phí 14)");
-
-        Console.WriteLine();
-        Console.WriteLine("== Prim: cây khung nhỏ nhất (MST) nối mọi thành phố ==");
-        var (edges, total) = g.PrimMst("A");
-        foreach (var e in edges)
-        {
-            Console.WriteLine($"  {e.U} - {e.V} (trọng số {e.Weight})");
-        }
-        Console.WriteLine($"Tổng trọng số MST = {total}");
-    }
-}
-
-internal sealed class WeightedGraph
-{
-    private readonly Dictionary<string, List<(string To, int Weight)>> _adj = new();
-
-    public void AddEdge(string u, string v, int weight)
-    {
-        Add(u); Add(v);
-        _adj[u].Add((v, weight));
-        _adj[v].Add((u, weight)); // vô hướng
+        Console.WriteLine($"Distance = {distance}");
+        Console.WriteLine($"Path = {string.Join(" -> ", path)}");
     }
 
-    private void Add(string v)
+    private static (int Distance, IReadOnlyList<string> Path)
+        ShortestPath(string start, string target)
     {
-        if (!_adj.ContainsKey(v)) _adj[v] = new List<(string, int)>();
-    }
+        var distances = Graph.Keys.ToDictionary(
+            vertex => vertex,
+            _ => int.MaxValue);
 
-    // Dijkstra: dùng priority queue lấy đỉnh có chi phí tạm nhỏ nhất.
-    public (Dictionary<string, int> Dist, Dictionary<string, string> Prev) Dijkstra(string source)
-    {
-        var dist = new Dictionary<string, int>();
-        var prev = new Dictionary<string, string>();
-        foreach (string v in _adj.Keys) dist[v] = int.MaxValue;
-        dist[source] = 0;
+        var previous = new Dictionary<string, string?>();
+        var queue = new PriorityQueue<string, int>();
 
-        var pq = new PriorityQueue<string, int>();
-        pq.Enqueue(source, 0);
+        distances[start] = 0;
+        previous[start] = null;
+        queue.Enqueue(start, 0);
 
-        while (pq.TryDequeue(out string? u, out int d))
+        while (queue.TryDequeue(
+            out string? current,
+            out int queuedDistance))
         {
-            if (d > dist[u]) continue; // bản cũ đã lỗi thời, bỏ qua
-            foreach (var (to, w) in _adj[u])
+            if (queuedDistance != distances[current])
             {
-                int nd = d + w; // chi phí đi qua u tới to
-                if (nd < dist[to])
+                continue;
+            }
+
+            if (current == target)
+            {
+                break;
+            }
+
+            foreach (Edge edge in Graph[current])
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(edge.Weight);
+
+                int candidate = checked(queuedDistance + edge.Weight);
+
+                if (candidate >= distances[edge.To])
                 {
-                    dist[to] = nd;   // tìm được đường rẻ hơn
-                    prev[to] = u;
-                    pq.Enqueue(to, nd);
+                    continue;
                 }
+
+                distances[edge.To] = candidate;
+                previous[edge.To] = current;
+                queue.Enqueue(edge.To, candidate);
             }
         }
-        return (dist, prev);
-    }
 
-    public static List<string> BuildPath(Dictionary<string, string> prev, string source, string goal)
-    {
+        if (distances[target] == int.MaxValue)
+        {
+            return (int.MaxValue, []);
+        }
+
         var path = new List<string>();
-        string? node = goal;
-        while (node is not null)
+
+        for (string? current = target;
+             current is not null;
+             current = previous[current])
         {
-            path.Add(node);
-            if (node == source) break;
-            node = prev.TryGetValue(node, out var p) ? p : null;
+            path.Add(current);
         }
+
         path.Reverse();
-        return path;
-    }
-
-    // Prim: mọc cây khung từ một đỉnh, mỗi bước thêm cạnh rẻ nhất ra ngoài cây.
-    public (List<(string U, string V, int Weight)> Edges, int Total) PrimMst(string start)
-    {
-        var inTree = new HashSet<string> { start };
-        var result = new List<(string, string, int)>();
-        int total = 0;
-
-        // pq chứa các cạnh biên (trọng số, từ, tới)
-        var pq = new PriorityQueue<(string From, string To), int>();
-        foreach (var (to, w) in _adj[start]) pq.Enqueue((start, to), w);
-
-        while (pq.TryDequeue(out var edge, out int w) && inTree.Count < _adj.Count)
-        {
-            if (inTree.Contains(edge.To)) continue; // đã trong cây -> bỏ (tránh chu trình)
-            inTree.Add(edge.To);
-            result.Add((edge.From, edge.To, w));
-            total += w;
-            foreach (var (to, nw) in _adj[edge.To])
-            {
-                if (!inTree.Contains(to)) pq.Enqueue((edge.To, to), nw);
-            }
-        }
-        return (result, total);
+        return (distances[target], path);
     }
 }
 ```
 
-Build và chạy (`dotnet build -c Release` rồi `dotnet run -c Release --no-build`). Kết quả:
+Output:
 
 ```text
-== Dijkstra: đường đi RẺ NHẤT từ A (theo trọng số) ==
-  A -> A: chi phí 0
-  A -> B: chi phí 3
-  A -> C: chi phí 1
-  A -> D: chi phí 8
-  A -> E: chi phí 11
-Đường A -> E: A -> C -> B -> D -> E
-(BFS chỉ đếm số cạnh, sẽ chọn A-B-E = 2 cạnh nhưng chi phí 14)
-
-== Prim: cây khung nhỏ nhất (MST) nối mọi thành phố ==
-  A - C (trọng số 1)
-  C - B (trọng số 2)
-  B - D (trọng số 5)
-  D - E (trọng số 3)
-Tổng trọng số MST = 11
+Distance = 2
+Path = A -> C -> D
 ```
 
 ## 4. Giải thích cơ chế
 
-Đồ thị có trọng số trong bài:
+### Relaxation
+
+Giả sử đã biết:
 
 ```text
-        4
-   A -------- B
-   |  \      /|  \
-  1|   \    / |   \10
-   |    (2)   |5   \
-   C ---------+     E
-    \    8    |    /
-     \--------D---/
-              3
-   (A-C:1, A-B:4, C-B:2, B-D:5, C-D:8, D-E:3, B-E:10)
+distance[A] = 0
 ```
 
-### 4.1 Dijkstra: luôn mở rộng đỉnh rẻ nhất trước
+Edge:
 
-Ý tưởng: giữ một `dist[v]` = chi phí rẻ nhất **đã biết** để tới `v` (khởi tạo vô cực, nguồn = 0). Dùng priority queue lấy ra đỉnh có `dist` nhỏ nhất, rồi thử **nới lỏng (relax)** các cạnh của nó: nếu đi qua `u` tới `to` rẻ hơn `dist[to]` hiện tại thì cập nhật.
+```text
+A --1--> C
+```
 
-Theo dõi từ A:
-- Lấy A (0). Nới các cạnh: C = 1, B = 4.
-- Lấy C (1, rẻ nhất). Nới: B = min(4, 1+2) = **3** (đường A-C-B rẻ hơn A-B trực tiếp!), D = 1+8 = 9.
-- Lấy B (3). Nới: D = min(9, 3+5) = **8**, E = 3+10 = 13.
-- Lấy D (8). Nới: E = min(13, 8+3) = **11**.
-- Lấy E (11). Xong.
+candidate:
 
-Kết quả `A→E = 11` qua `A-C-B-D-E` — đúng 4 cạnh nhưng **rẻ hơn** đường 2 cạnh A-B-E (chi phí 14). Đây chính là điều BFS không làm được.
+```text
+0 + 1 = 1
+```
 
-**Vì sao đúng:** khi một đỉnh được lấy ra khỏi PQ, chi phí của nó đã là nhỏ nhất có thể — vì mọi đường khác tới nó phải đi qua một đỉnh có chi phí lớn hơn (đã hoặc sẽ lấy ra sau). Đây là bản chất "tham lam" của Dijkstra, và nó chỉ đúng khi **trọng số không âm**.
+Nếu nhỏ hơn distance hiện tại của C, update:
 
-### 4.2 Xử lý "bản cũ lỗi thời" trong PQ
+```text
+distance[C] = 1
+previous[C] = A
+```
 
-`PriorityQueue` của .NET không hỗ trợ "giảm khóa" một phần tử đang trong hàng. Nên khi tìm được đường rẻ hơn tới `to`, ta chỉ **enqueue thêm** một bản mới với chi phí nhỏ hơn — bản cũ vẫn nằm đó. Câu `if (d > dist[u]) continue;` bỏ qua bản cũ khi nó được lấy ra: nếu chi phí lấy ra lớn hơn `dist[u]` đã biết, đó là bản lỗi thời. Đây là mẫu chuẩn khi cài Dijkstra bằng binary heap.
+Quá trình này gọi là relaxation.
 
-### 4.3 Prim: mọc cây khung, luôn thêm cạnh rẻ nhất ra ngoài
+### Priority queue
 
-MST là bài toán **khác**: không tìm đường giữa hai đỉnh, mà chọn tập cạnh **nối liền tất cả** đỉnh với tổng trọng số nhỏ nhất, không chu trình. Prim mọc dần từ một đỉnh:
+Ta luôn muốn xử lý vertex có distance nhỏ nhất hiện biết.
 
-- Bắt đầu cây = {A}. Cạnh biên: A-B(4), A-C(1).
-- Lấy cạnh rẻ nhất ra ngoài cây: **A-C(1)**. Cây = {A, C}. Thêm cạnh biên của C: C-B(2), C-D(8).
-- Rẻ nhất: **C-B(2)**. Cây = {A, C, B}. Thêm B-D(5), B-E(10).
-- Rẻ nhất: **B-D(5)**. Cây = {A, C, B, D}. Thêm D-E(3).
-- Rẻ nhất: **D-E(3)**. Cây đủ 5 đỉnh. Dừng.
+Priority queue cung cấp:
 
-Tổng = 1+2+5+3 = **11** với các cạnh A-C, C-B, B-D, D-E. Câu `if (inTree.Contains(edge.To)) continue;` bỏ các cạnh dẫn vào đỉnh đã ở trong cây — tránh tạo chu trình.
+```text
+dequeue min distance
+```
 
-### 4.4 Hai bài toán, đừng nhầm
+hiệu quả hơn việc scan toàn bộ vertex mỗi vòng.
 
-- **Shortest path (Dijkstra):** rẻ nhất **từ một nguồn tới các đỉnh**. Kết quả là cây đường đi ngắn nhất, tối ưu cho *khoảng cách từ nguồn*.
-- **MST (Prim):** rẻ nhất để **nối tất cả**. Kết quả tối ưu cho *tổng chi phí kết nối*, không quan tâm đường giữa hai điểm cụ thể ngắn hay dài.
+### Entry cũ trong priority queue
 
-Cùng đồ thị, hai cây kết quả có thể khác nhau. Đây là hai câu hỏi khác nhau — chọn nhầm thuật toán cho câu hỏi sai.
+.NET `PriorityQueue` không có decrease-key trực tiếp.
 
-### Đào sâu (có thể quay lại sau)
+Ta có thể enqueue lại cùng vertex với priority tốt hơn.
 
-- **Độ phức tạp.** Cả Dijkstra lẫn Prim với binary heap là `O(E log V)`: mỗi cạnh có thể đẩy một mục vào PQ (`log V` mỗi thao tác), và ta xét mỗi cạnh một lần. Với heap Fibonacci, Dijkstra xuống `O(E + V log V)` về lý thuyết, nhưng binary heap thực tế thường nhanh hơn vì hằng số nhỏ.
-- **Trọng số âm.** Dijkstra **sai** khi có cạnh trọng số âm (giả định "đã lấy ra là tối ưu" đổ vỡ). Dùng **Bellman-Ford** (`O(V·E)`), thuật toán này còn phát hiện được chu trình âm.
-- **Kruskal cho MST.** Cách khác để tìm MST: sắp mọi cạnh theo trọng số tăng dần, thêm lần lượt cạnh nào không tạo chu trình (kiểm tra bằng cấu trúc union-find / disjoint set). Kruskal hợp với đồ thị thưa; Prim hợp khi bắt đầu từ một đỉnh và đồ thị dày.
-- **All-pairs.** Cần đường ngắn nhất giữa **mọi cặp** đỉnh: chạy Dijkstra từ mỗi đỉnh, hoặc dùng **Floyd-Warshall** `O(V^3)` trên adjacency matrix — gọn khi `V` nhỏ.
+Khi dequeue entry cũ:
+
+```csharp
+if (queuedDistance != distances[current])
+{
+    continue;
+}
+```
+
+thì bỏ qua.
+
+### Vì sao Dijkstra không dùng negative edge
+
+Giả định cốt lõi:
+
+> Khi vertex có distance nhỏ nhất được lấy ra, không có đường đi sau này dùng edge không âm để làm nó tốt hơn.
+
+Negative edge phá giả định này.
+
+Graph có negative weight cần thuật toán khác như Bellman-Ford trong bài toán phù hợp.
 
 ## 5. Kiến thức nền
 
-### Vì sao priority queue là trái tim của cả hai
+### Complexity Dijkstra
 
-Cả Dijkstra và Prim đều là thuật toán **tham lam**: mỗi bước chọn phương án rẻ nhất hiện có. "Lấy phần tử rẻ nhất, thêm phần tử mới" lặp đi lặp lại chính là hợp đồng của priority queue. Không có heap, mỗi bước phải quét tuyến tính để tìm min — biến thuật toán thành `O(V^2)` thay vì `O(E log V)`. Đây là ví dụ điển hình cấu trúc dữ liệu quyết định độ phức tạp thuật toán.
+Với adjacency list + binary heap priority queue, thường mô tả:
 
-### Bảng chọn thuật toán
+```text
+O((V + E) log V)
+```
 
-| Bài toán | Thuật toán | Điều kiện |
-|---|---|---|
-| Ít cạnh nhất (không trọng số) | BFS | trọng số đều nhau |
-| Rẻ nhất, một nguồn | Dijkstra | trọng số **không âm** |
-| Rẻ nhất, có trọng số âm | Bellman-Ford | phát hiện chu trình âm |
-| Rẻ nhất mọi cặp | Floyd-Warshall | `V` nhỏ |
-| Nối tất cả rẻ nhất (MST) | Prim / Kruskal | đồ thị liên thông |
+hoặc gần:
 
-### Ứng dụng thực tế
+```text
+O(E log V)
+```
 
-- Dijkstra: định tuyến bản đồ (Google Maps), định tuyến gói tin mạng, tìm chuỗi thao tác rẻ nhất.
-- MST: thiết kế mạng lưới (điện, cáp, ống) chi phí thấp nhất, phân cụm dữ liệu, xấp xỉ bài toán người bán hàng.
+trong graph connected thông thường.
+
+### Minimum spanning tree
+
+MST áp dụng cho weighted undirected connected graph.
+
+Mục tiêu:
+
+```text
+kết nối mọi vertex
++
+không cycle
++
+tổng weight nhỏ nhất
+```
+
+Một spanning tree với `V` vertex luôn có:
+
+```text
+V - 1 edges
+```
+
+### Prim
+
+Ý tưởng:
+
+1. bắt đầu từ một vertex;
+2. luôn chọn edge rẻ nhất nối tree hiện tại tới vertex chưa vào tree;
+3. lặp tới khi đủ vertex.
+
+Priority queue rất phù hợp.
+
+### Kruskal
+
+Ý tưởng:
+
+1. sort edge theo weight;
+2. lấy edge rẻ nhất nếu nó không tạo cycle;
+3. dùng Disjoint Set Union để kiểm tra component;
+4. dừng khi có `V - 1` edge.
 
 ## 6. Lỗi thường gặp
 
-### Dùng Dijkstra với trọng số âm
+### Dùng Dijkstra với weight âm
 
-Đây là lỗi cơ bản: Dijkstra cho kết quả sai (không phải chậm) khi có cạnh âm. Nếu dữ liệu có thể âm (ví dụ khuyến mãi làm chi phí âm), dùng Bellman-Ford.
+Kết quả có thể sai dù code chạy.
 
-### Quên xử lý bản cũ trong PQ
+### Nhầm MST với shortest path tree
 
-Không có câu `if (d > dist[u]) continue;`, thuật toán vẫn ra kết quả đúng nhưng xử lý lại các đỉnh đã tối ưu, chậm hơn. Với đồ thị lớn, bỏ bước này gây phí đáng kể.
+MST tối thiểu tổng chi phí toàn mạng.
+Shortest-path tree tối thiểu đường từ một source tới từng node.
 
-### Nhầm shortest path với MST
+Hai objective khác nhau.
 
-Chạy Prim khi cần đường từ A tới E, hoặc chạy Dijkstra khi cần nối tất cả — cho ra đáp án cho câu hỏi khác. Xác định rõ câu hỏi trước khi chọn thuật toán.
+### Overflow distance
 
-### Thêm cạnh tạo chu trình trong Prim
+Nếu weight lớn và cộng vào `int.MaxValue`, có thể overflow.
 
-Quên kiểm tra `inTree.Contains(edge.To)` khiến cây khung có chu trình và sai. Cạnh chỉ hợp lệ khi nối một đỉnh **trong** cây với một đỉnh **ngoài** cây.
+Sample chỉ cộng từ distance đã được dequeue hợp lệ và dùng `checked`.
 
-### Khởi tạo khoảng cách sai
+### Không xử lý graph disconnected
 
-`dist` phải khởi tạo vô cực (`int.MaxValue`) cho mọi đỉnh trừ nguồn (0). Quên khởi tạo, hoặc cộng vào `int.MaxValue` gây tràn số — nên kiểm tra trước khi cộng nếu dùng sentinel lớn.
+Dijkstra có thể không tới target.
+MST trên graph disconnected tạo minimum spanning forest, không phải một tree duy nhất.
 
 ## 7. Bài tập
 
-### Bài 1 — In đường đi tới mọi đỉnh
+### Bài 1 — All distances
 
-Dùng `prev` từ Dijkstra để in đường đi rẻ nhất từ A tới **từng** đỉnh, kèm tổng chi phí.
+Sửa Dijkstra trả distance từ source tới mọi vertex.
 
-**Gợi ý:** gọi `BuildPath(prev, "A", đích)` cho mỗi đích; kết quả khớp cột chi phí trong output.
+### Bài 2 — Unreachable
 
-### Bài 2 — Đếm số cạnh được relax
+Thêm vertex E không nối cạnh và kiểm tra result.
 
-Thêm bộ đếm mỗi lần một cạnh làm giảm `dist[to]`. Quan sát con số này thay đổi thế nào khi đổi thứ tự thêm cạnh.
+### Bài 3 — Prim
 
-**Gợi ý:** số lần relax thành công cho thấy thuật toán "sửa" ước lượng bao nhiêu lần trước khi ổn định.
+Cài Prim bằng priority queue.
 
-### Bài 3 — MST bằng Kruskal
+### Bài 4 — Kruskal concept
 
-Cài Kruskal: sắp mọi cạnh tăng dần theo trọng số, thêm cạnh nào không tạo chu trình. So tổng trọng số với Prim (phải bằng nhau: 11).
+Mô tả DSU cần hai operation:
 
-**Gợi ý:** cần cấu trúc union-find để kiểm tra hai đỉnh đã cùng một thành phần chưa; nếu chưa, thêm cạnh và hợp nhất.
+```text
+Find
+Union
+```
 
-### Bài 4 — Dijkstra có đích, dừng sớm
+và vì sao nó phát hiện cycle.
 
-Sửa Dijkstra để dừng ngay khi lấy được đỉnh đích ra khỏi PQ, thay vì xử lý hết. Giải thích vì sao dừng sớm vẫn cho đường tới đích đúng.
+### Bài 5 — Chọn thuật toán
 
-**Gợi ý:** khi đích được lấy ra, chi phí của nó đã tối ưu; các đỉnh chưa xử lý không thể làm nó rẻ hơn.
+Chọn:
 
-### Bài 5 — So sánh với BFS
+- BFS;
+- Dijkstra;
+- MST
 
-Trên đồ thị trong bài, chạy BFS (coi mọi cạnh trọng số 1) tìm đường A→E rồi so với Dijkstra. Giải thích vì sao hai đường khác nhau.
+cho ba bài toán:
 
-**Gợi ý:** BFS tối ưu số cạnh (A-B-E, 2 cạnh), Dijkstra tối ưu tổng trọng số (A-C-B-D-E, chi phí 11); hai mục tiêu khác nhau.
+1. ít bước nhất trong maze;
+2. route rẻ nhất với toll khác nhau;
+3. nối các chi nhánh bằng cáp với tổng chi phí thấp nhất.
 
 ## 8. Checklist tự đánh giá và điều hướng
 
-- [ ] Tôi giải thích được vì sao BFS không đủ cho đồ thị có trọng số.
-- [ ] Tôi cài được Dijkstra bằng priority queue và xử lý bản cũ lỗi thời.
-- [ ] Tôi cài được Prim và tránh chu trình khi mọc cây khung.
-- [ ] Tôi phân biệt rõ shortest path và minimum spanning tree.
-- [ ] Tôi biết Dijkstra sai với trọng số âm và Bellman-Ford/Kruskal là gì.
-- [ ] Tôi hiểu vì sao heap khiến cả hai đạt `O(E log V)`.
+- [ ] Tôi phân biệt shortest path và MST.
+- [ ] Tôi hiểu relaxation.
+- [ ] Tôi biết Dijkstra cần weight không âm.
+- [ ] Tôi hiểu priority queue giúp chọn distance nhỏ nhất.
+- [ ] Tôi mô tả được ý tưởng Prim và Kruskal.
+- [ ] Tôi không nhầm shortest-path tree với MST.
 
 Điều hướng:
 
-- Bài prerequisite: [BFS và DFS](./11-bfs-va-dfs.md)
-- Ôn lại nền tảng: [Heap và priority queue](./08-heap-va-priority-queue.md), [Graph và cách biểu diễn](./10-graph-va-cach-bieu-dien.md)
+- Bài trước: [BFS và DFS](./11-bfs-va-dfs.md)
 - Bài tiếp theo: [Sorting](./13-sorting.md)

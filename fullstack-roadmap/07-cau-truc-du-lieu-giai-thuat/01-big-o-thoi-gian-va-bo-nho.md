@@ -1,31 +1,53 @@
-# Big-O về thời gian và bộ nhớ
+# Big-O: thời gian và bộ nhớ
 
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
 
-- giải thích vì sao ta đo thuật toán bằng **tốc độ tăng của số thao tác** thay vì bằng giây đồng hồ;
-- đọc và gọi tên các lớp độ phức tạp thường gặp: `O(1)`, `O(log n)`, `O(n)`, `O(n log n)`, `O(n^2)`, `O(2^n)`;
-- suy ra độ phức tạp thời gian của một đoạn code từ vòng lặp và lời gọi bên trong;
-- phân biệt độ phức tạp **thời gian** và **bộ nhớ (space)**, biết thế nào là in-place;
-- chọn giữa duyệt tuyến tính và cấu trúc tra cứu như `HashSet<T>` dựa trên độ phức tạp;
-- hiểu ý nghĩa của worst case, average case và vì sao hằng số bị bỏ qua trong Big-O.
+- giải thích Big-O dùng để mô tả tốc độ tăng của chi phí khi input lớn dần, không phải để đo số mili-giây cụ thể;
+- phân biệt (O(1)), (O(log n)), (O(n)), (O(n log n)), (O(n^2));
+- phân tích time complexity của vòng lặp, vòng lặp lồng nhau và các thao tác collection quen thuộc;
+- phân biệt worst case, average case và best case khi điều đó có ý nghĩa;
+- phân biệt time complexity với space complexity;
+- nhận ra khi nào một thuật toán có cùng Big-O nhưng vẫn khác nhau đáng kể trong thực tế;
+- dùng `Stopwatch` để kiểm chứng xu hướng tăng, nhưng không nhầm benchmark nhỏ với bằng chứng tuyệt đối.
 
 ## 2. Bài toán mở đầu
 
-Bạn có một danh sách mã đơn hàng và cần trả lời một câu hỏi tưởng như đơn giản: *danh sách này có mã nào bị trùng không?*
+Một hệ thống cần kiểm tra một mã sản phẩm có tồn tại trong kho hay không.
 
-Cách đầu tiên ai cũng nghĩ ra: so từng mã với mọi mã còn lại. Với 7 phần tử thì nhanh. Nhưng khi danh sách lên 100.000 mã, cách so từng cặp phải thực hiện khoảng **5 tỉ** phép so sánh, còn cách dùng một `HashSet<T>` (đã học ở [module 04](../04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack.md)) chỉ cần duyệt qua mỗi mã đúng một lần.
+Cách thứ nhất dùng `List<string>`:
 
-Nếu chỉ đo bằng đồng hồ trên máy của mình, kết quả phụ thuộc CPU, tải hệ thống, cách JIT tối ưu — chạy lại lần khác đã ra số khác. Ta cần một cách mô tả *bản chất* của thuật toán, không phụ thuộc máy: khi dữ liệu lớn gấp đôi thì công việc tăng bao nhiêu lần? Đó chính là Big-O.
+```csharp
+bool exists = productCodes.Contains(target);
+```
+
+Cách thứ hai dùng `HashSet<string>`:
+
+```csharp
+bool exists = productCodeSet.Contains(target);
+```
+
+Hai dòng code gần như giống nhau. Với 10 phần tử, người dùng khó nhận ra khác biệt. Với hàng triệu phần tử và hàng nghìn lần tra cứu, lựa chọn cấu trúc dữ liệu bắt đầu ảnh hưởng trực tiếp tới latency và chi phí CPU.
+
+Câu hỏi quan trọng không phải chỉ là:
+
+> Đoạn code này mất bao nhiêu mili-giây trên máy của tôi?
+
+Mà còn là:
+
+> Khi số phần tử tăng gấp 10 lần, lượng công việc tăng như thế nào?
+
+Big-O cung cấp ngôn ngữ để trả lời câu hỏi thứ hai.
 
 ## 3. Lời giải bằng code
 
-Tạo project .NET 9:
+Tạo project:
 
 ```bash
-dotnet new console --name BigODemo --framework net9.0 --use-program-main
+mkdir BigODemo
 cd BigODemo
+dotnet new console --framework net9.0 --use-program-main
 ```
 
 Thay `BigODemo.csproj` bằng:
@@ -42,93 +64,104 @@ Thay `BigODemo.csproj` bằng:
 </Project>
 ```
 
-Thay `Program.cs` bằng:
+Thay toàn bộ `Program.cs`:
 
 ```csharp
+using System.Diagnostics;
+
 namespace BigODemo;
 
 internal static class Program
 {
     private static void Main()
     {
-        Console.WriteLine("== Số phép tính cơ bản khi n tăng ==");
-        Console.WriteLine($"{"n",6} | {"O(1)",6} | {"O(log n)",9} | {"O(n)",7} | {"O(n log n)",11} | {"O(n^2)",9}");
-        Console.WriteLine(new string('-', 62));
-        foreach (int n in new[] { 8, 16, 32, 64, 1000 })
+        int[] sizes = [1_000, 10_000, 100_000];
+
+        foreach (int size in sizes)
         {
-            long constant = CountConstant(n);
-            long log = CountLog(n);
-            long linear = CountLinear(n);
-            long linearithmic = CountLinearithmic(n);
-            long quadratic = CountQuadratic(n);
+            int[] values = Enumerable.Range(0, size).ToArray();
+            int missingValue = -1;
+
+            long linearOperations = LinearSearch(values, missingValue);
+            long pairOperations = EstimateOrderedPairOperations(size);
+
             Console.WriteLine(
-                $"{n,6} | {constant,6} | {log,9} | {linear,7} | {linearithmic,11} | {quadratic,9}");
+                $"n={size:N0}: linear={linearOperations:N0}, pairs={pairOperations:N0}");
         }
 
         Console.WriteLine();
-        Console.WriteLine("== Tìm phần tử trùng: O(n^2) so với O(n) ==");
-        int[] data = { 4, 9, 2, 7, 9, 1, 5 };
-        bool dupPairwise = HasDuplicatePairwise(data, out long opsPairwise);
-        bool dupHashSet = HasDuplicateHashSet(data, out long opsHashSet);
-        Console.WriteLine($"Mảng: [{string.Join(", ", data)}]");
-        Console.WriteLine($"Pairwise  -> trùng = {dupPairwise}, số lần so sánh = {opsPairwise}");
-        Console.WriteLine($"HashSet   -> trùng = {dupHashSet}, số phần tử đã xét = {opsHashSet}");
+        CompareLookupStructures(50_000, 200);
     }
 
-    // O(1): luôn 1 thao tác, không phụ thuộc n.
-    private static long CountConstant(int n) => 1;
-
-    // O(log n): đếm số lần chia đôi n cho tới 1.
-    private static long CountLog(int n)
+    private static long LinearSearch(int[] values, int target)
     {
-        long steps = 0;
-        while (n > 1)
+        long operations = 0;
+
+        foreach (int value in values)
         {
-            n /= 2;
-            steps++;
-        }
-        return steps;
-    }
+            operations++;
 
-    // O(n): duyệt qua từng phần tử một lần.
-    private static long CountLinear(int n) => n;
-
-    // O(n log n): mỗi phần tử làm một vòng chia đôi.
-    private static long CountLinearithmic(int n) => (long)n * CountLog(n);
-
-    // O(n^2): xét mọi cặp (i, j) với i < j.
-    private static long CountQuadratic(int n) => (long)n * (n - 1) / 2;
-
-    private static bool HasDuplicatePairwise(int[] data, out long ops)
-    {
-        ops = 0;
-        for (int i = 0; i < data.Length; i++)
-        {
-            for (int j = i + 1; j < data.Length; j++)
+            if (value == target)
             {
-                ops++;
-                if (data[i] == data[j])
+                break;
+            }
+        }
+
+        return operations;
+    }
+
+    private static long EstimateOrderedPairOperations(int count)
+    {
+        // Một cặp vòng lặp n x n sẽ thực hiện n² lượt.
+        // Ta tính số lượt bằng công thức để demo không cố chạy
+        // hàng tỷ vòng lặp trên input lớn.
+        return checked((long)count * count);
+    }
+
+    private static void CompareLookupStructures(int itemCount, int lookupCount)
+    {
+        string[] codes = Enumerable.Range(0, itemCount)
+            .Select(i => $"SKU-{i:D8}")
+            .ToArray();
+
+        var list = new List<string>(codes);
+        var set = new HashSet<string>(codes, StringComparer.Ordinal);
+
+        string missing = "SKU-MISSING";
+
+        TimeSpan listElapsed = Measure(
+            () =>
+            {
+                for (int i = 0; i < lookupCount; i++)
                 {
-                    return true;
+                    _ = list.Contains(missing);
                 }
-            }
-        }
-        return false;
+            });
+
+        TimeSpan setElapsed = Measure(
+            () =>
+            {
+                for (int i = 0; i < lookupCount; i++)
+                {
+                    _ = set.Contains(missing);
+                }
+            });
+
+        Console.WriteLine($"List.Contains : {listElapsed.TotalMilliseconds:N1} ms");
+        Console.WriteLine($"HashSet.Contains: {setElapsed.TotalMilliseconds:N1} ms");
+        Console.WriteLine("Do not compare these milliseconds across different machines.");
     }
 
-    private static bool HasDuplicateHashSet(int[] data, out long ops)
+    private static TimeSpan Measure(Action action)
     {
-        ops = 0;
-        var seen = new HashSet<int>();
-        foreach (int value in data)
-        {
-            ops++;
-            if (!seen.Add(value))
-            {
-                return true;
-            }
-        }
-        return false;
+        // Warm-up để giảm ảnh hưởng của JIT cho ví dụ nhỏ này.
+        action();
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        action();
+        stopwatch.Stop();
+
+        return stopwatch.Elapsed;
     }
 }
 ```
@@ -136,177 +169,416 @@ internal static class Program
 Build và chạy:
 
 ```bash
-dotnet build --configuration Release
-dotnet run --configuration Release --no-build
+dotnet build
+dotnet run --no-build
 ```
 
-Kết quả:
+Ba dòng đầu có tính xác định. Cột `pairs` là số lượt mà một cặp vòng lặp `n × n` sẽ phải thực hiện; sample tính bằng công thức thay vì cố chạy hàng tỷ vòng lặp:
 
 ```text
-== Số phép tính cơ bản khi n tăng ==
-     n |   O(1) |  O(log n) |    O(n) |  O(n log n) |    O(n^2)
---------------------------------------------------------------
-     8 |      1 |         3 |       8 |          24 |        28
-    16 |      1 |         4 |      16 |          64 |       120
-    32 |      1 |         5 |      32 |         160 |       496
-    64 |      1 |         6 |      64 |         384 |      2016
-  1000 |      1 |         9 |    1000 |        9000 |    499500
-
-== Tìm phần tử trùng: O(n^2) so với O(n) ==
-Mảng: [4, 9, 2, 7, 9, 1, 5]
-Pairwise  -> trùng = True, số lần so sánh = 9
-HashSet   -> trùng = True, số phần tử đã xét = 5
+n=1,000: linear=1,000, pairs=1,000,000
+n=10,000: linear=10,000, pairs=100,000,000
+n=100,000: linear=100,000, pairs=10,000,000,000
 ```
+
+Hai dòng thời gian ở cuối phụ thuộc máy, runtime, tải hệ thống và nhiều yếu tố khác. Điều cần quan sát là `List.Contains` phải quét tuyến tính trong trường hợp không tìm thấy, còn `HashSet.Contains` thường có chi phí trung bình gần hằng số.
+
+> **Lưu ý:** đây là demo để nhìn xu hướng, không phải benchmark production. Khi cần benchmark nghiêm túc, dùng công cụ chuyên dụng như BenchmarkDotNet ở module hiệu năng.
 
 ## 4. Giải thích cơ chế
 
-### 4.1 Đếm thao tác, không đếm giây
+### Big-O bỏ qua hằng số và tập trung vào tốc độ tăng
 
-Mỗi hàm `Count...` trả về **số thao tác cơ bản** mà thuật toán tương ứng phải làm với đầu vào cỡ `n`. Đây chính là điều Big-O quan tâm. Nhìn cột theo chiều dọc khi `n` đi từ 8 lên 16 (gấp đôi):
+Giả sử hai thuật toán có số phép toán gần đúng:
 
-- `O(1)` giữ nguyên `1` — không phụ thuộc `n`.
-- `O(log n)` chỉ tăng thêm `1` (từ 3 lên 4) — mỗi lần `n` gấp đôi, số lần chia đôi tăng đúng 1.
-- `O(n)` gấp đôi (8 → 16).
-- `O(n log n)` tăng nhanh hơn gấp đôi một chút (24 → 64).
-- `O(n^2)` tăng khoảng **bốn lần** (28 → 120): gấp đôi đầu vào làm công việc gấp bốn.
+```text
+A(n) = 3n + 20
+B(n) = n²
+```
 
-Sự khác biệt này là toàn bộ lý do ta học Big-O. Ở `n = 1000`, thuật toán `O(n^2)` đã cần gần nửa triệu thao tác, trong khi `O(n)` chỉ cần một nghìn.
+Với input nhỏ, `B` có thể vẫn nhanh vì implementation đơn giản hoặc cache tốt. Nhưng khi `n` lớn, thành phần `n²` tăng nhanh hơn nhiều so với `n`.
 
-### 4.2 Suy ra Big-O từ vòng lặp
+Big-O giữ lại thành phần tăng nhanh nhất:
 
-Quy tắc thực dụng để đọc độ phức tạp của một đoạn code:
+```text
+3n + 20   -> O(n)
+n² + 5n   -> O(n²)
+7          -> O(1)
+```
 
-- Một vòng lặp chạy qua `n` phần tử: `O(n)`.
-- Vòng lặp lồng trong vòng lặp, mỗi cái chạy `n`: `O(n^2)`. Đây chính là `HasDuplicatePairwise` — hai `for` lồng nhau.
-- Mỗi bước cắt đôi phần dữ liệu còn lại: `O(log n)`. Chính là `CountLog`: `n` bị chia 2 mỗi vòng.
-- Chạy `n` lần, mỗi lần làm một việc `O(log n)`: nhân lại thành `O(n log n)`.
+Nó không nói chính xác số instruction CPU, số allocation hay số mili-giây.
 
-`HasDuplicateHashSet` chỉ có **một** vòng `foreach` qua `n` phần tử, mỗi bước gọi `seen.Add` — thao tác trung bình `O(1)` của hash set (bài [06](./06-hash-table-va-hash-function.md) sẽ mổ xẻ vì sao). Nên tổng thể là `O(n)`. Với mảng 7 phần tử, pairwise so sánh 9 lần trước khi thấy cặp `9 == 9`, còn hash set chỉ xét 5 phần tử là gặp `9` lần thứ hai.
+### O(1) — chi phí không tăng theo n
 
-### 4.3 Bỏ hằng số và số hạng nhỏ
+Ví dụ truy cập một phần tử mảng theo index:
 
-Big-O mô tả **dáng tăng khi `n` lớn**, nên ta bỏ hằng số nhân và các số hạng bậc thấp:
+```csharp
+int value = values[500];
+```
 
-- `5n` và `n` đều là `O(n)` — hằng số `5` không đổi hình dạng đường cong.
-- `n^2 + 100n + 500` là `O(n^2)` — khi `n` đủ lớn, `n^2` át hẳn phần còn lại.
+CPU tính địa chỉ dựa trên base address và offset. Số phần tử của mảng không buộc chương trình quét từ đầu đến index 500.
 
-Điều này không có nghĩa hằng số vô nghĩa trong thực tế; nó nghĩa là *khi so sánh khả năng mở rộng*, lớp độ phức tạp quan trọng hơn hằng số. Một `O(n)` với hằng số lớn vẫn thắng `O(n^2)` khi `n` đủ lớn.
+```text
+array base
+   |
+   v
+[0][1][2][3] ... [500] ...
+                  ^
+                  |
+            base + 500 * sizeof(int)
+```
 
-### 4.4 Độ phức tạp bộ nhớ (space)
+### O(n) — tăng tuyến tính
 
-Bên cạnh thời gian, ta còn đo **bộ nhớ phụ** thuật toán cần, cũng bằng Big-O:
+`LinearSearch` trong trường hợp target không tồn tại phải kiểm tra mọi phần tử:
 
-- `HasDuplicatePairwise` chỉ dùng vài biến đếm — bộ nhớ phụ `O(1)`. Ta gọi nó là **in-place**.
-- `HasDuplicateHashSet` phải dựng một `HashSet<int>` có thể chứa tới `n` phần tử — bộ nhớ phụ `O(n)`.
+```text
+n = 1,000     -> khoảng 1,000 lần kiểm tra
+n = 10,000    -> khoảng 10,000 lần
+n = 100,000   -> khoảng 100,000 lần
+```
 
-Đây là một đánh đổi kinh điển: bản hash nhanh hơn về thời gian (`O(n)` so với `O(n^2)`) nhưng tốn thêm bộ nhớ (`O(n)` so với `O(1)`). Chọn phương án nào tùy ràng buộc bài toán.
+Input tăng 10 lần, công việc tăng gần 10 lần.
 
-### Đào sâu (có thể quay lại sau)
+### O(n²) — vòng lặp lồng nhau không phải lúc nào cũng xấu, nhưng phải hiểu chi phí
 
-- **Worst / average / best case.** `HasDuplicateHashSet` có average `O(n)` vì `Add` trung bình `O(1)`. Trường hợp xấu nhất về lý thuyết của hash (mọi khóa đụng độ cùng một bucket) có thể xuống `O(n)` cho một thao tác, nhưng với dữ liệu thực và hàm băm tốt điều đó gần như không xảy ra. Big-O mặc định trong bài này nói về worst case, trừ khi ghi rõ là average.
-- **Θ và Ω.** `O` là chặn trên. Còn có `Ω` (chặn dưới) và `Θ` (chặn chặt cả trên lẫn dưới). Trong công việc hằng ngày, người ta hay nói "O(n)" với ngụ ý là chặn chặt; khi cần chính xác mới phân biệt.
-- **Amortized.** Một số thao tác thỉnh thoảng tốn nhiều nhưng *trung bình qua nhiều lần* vẫn rẻ — ví dụ thêm phần tử vào dynamic array là amortized `O(1)`. Bài [03](./03-mang-va-dynamic-array.md) sẽ giải thích.
+`CountOrderedPairs` chạy vòng ngoài `n` lần. Mỗi lần vòng ngoài lại chạy vòng trong `n` lần:
+
+```text
+n * n = n²
+```
+
+Input tăng 10 lần, số cặp tăng khoảng 100 lần.
+
+Đây là lý do một thuật toán có vẻ ổn với 1.000 record có thể trở nên không dùng được với 100.000 record.
+
+### O(log n) — mỗi bước loại bỏ một phần lớn input
+
+Binary search trên dữ liệu đã sắp xếp chia vùng tìm kiếm làm đôi sau mỗi bước:
+
+```text
+1,024 phần tử
+ -> 512
+ -> 256
+ -> 128
+ -> 64
+ -> 32
+ -> 16
+ -> 8
+ -> 4
+ -> 2
+ -> 1
+```
+
+Khoảng 10 bước thay vì hơn 1.000 bước.
+
+### O(n log n)
+
+Nhiều thuật toán sort tổng quát hiệu quả có complexity trung bình hoặc worst-case gần `O(n log n)`.
+
+Trực giác:
+
+- có khoảng `log n` tầng chia nhỏ;
+- mỗi tầng xử lý tổng cộng khoảng `n` phần tử.
+
+Do đó:
+
+```text
+n * log n
+```
+
+### Worst case, average case và best case
+
+Linear search:
+
+- best case: phần tử ở vị trí đầu tiên -> `O(1)`;
+- worst case: phần tử ở cuối hoặc không tồn tại -> `O(n)`;
+- average case: thường vẫn tỷ lệ với `n` -> `O(n)`.
+
+Khi nói complexity mà không ghi rõ, tài liệu và phỏng vấn thường quan tâm worst case hoặc complexity điển hình nhất của thao tác. Đừng đoán; hãy nói rõ trường hợp bạn đang phân tích.
+
+### Time complexity và space complexity là hai trục khác nhau
+
+Một thuật toán có thể chạy nhanh hơn bằng cách dùng thêm bộ nhớ.
+
+Ví dụ:
+
+```csharp
+var seen = new HashSet<int>();
+```
+
+Nếu dùng `HashSet` để phát hiện phần tử lặp:
+
+- thời gian có thể từ cách so sánh mọi cặp `O(n²)` giảm về trung bình `O(n)`;
+- nhưng phải dùng thêm `O(n)` memory để lưu các phần tử đã thấy.
+
+Đây là trade-off phổ biến trong phần mềm thật: CPU, memory, network, storage và độ phức tạp triển khai thường đổi chỗ cho nhau.
+
+### Cùng Big-O không có nghĩa là cùng hiệu năng
+
+Hai thuật toán đều `O(n)` có thể khác nhau vì:
+
+- một thuật toán cấp phát object trong mỗi vòng lặp;
+- một thuật toán truy cập memory tuần tự, thuật toán kia nhảy lung tung;
+- một thuật toán gọi network/database;
+- một thuật toán có constant factor lớn;
+- JIT, branch prediction, cache CPU và vectorization khác nhau.
+
+Big-O là bước đầu của phân tích, không thay thế profiling.
 
 ## 5. Kiến thức nền
 
-### Bảng các lớp độ phức tạp thường gặp
+### Quy tắc cộng
 
-Xếp từ tốt tới xấu khi `n` lớn:
+Hai đoạn chạy nối tiếp:
 
-| Ký hiệu | Tên | Ví dụ điển hình |
-|---|---|---|
-| `O(1)` | hằng số | truy cập `array[i]`, `dictionary[key]` |
-| `O(log n)` | logarit | tìm nhị phân trên mảng đã sắp xếp |
-| `O(n)` | tuyến tính | duyệt qua toàn bộ danh sách một lần |
-| `O(n log n)` | tuyến-logarit | các thuật toán sắp xếp tốt (merge, heap) |
-| `O(n^2)` | bậc hai | hai vòng lặp lồng nhau trên cùng dữ liệu |
-| `O(2^n)` | mũ | duyệt mọi tập con (brute-force tổ hợp) |
-| `O(n!)` | giai thừa | duyệt mọi hoán vị |
+```csharp
+ScanCustomers(); // O(n)
+ScanOrders();    // O(m)
+```
 
-`O(2^n)` và `O(n!)` tăng quá nhanh: với `n` vài chục đã vượt khả năng tính toán thực tế. Nhận ra một thuật toán rơi vào nhóm này là tín hiệu cần đổi hướng tiếp cận.
+Complexity:
 
-### Big-O của các collection đã học
+```text
+O(n + m)
+```
 
-Ghi nhớ nhanh cho những kiểu đã dùng ở module 04:
+Nếu cả hai collection luôn có cùng kích thước `n`, có thể rút thành `O(n)` vì:
 
-| Thao tác | `List<T>` (mảng động) | `Dictionary<K,V>` / `HashSet<T>` |
-|---|---|---|
-| Truy cập theo chỉ số | `O(1)` | không áp dụng |
-| Tìm theo giá trị/khóa | `O(n)` | `O(1)` trung bình |
-| Thêm vào cuối | `O(1)` amortized | `O(1)` trung bình |
-| Chèn/xóa ở giữa | `O(n)` | `O(1)` trung bình theo khóa |
+```text
+O(n + n) = O(2n) = O(n)
+```
 
-Chính bảng này giải thích bài toán mở đầu: kiểm tra tồn tại trong `List<T>` là `O(n)`, trong `HashSet<T>` là `O(1)` trung bình.
+### Quy tắc nhân
 
-### "n" là gì phải nói rõ
+Hai vòng phụ thuộc nhau:
 
-Big-O luôn gắn với *kích thước đầu vào*. Với chuỗi thì `n` thường là số ký tự; với đồ thị (bài [10](./10-graph-va-cach-bieu-dien.md)) có tới hai đại lượng: số đỉnh `V` và số cạnh `E`, nên độ phức tạp viết theo cả hai, ví dụ `O(V + E)`.
+```csharp
+foreach (Customer customer in customers)       // n
+{
+    foreach (Order order in orders)            // m
+    {
+        ...
+    }
+}
+```
+
+Complexity:
+
+```text
+O(n * m)
+```
+
+Nếu `n == m`:
+
+```text
+O(n²)
+```
+
+### Không phải thấy hai vòng lặp là O(n²)
+
+Ví dụ:
+
+```csharp
+for (int i = 0; i < n; i++)
+{
+    ...
+}
+
+for (int i = 0; i < n; i++)
+{
+    ...
+}
+```
+
+Hai vòng chạy nối tiếp:
+
+```text
+n + n = 2n -> O(n)
+```
+
+Không phải `O(n²)`.
+
+### Collection phổ biến trong .NET
+
+Bảng dưới là trực giác quan trọng, không phải hợp đồng tuyệt đối cho mọi implementation:
+
+| Thao tác | Cấu trúc | Complexity điển hình |
+|---|---|---:|
+| đọc theo index | `T[]`, `List<T>` | `O(1)` |
+| tìm theo value | `List<T>` | `O(n)` |
+| thêm cuối | `List<T>` | amortized `O(1)` |
+| insert đầu | `List<T>` | `O(n)` |
+| lookup key | `Dictionary<TKey,TValue>` | average `O(1)` |
+| membership | `HashSet<T>` | average `O(1)` |
+| sort | `Array.Sort`, `List<T>.Sort` | khoảng `O(n log n)` |
+
+Từ khóa **amortized** nghĩa là một thao tác đơn lẻ đôi lúc đắt hơn, nhưng tính trên một chuỗi thao tác dài thì chi phí trung bình vẫn đạt mức đã nêu. Bài về dynamic array sẽ giải thích trường hợp `List<T>.Add`.
+
+### Big-O và database
+
+Khi làm web, bạn hiếm khi tự viết binary tree, nhưng Big-O vẫn xuất hiện:
+
+- quét bảng không có index;
+- lookup bằng index;
+- sort hàng triệu row;
+- nested-loop join;
+- phân trang;
+- N+1 query;
+- tìm kiếm trong collection sau khi load dữ liệu vào RAM.
+
+Vì vậy DSA không tách rời backend. Nó giúp bạn hiểu tại sao một endpoint chậm khi dữ liệu tăng.
 
 ## 6. Lỗi thường gặp
 
-### Nhầm "chạy nhanh trên máy tôi" với "thuật toán tốt"
+### Dùng benchmark nhỏ để kết luận Big-O
 
-Đo bằng đồng hồ trên một máy, một cỡ dữ liệu nhỏ, rồi kết luận thuật toán nhanh. Khi dữ liệu lớn lên, `O(n^2)` sẽ lộ ra dù ban đầu trông ổn. Hãy suy luận độ phức tạp trước, đo sau.
+Một thuật toán `O(n²)` có thể thắng `O(n log n)` ở input rất nhỏ. Điều đó không thay đổi complexity của nó.
 
-### Quên rằng tra cứu trong `List<T>` là `O(n)`
+### Tính mọi vòng lặp lồng nhau thành O(n²)
 
-`list.Contains(x)` và `list.IndexOf(x)` phải quét tuyến tính. Gọi chúng bên trong một vòng lặp vô tình tạo ra `O(n^2)`. Khi cần tra cứu lặp lại nhiều lần, chuyển sang `HashSet<T>` hoặc `Dictionary<K,V>`.
+Nếu vòng trong không phụ thuộc `n`, ví dụ luôn chạy 10 lần:
 
-### Cộng thay vì nhân (và ngược lại)
+```csharp
+for (int i = 0; i < n; i++)
+{
+    for (int j = 0; j < 10; j++)
+    {
+        ...
+    }
+}
+```
 
-Hai vòng lặp **nối tiếp** nhau, mỗi cái `O(n)`, là `O(n) + O(n) = O(n)`. Hai vòng lặp **lồng** nhau là `O(n) * O(n) = O(n^2)`. Đọc nhầm quan hệ lồng/nối tiếp dẫn tới ước lượng sai.
+Complexity là:
 
-### Tưởng bỏ hằng số nghĩa là hằng số không quan trọng
+```text
+O(10n) -> O(n)
+```
 
-Big-O bỏ hằng số để *so sánh khả năng mở rộng*, không phải để nói `2n` và `n` giống nhau về mặt thời gian tường minh. Khi hai thuật toán cùng lớp `O(n)`, hằng số và chi tiết cài đặt mới là thứ quyết định — và lúc đó phải đo thật.
+### Bỏ qua kích thước input khác nhau
 
-### Chỉ nhìn thời gian, bỏ quên bộ nhớ
+```csharp
+foreach (Customer customer in customers) // n
+{
+    foreach (Role role in roles)         // r
+    {
+        ...
+    }
+}
+```
 
-Một giải pháp `O(n)` thời gian nhưng ngốn `O(n)` bộ nhớ phụ có thể không dùng được khi dữ liệu quá lớn so với RAM. Luôn cân nhắc cả hai trục.
+Đúng hơn là `O(n * r)`, không nên tự động gọi `O(n²)` nếu `customers` và `roles` là hai tập có kích thước độc lập.
+
+### Tuyên bố HashSet luôn O(1)
+
+Hash-based collection thường có average lookup gần `O(1)`, nhưng collision, resize và chất lượng hash function ảnh hưởng hành vi thực tế. Nói rõ đây là **average-case**.
+
+### Tối ưu complexity khi chưa có vấn đề
+
+Đổi code rõ ràng thành cấu trúc phức tạp để tiết kiệm vài microsecond ở đoạn không nóng có thể làm code khó bảo trì hơn. Thứ tự hợp lý:
+
+```text
+correctness
+  -> đo
+  -> xác định bottleneck
+  -> chọn cấu trúc/thuật toán tốt hơn
+  -> đo lại
+```
+
+### Chỉ nhìn CPU mà quên I/O
+
+Một vòng `O(n)` gọi database `n` lần thường tệ hơn nhiều so với một vòng `O(n²)` nhỏ chạy hoàn toàn trong RAM. Complexity phải được đặt trong mô hình chi phí thực tế.
 
 ## 7. Bài tập
 
-### Bài 1 — Đọc độ phức tạp
+### Bài 1 — Phân tích không chạy code
 
-Cho ba đoạn code: (a) một vòng `for` từ 0 đến `n`; (b) hai vòng `for` lồng nhau cùng chạy tới `n`; (c) một vòng `while` mỗi bước gán `n = n / 3`. Gọi tên Big-O của từng đoạn.
+Xác định complexity:
 
-**Gợi ý:** với (c), hỏi "cần chia cho 3 bao nhiêu lần để về 1?" — cùng họ logarit, chỉ khác cơ số, mà cơ số bị nuốt vào hằng số.
+```csharp
+for (int i = 0; i < n; i++)
+{
+    Console.WriteLine(i);
+}
 
-### Bài 2 — Đếm thao tác thực
+for (int j = 0; j < n; j++)
+{
+    Console.WriteLine(j);
+}
+```
 
-Thêm bộ đếm `long` vào một hàm tính tổng mọi cặp phần tử của mảng. Chạy với `n = 5, 10, 20` và kiểm chứng số thao tác khớp `n(n-1)/2`.
+**Gợi ý:** hai vòng chạy nối tiếp, không lồng nhau.
 
-**Gợi ý:** so với cột `O(n^2)` trong bài; đây chính là công thức số cặp.
+### Bài 2 — Hai input độc lập
 
-### Bài 3 — List so với HashSet
+Phân tích:
 
-Viết chương trình đọc `n` số, rồi với mỗi số trong một danh sách truy vấn khác, kiểm tra nó có xuất hiện không — làm hai phiên bản: một dùng `List<int>.Contains`, một dùng `HashSet<int>.Contains`. Đếm số phần tử phải xét ở mỗi phiên bản.
+```csharp
+foreach (string username in usernames)
+{
+    foreach (string bannedWord in bannedWords)
+    {
+        Check(username, bannedWord);
+    }
+}
+```
 
-**Gợi ý:** đừng đo bằng đồng hồ; hãy đếm thao tác để thấy `O(n*m)` so với `O(m)`.
+Viết complexity bằng hai biến `u` và `b`.
 
-### Bài 4 — Đổi thời gian lấy bộ nhớ
+**Gợi ý:** không ép cả hai thành cùng một `n`.
 
-Cho một mảng, đếm số phần tử xuất hiện đúng một lần. Viết bản `O(n^2)` không dùng bộ nhớ phụ, rồi bản `O(n)` dùng `Dictionary<int,int>` đếm tần suất. Ghi rõ Big-O thời gian và bộ nhớ của mỗi bản.
+### Bài 3 — Tìm duplicate
 
-**Gợi ý:** bản thứ hai đánh đổi `O(n)` bộ nhớ để hạ thời gian từ bậc hai xuống tuyến tính.
+Viết hai phiên bản:
 
-### Bài 5 — Nhận diện thuật toán mũ
+1. so sánh từng cặp bằng hai vòng lặp;
+2. dùng `HashSet<int>`.
 
-Viết hàm đệ quy sinh mọi tập con của một tập `n` phần tử và đếm số tập con sinh ra. Giải thích vì sao không thể chạy với `n = 60`.
+So sánh time và extra space complexity.
 
-**Gợi ý:** số tập con là `2^n`; ước lượng `2^60` để thấy con số vượt xa mọi giới hạn thực tế.
+**Gợi ý:** phiên bản hash đổi thêm memory để giảm thời gian.
+
+### Bài 4 — Growth table
+
+Tạo bảng số phép toán ước lượng cho:
+
+```text
+O(1)
+O(log2 n)
+O(n)
+O(n log2 n)
+O(n²)
+```
+
+với `n = 10, 100, 1_000, 1_000_000`.
+
+**Gợi ý:** bạn không cần chạy code; dùng calculator cũng được. Mục tiêu là nhìn tốc độ tăng.
+
+### Bài 5 — Code review backend
+
+Giả sử endpoint đã load `100_000` product vào `List<Product>`, sau đó với mỗi order item lại gọi:
+
+```csharp
+products.First(p => p.Id == item.ProductId);
+```
+
+Phân tích complexity nếu có `m` order item và `n` product. Đề xuất cấu trúc dữ liệu khác.
+
+**Gợi ý:** xây `Dictionary<int, Product>` một lần rồi lookup theo key.
 
 ## 8. Checklist tự đánh giá và điều hướng
 
-- [ ] Tôi giải thích được vì sao đo bằng số thao tác đáng tin hơn đo bằng giây.
-- [ ] Tôi gọi tên được `O(1)`, `O(log n)`, `O(n)`, `O(n log n)`, `O(n^2)`, `O(2^n)`.
-- [ ] Tôi suy ra Big-O của một đoạn code từ cấu trúc vòng lặp lồng/nối tiếp.
-- [ ] Tôi phân biệt độ phức tạp thời gian và bộ nhớ, biết thế nào là in-place.
-- [ ] Tôi biết tra cứu trong `List<T>` là `O(n)` còn trong `HashSet<T>` là `O(1)` trung bình.
-- [ ] Tôi build/run được sample trên `net9.0` và giải thích được từng dòng output.
+- [ ] Tôi giải thích được Big-O mô tả tốc độ tăng, không phải số mili-giây.
+- [ ] Tôi phân biệt được `O(1)`, `O(log n)`, `O(n)`, `O(n log n)`, `O(n²)`.
+- [ ] Tôi áp dụng được quy tắc cộng và quy tắc nhân.
+- [ ] Tôi không tự động gọi mọi vòng lặp lồng nhau là `O(n²)`.
+- [ ] Tôi phân biệt time complexity với space complexity.
+- [ ] Tôi hiểu `HashSet.Contains` thường là average `O(1)`, không phải bảo đảm tuyệt đối.
+- [ ] Tôi biết Big-O không thay thế benchmark và profiling.
+- [ ] Tôi liên hệ được complexity với collection và backend/database.
 
 Điều hướng:
 
-- Bài prerequisite: [Module 06, bài 14 — Dự án refactor ứng dụng C#](../06-oop-va-thiet-ke/14-du-an-refactor-ung-dung-csharp.md)
-- Ôn lại nền tảng: [Bài toán, thuật toán và pseudocode](../01-nen-tang-lap-trinh/01-bai-toan-thuat-toan-va-pseudocode.md), [Collection: List, Dictionary, HashSet, Queue và Stack](../04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack.md)
+- Prerequisite: [Module 04 — Collection: List, Dictionary, HashSet, Queue, Stack](../04-csharp-co-ban/13-collection-list-dictionary-hashset-queue-stack.md)
+- Ôn lại đo hiệu năng: [Module 05 — Đo lường và tối ưu hiệu năng](../05-csharp-nang-cao/18-do-luong-va-toi-uu-hieu-nang.md)
 - Bài tiếp theo: [Đệ quy và call stack](./02-de-quy-va-call-stack.md)

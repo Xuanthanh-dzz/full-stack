@@ -1,5 +1,19 @@
 # Stack, heap và vòng đời bộ nhớ
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Vòng đời quyết định khi nào object được phép truy cập; scope chỉ quyết định nơi dùng được tên.
+- Dùng mô hình automatic, static và allocated để quyết định trả giá trị hay mượn địa chỉ.
+- Chuẩn C không bắt buộc biến cục bộ nằm vật lý trên stack; địa chỉ local không sống qua return.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,11 +26,30 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một chiếc chìa khóa còn trong tay không làm căn phòng đã tháo dỡ tồn tại lại. Tương tự, giữ con trỏ không kéo dài vòng đời object. Trước khi đọc dữ liệu, cần biết ai tạo nó và lúc nào nó kết thúc.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| scope | vùng source code nơi tên được nhìn thấy | biến trong block |
+| storage duration | quy tắc thời gian storage tồn tại | automatic, static, allocated |
+| stack frame | mô hình phổ biến lưu thông tin một lời gọi | không phải vị trí vật lý bắt buộc |
+| static local | object tồn tại suốt chương trình, tên chỉ dùng trong scope | completed_calculations |
+
+### Ví dụ nhỏ — tính tay trước
+
+Gọi tính 2 × 5 rồi 3 × 4: mỗi lần có biến tạm riêng; bộ đếm static đổi 0 → 1 → 2. Kết quả output nằm trong caller, nên không biến mất cùng biến tạm callee.
+
 Hàm tính tổng đơn hàng cần đưa kết quả về `main`. Một cách nguy hiểm là tạo biến cục bộ rồi trả địa chỉ của nó: pointer object ở bên gọi có thể còn trong scope, nhưng khi object đích hết lifetime, giá trị pointer trỏ tới nó trở thành indeterminate.
 
 Ta sẽ dùng một contract an toàn: `main` sở hữu biến kết quả và truyền địa chỉ vào hàm. Đồng thời, chương trình có một bộ đếm cần tồn tại xuyên suốt nhiều lời gọi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -86,7 +119,20 @@ Don thu hai: 360 xu
 So lan tinh thanh cong: 2
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main giữ output và gọi calculate; mỗi lời gọi có tham số/biến tạm riêng.
+2. Lần một ghi 1000 từ 250 × 4, lần hai ghi 360 từ 120 × 3.
+3. completed_calculations có static storage duration nên giữ trạng thái qua cả hai lời gọi, cuối cùng bằng 2.
+4. Không có malloc. Chi phí mỗi lần cố định; state tích lũy là một bộ đếm dùng chung, còn output thuộc caller.
+
+### Mini-check
+
+Sau calculate return, output của caller và biến tạm của callee khác nhau về vòng đời thế nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Trước lời gọi
 
@@ -180,7 +226,45 @@ Từ khóa `static` ở phạm vi file còn làm tên này chỉ được dùng 
 
 Khác stack frame, block này không tự mất đi khi hàm trả về. Code phải giải phóng đúng một lần khi không còn cần. Bài tiếp theo mới giới thiệu các API `malloc`, `calloc`, `realloc` và `free`.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Automatic | vòng đời gắn với block/lời gọi | dễ quản lý; không trả địa chỉ để dùng sau vòng đời |
+| Static | storage suốt chương trình | giữ trạng thái giữa lời gọi; cần cân nhắc test và đồng thời |
+| Allocated | từ cấp phát tới giải phóng | chủ động thời gian sống nhưng phải quản lý lỗi/cleanup; chưa cần cho hai phép tính |
+
+### Misconception check
+
+**Đúng hay sai?** Tên hết scope luôn đồng nghĩa object hết vòng đời.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: static local hết khả năng gọi tên từ ngoài nhưng object vẫn tồn tại.
+
+</details>
+
+**Đúng hay sai?** Đổi local sang static luôn sửa API trả con trỏ một cách tốt.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tạo state dùng chung, các lần gọi có thể ghi đè và khó dùng đồng thời.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** trace lúc object bắt đầu/kết thúc.
+
+- **Working Developer — dùng khi làm việc:** tránh trả borrow vượt vòng đời.
+
+- **Deep Dive — có thể quay lại sau:** phân biệt storage chuẩn với tối ưu register/stack của compiler.
 
 ### Storage duration
 
@@ -246,7 +330,17 @@ Undefined behavior không nhất thiết crash ngay. Chương trình “có vẻ
 
 Signed overflow đã là undefined behavior trước khi code có cơ hội kiểm tra kết quả. Với các toán hạng không âm, kiểm tra bằng phép chia **trước** `unit_price * quantity`, như chương trình chính.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng static làm giải pháp chung để giữ mọi kết quả. Nếu một giá trị nhỏ chỉ cần trả về, trả bản sao đơn giản hơn state dùng chung. Không malloc khi storage caller đã đủ vòng đời.
+
+## 8. Production notes & scale check
+
+Demo một thread nên bộ đếm tăng tuần tự. Khi nhiều thread dùng chung, thao tác tăng cần thiết kế đồng bộ; bài không tuyên bố thread-safe. Debug scope bằng source, lifetime bằng trace lời gọi; không suy vòng đời từ địa chỉ còn đọc được tình cờ.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Output parameter an toàn
 
@@ -272,7 +366,23 @@ Tìm ba pointer trong code bạn đã viết ở bài 01–05 và ghi object đ�
 
 **Gợi ý:** pointer vào mảng là borrowed pointer; pointer đó không sở hữu phần tử.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Liên hệ module trước: hàm trung bình trả int/float và hàm trả pointer local, phương án nào còn hợp lệ sau return? Nếu cần đếm số lần tính cho từng lớp riêng, vì sao một static global counter chưa đúng nghiệp vụ?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Scope khác lifetime qua ví dụ static local thế nào?
+2. Ai giữ output sống trong sample?
+3. Vì sao địa chỉ nhìn có vẻ còn dữ liệu chưa chứng minh được đọc hợp lệ?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi biết khi nào biến automatic hết lifetime.
 - [ ] Tôi giải thích được vì sao trả `&local_variable` là sai.

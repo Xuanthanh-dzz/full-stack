@@ -1,5 +1,19 @@
 # Move semantics và perfect forwarding
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- std::move cho phép chọn move; std::forward giữ category của đối số được suy luận.
+- Dùng forwarding ở wrapper generic có trách nhiệm thực, không cho mọi API.
+- Tên parameter là lvalue expression dù kiểu khai báo có &&; forward sai có thể lấy state caller còn cần.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một quầy trung gian nhận đồ gửi tới nơi khác: nếu khách chỉ cho mượn, quầy phải giữ cách mượn; nếu khách bàn giao, quầy mới chuyển quyền. Luôn move giống tự ý nhận quyền sở hữu, còn không forward có thể copy dù được phép chuyển.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| lvalue | biểu thức chỉ object có identity theo cách không đánh dấu chuyển tài nguyên | draft |
+| prvalue | biểu thức tạo giá trị dùng để khởi tạo object | string temporary |
+| xvalue | biểu thức chỉ object có thể dùng làm nguồn move | std::move(draft) |
+| forwarding reference | tham số T&& với T được suy luận phù hợp | Args&&... |
+| parameter pack | nhóm không hoặc nhiều tham số template | Args... |
+
+### Ví dụ nhỏ — tính tay trước
+
+create_message(draft) suy luận reference lvalue → copy text, draft giữ nguyên. create_message(string{"B"}) chuyển tiếp rvalue → constructor nhận &&. Trong constructor, tên text vẫn cần std::move để member có thể move.
+
 Một factory tạo `Message` từ text:
 
 - nếu caller truyền một `std::string` có tên và còn cần dùng, factory phải copy;
@@ -20,7 +52,9 @@ Một factory tạo `Message` từ text:
 
 Nếu wrapper luôn truyền parameter bằng tên, mọi parameter trở thành lvalue expression và overload rvalue không được chọn. Nếu wrapper luôn `std::move`, nó có thể lấy mất dữ liệu mà caller còn cần.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 `typename... Args` khai báo một *type parameter pack*: zero hoặc nhiều type được suy luận từ lời gọi. `Args&&... args` là nhóm parameter tương ứng; `std::forward<Args>(args)...` áp dụng forwarding cho từng phần tử của nhóm. Mẫu dùng pack vì constructor đích có thể có nhiều argument, nhưng kịch bản hiện tại truyền đúng một chuỗi mỗi lần.
 
@@ -98,7 +132,20 @@ Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
 Factory mỏng này được viết để nhìn thấy perfect forwarding. Production không cần bọc `make_unique` nếu wrapper không thêm validation, policy hoặc abstraction có giá trị.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. draft sống trong main; wrapper nhận reference với category suy luận từ caller.
+2. forward của lời gọi đầu giữ lvalue nên Message copy text.
+3. Lời gọi thứ hai giữ rvalue, Message move vào string member; temporary nguồn kết thúc đúng vòng đời.
+4. Hai unique_ptr sở hữu hai Message. Copy string có cost theo độ dài; move không phải cam kết mọi implementation zero-copy, đặc biệt chuỗi ngắn. Wrapper template thêm công compile, không tự thêm runtime thread.
+
+### Mini-check
+
+Thay std::forward<Args>(args)... bằng args... chọn overload nào khi caller truyền temporary? Vì sao?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Value category trả lời expression có thể dùng như nguồn move không
 
@@ -185,7 +232,45 @@ text_{std::move(text)}
 
 Nếu type không có move operation phù hợp, expression sau `std::move` vẫn có thể dẫn đến copy. Tên “move” mô tả ý định/cast, không phải lệnh runtime bảo đảm zero-copy.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| const T& | mượn đọc | rõ, đủ khi không nhận ownership |
+| T theo value rồi move | nhận một bản riêng để sở hữu | API đơn giản, có thể thêm move; hợp kiểu cụ thể |
+| T&& suy luận + forward | giữ category qua wrapper generic | phức tạp deduction/overload; chỉ dùng khi wrapper cần tổng quát |
+
+### Misconception check
+
+**Đúng hay sai?** Mọi T&& đều là forwarding reference.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phụ thuộc T có được suy luận ở lời gọi và không gắn const sẵn hay không.
+
+</details>
+
+**Đúng hay sai?** std::move trên const string chắc chắn chọn move constructor.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: thường không phù hợp move cần sửa nguồn, nên có thể chọn copy.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** phân biệt move cast và operation.
+
+- **Working Developer — dùng khi làm việc:** trace deduction/collapsing/forward.
+
+- **Deep Dive — có thể quay lại sau:** overload constraints và codegen khi có driver.
 
 ### Khi nào nhận by value?
 
@@ -264,7 +349,17 @@ Template làm diagnostic, overload resolution và compile time phức tạp. N�
 
 Lần đầu có thể move resource; lần sau nhận state đã bị move. Chỉ forward một lần đến consumer cuối.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không bọc make_unique bằng một factory generic nếu không có validation/policy có ích ngoài demo. Không return std::move(local) máy móc vì có thể cản NRVO. Không forward cùng đối số hai lần tới consumer nhận ownership.
+
+## 8. Production notes & scale check
+
+Test bằng log overload và giá trị đích, không assert mọi string nguồn sau move rỗng. Lvalue phải giữ draft theo contract. Nếu cần tối ưu, đo copy/allocation với workload thực trước khi tăng số overload.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Quan sát overload
 
@@ -296,7 +391,23 @@ Với `T&&`, `const T&&`, `std::string&&` và `auto&&`, xác định trường h
 
 **Gợi ý:** type phải được suy luận tại lời gọi và không có `const` gắn sẵn.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với callback Module 02 nhận bản sao pointer, giải thích vì sao forwarding chỉ là quy tắc biểu thức/kiểu, không tự giải quyết ownership. Thiết kế factory một Message cụ thể: by-value đủ hay cần variadic template?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Tên tham số && có category gì trong thân?
+2. T suy luận thế nào khi argument là string&?
+3. Vì sao copy elision làm đếm constructor khó dùng như cam kết chung?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

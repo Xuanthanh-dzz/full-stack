@@ -1,5 +1,19 @@
 # STL container
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Container chuẩn sở hữu dữ liệu và cung cấp contract truy cập, thứ tự, invalidation khác nhau.
+- Chọn vector cho dãy, map cho key có thứ tự, set cho giá trị duy nhất khi đúng nhu cầu.
+- Big-O chưa đủ để chọn; operator[] có thể chèn và vector tăng capacity có thể làm borrow mất hiệu lực.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Danh mục theo thứ tự nhập giống danh sách; tồn kho theo ISBN giống bảng tra; mã người mượn không trùng giống tập hợp. Chọn theo câu hỏi cần trả lời, không chọn một cấu trúc rồi ép mọi dữ liệu vào đó.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| container | kiểu giữ và quản lý nhóm phần tử | vector/map/set |
+| size | số phần tử sống | books.size() |
+| capacity | số phần tử vùng hiện tại đủ chứa | khác size |
+| invalidation | operation làm vị trí/borrow cũ không còn hợp lệ | vector reallocation |
+| key | giá trị dùng tra cứu duy nhất | ISBN |
+
+### Ví dụ nhỏ — tính tay trước
+
+Map {A:2}; contains(B) → false và size vẫn 1. Đọc map[B] → chèn B:0 và size thành 2. Với set, chèn M hai lần vẫn chỉ một M.
+
 Một thư viện nhỏ cần lưu:
 
 - danh mục sách theo thứ tự nhập;
@@ -20,7 +52,9 @@ Một thư viện nhỏ cần lưu:
 
 Mảng C có capacity cố định và yêu cầu tự dịch phần tử khi thêm/xóa. Một cấu trúc duy nhất cũng không tối ưu cho cả ba nhu cầu. Ta sẽ chọn từng container theo operation quan trọng thay vì dùng cùng một cấu trúc cho mọi dữ liệu.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Mẫu dùng hai cú pháp mới:
 
@@ -107,7 +141,20 @@ MEM-002
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main tạo catalog vector hai Book và map tồn kho hai key.
+2. contains CPP20 đúng, kiểm tra còn bản rồi giảm từ 2 xuống 1.
+3. set nhận MEM-002, MEM-001, MEM-001; chỉ giữ hai mã và in theo thứ tự key.
+4. Vector sở hữu phần tử liên tiếp, map/set giữ entry/node theo contract. Catalog duyệt O(n), map/set lookup O(log n) lần so sánh; cost chuỗi nằm thêm trong so sánh/copy.
+
+### Mini-check
+
+Sau vector<unique_ptr<Book>> reallocate ở bài sau, pointer tới phần tử unique_ptr và pointer tới Book phía sau có cùng quy tắc không? Ghi dự đoán để kiểm tra ở bài 12.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. `std::vector` sở hữu dãy liên tiếp
 
@@ -183,7 +230,45 @@ const auto& [isbn, copies]
 
 tạo hai tên chỉ đọc tham chiếu đến key và value của phần tử map hiện tại. Không có map/cặp thứ hai được copy.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| vector | dãy liên tiếp theo thứ tự phần tử | index O(1), tìm key quét O(n); ưu tiên dãy, không giữ borrow qua reallocation |
+| map/set | key có thứ tự và duy nhất | lookup O(log n), overhead node; dùng khi cần thứ tự |
+| unordered_map | key không có thứ tự duyệt cam kết | lookup trung bình O(1), xấu O(n); không dùng để hứa output đã sort |
+
+### Misconception check
+
+**Đúng hay sai?** reserve(10) tạo ngay 10 phần tử sống.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: tăng capacity, size không tăng.
+
+</details>
+
+**Đúng hay sai?** List chèn O(1) nên luôn nhanh hơn vector.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: còn tìm vị trí, allocation và locality; cần workload cụ thể.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chọn container theo operation.
+
+- **Working Developer — dùng khi làm việc:** size/capacity, lookup và borrow.
+
+- **Deep Dive — có thể quay lại sau:** đo locality/allocation thay vì chỉ so Big-O.
 
 ### Bảng chọn container khởi đầu
 
@@ -256,7 +341,17 @@ Memory locality, số allocation, invalidation và pattern dữ liệu đều qu
 
 `std::vector<Book*>` không tự biết phải `delete` object. [Bài 12](./12-smart-pointer-va-quyen-so-huu.md) sẽ dùng smart pointer khi cần polymorphic/dynamic ownership; hiện tại hãy lưu object trực tiếp.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng map khi chỉ cần duyệt một dãy vài phần tử không có key lookup. Không thêm unordered_map chỉ vì nghe O(1), nhất là khi thứ tự output là requirement. Không reserve(size+1) mỗi lần thêm.
+
+## 8. Production notes & scale check
+
+Kho nhỏ có thể dùng một vector và tìm tuyến tính đủ; ba container ở đây để so sánh semantics. Chọn cấu trúc thứ hai đồng nghĩa giữ dữ liệu nhất quán. Test key thiếu không vô tình chèn, duplicate set và invalidation; không test thứ tự unordered như một cam kết.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thêm sách
 
@@ -288,7 +383,23 @@ In `size()`, `capacity()` và địa chỉ phần tử đầu sau mỗi `push_ba
 
 **Gợi ý:** chỉ lấy `&books[0]` khi vector không rỗng; không dereference địa chỉ cũ sau reallocation.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Kho C Module 02 tìm mã tuyến tính. Với 20 sản phẩm và một lần tra mỗi phút, cần đổi sang hash ngay không? Nêu số liệu cần đo và chi phí giữ hai bản chỉ mục trước khi chọn.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vẽ vector object và phần tử nó sở hữu.
+2. contains khác [] về state thế nào?
+3. Amortized append có nghĩa mọi lần đều rẻ không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

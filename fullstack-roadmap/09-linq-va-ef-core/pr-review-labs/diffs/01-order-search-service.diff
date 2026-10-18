@@ -1,0 +1,33 @@
+diff --git a/OrderSearchService.cs b/OrderSearchService.cs
+new file mode 100644
+--- /dev/null
++++ b/OrderSearchService.cs
+@@
++public sealed class OrderSearchService(CommerceDbContext db)
++{
++    public async Task<List<Order>> SearchAsync(
++        string? status,
++        decimal? minTotal,
++        int page,
++        int pageSize)
++    {
++        var all = await db.Orders.ToListAsync();
++
++        IEnumerable<Order> query = all;
++
++        if (!string.IsNullOrWhiteSpace(status))
++        {
++            query = query.Where(order => order.Status == status);
++        }
++
++        if (minTotal is not null)
++        {
++            query = query.Where(order => order.TotalAmount >= minTotal.Value);
++        }
++
++        return query
++            .Skip((page - 1) * pageSize)
++            .Take(pageSize)
++            .ToList();
++    }
++}

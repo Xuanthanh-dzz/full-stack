@@ -1,5 +1,19 @@
 # Template và generic programming
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Template mô tả code dùng cho nhiều kiểu; concept ràng buộc điều kiện compile-time.
+- Dùng khi nhiều kiểu thật sự chia sẻ cùng thuật toán và semantics.
+- Constraint kiểu không tự validate miền runtime; capacity template là một phần kiểu.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một khuôn hộp có tham số loại đồ và số ngăn tạo ra các hộp cụ thể khác nhau. Compiler dùng khuôn để kiểm tra code cho từng kiểu; khi chương trình chạy, đó vẫn là các object/hàm có kiểu rõ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| template | khuôn tạo code theo tham số kiểu/giá trị | FixedStack<T, Capacity> |
+| specialization | phiên bản cụ thể từ khuôn | FixedStack<int,2> |
+| concept | điều kiện kiểu kiểm tra khi compile | Number |
+| LIFO | vào sau ra trước | push rồi pop phần tử cuối |
+| static_assert | yêu cầu điều kiện compile-time phải đúng | Capacity > 0 |
+
+### Ví dụ nhỏ — tính tay trước
+
+Stack capacity 2: push 4 → [4], push 7 → [4,7], push 9 thất bại giữ size 2; pop trả 7 còn [4]. Hai và ba ngăn là hai specialization khác nhau.
+
 Hệ thống cần hai công cụ:
 
 - chặn một giá trị số trong khoảng min/max, dùng được cho `int`, `long long`, `double`;
@@ -19,7 +51,9 @@ Hệ thống cần hai công cụ:
 
 Copy/paste một function/class cho từng kiểu làm logic dễ lệch nhau. Ta muốn mô tả thuật toán một lần nhưng vẫn được compiler kiểm tra kiểu, không chuyển mọi dữ liệu thành `void*`.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Trong class template, `static_assert(condition, message)` yêu cầu một điều kiện compile-time phải đúng. `std::array<T, N>` từ `<array>` là wrapper C++ cho dãy cố định gồm `N` phần tử; bài này chỉ cần phép truy cập `[]`, còn cách chọn container sẽ học ở [bài 09](./09-stl-container.md). `std::array<T, 0>` vẫn là một type hợp lệ, nên nếu caller thử tạo `FixedStack<T, 0>`, chính `static_assert` đưa ra diagnostic có chủ đích.
 
@@ -131,7 +165,20 @@ Remaining: 1
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Compiler suy luận clamp<int> và clamp<double>; runtime lần lượt trả 100 và 0.25.
+2. FixedStack<string,3> giữ ba string member đã được dựng, size ban đầu 0.
+3. Push first/second đổi size 0→1→2; pop copy second ra output rồi giảm size còn 1.
+4. Buffer phần tử là member, không cấp phát riêng bởi FixedStack; từng string vẫn có thể cấp storage. Push/pop không duyệt stack nhưng cost phụ thuộc phép gán T; storage theo Capacity.
+
+### Mini-check
+
+Khi gán output trong pop ném lỗi, size_ đã giảm chưa? Điều đó có bảo đảm output của caller cũng giữ nguyên với mọi T không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Function template
 
@@ -211,7 +258,45 @@ Class yêu cầu ngầm rằng `T` có thể default-construct và copy-assign v
 
 Không có cast về `void*`. `FixedStack<std::string, 3>::push` chỉ nhận `const std::string&`; compiler từ chối object không chuyển được sang string. Type được giữ đến machine code.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Hàm thường | một kiểu cụ thể | diagnostic đơn giản; đủ nếu không có nhiều kiểu |
+| Template | tạo code cho kiểu biết lúc compile | type-safe nhưng tăng compile/code size; hợp thuật toán chung |
+| Virtual interface | chọn implementation runtime | hợp tập object đa hình; không thay mọi nhu cầu generic |
+
+### Misconception check
+
+**Đúng hay sai?** Number tự bảo đảm minimum <= maximum.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: đó là precondition giá trị runtime, concept chỉ ràng buộc kiểu.
+
+</details>
+
+**Đúng hay sai?** FixedStack không new nên mọi byte string chắc chắn nằm trong object stack.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: string member có thể sở hữu storage ký tự riêng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** suy luận specialization và LIFO.
+
+- **Working Developer — dùng khi làm việc:** constraint kiểu, biên và contract T.
+
+- **Deep Dive — có thể quay lại sau:** code bloat và exception behavior của phần tử.
 
 ### Type deduction phải thống nhất
 
@@ -282,7 +367,17 @@ Template loại bỏ copy/paste theo type, không tự sửa invariant, kiểm t
 
 Generic code làm interface và diagnostic phức tạp hơn. Chỉ tổng quát hóa khi thật sự có nhiều type hợp lệ với cùng semantics.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tổng quát hóa một hàm duy nhất cho loại dữ liệu không có semantics chung. Không thêm perfect forwarding/concept dài vào stack đầu tiên khi requirement default construction và copy assignment đã đủ và được ghi rõ.
+
+## 8. Production notes & scale check
+
+Test capacity 0 phải bị compiler từ chối, đầy/rỗng không đổi state, và kiểu không số không gọi clamp được. Number gồm cả float/bool; production phải quy định NaN và miền min/max nếu dùng. pop chỉ giữ size khi assignment lỗi, không tự hứa strong guarantee cho output T tùy ý.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — `minimum_of`
 
@@ -314,7 +409,23 @@ Tìm các concept chuẩn cần thiết cho `FixedStack` hiện tại và thử 
 
 **Gợi ý:** xem `std::default_initializable` và `std::assignable_from`; đây là bài đào sâu.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với pointer + count C Module 02, FixedStack<int,2> chuyển điều kiện nào sang compile-time, điều kiện nào vẫn runtime? Chọn mảng cố định/template khi biết trần nhỏ và giải thích chi phí tổng quát hóa.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Capacity 2 và 3 có cùng kiểu không?
+2. T cần operation gì trong implementation hiện tại?
+3. Pop có hủy ngay string ở slot vừa bỏ không?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

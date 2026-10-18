@@ -1,5 +1,19 @@
 # Reference, `const` và vòng đời object
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Reference là alias gắn với một object; const reference cung cấp đường đọc không copy.
+- Dùng T& khi sửa caller, const T& khi mượn đọc, value cho số nhỏ.
+- Reference không sở hữu và thường không kéo dài vòng đời object đích.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Hai nhãn trên cùng một hộp vẫn chỉ là một hộp. Reference thêm tên để thao tác hộp có sẵn; gán qua tên ấy thay dữ liệu trong hộp, không chuyển nhãn sang hộp khác.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| reference | tên truy cập cùng object | std::string& text |
+| const reference | đường truy cập chỉ đọc | const std::string& name |
+| dangling reference | alias tới object đã hết vòng đời | trả reference local |
+| temporary | object tạm do biểu thức tạo | std::string{"temporary"} |
+
+### Ví dụ nhỏ — tính tay trước
+
+int x = 2, y = 9; int& r = x; r = y; kết quả x = 9, y = 9, r vẫn gắn x. Không giống gán một pointer sang địa chỉ y.
+
 Ta cần chuẩn hóa tên sản phẩm và tính thành tiền. Nếu hàm nhận `std::string` theo giá trị, mỗi lần gọi có thể tạo một bản sao không cần thiết. Nếu dùng pointer như C, lời gọi phải truyền địa chỉ và hàm phải quyết định có chấp nhận `nullptr` hay không.
 
 Yêu cầu thực tế là:
@@ -21,7 +52,9 @@ Yêu cầu thực tế là:
 - hàm tính tiền nhận số nhỏ theo giá trị;
 - không có reference sống lâu hơn object mà nó tham chiếu.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```cpp
 #include <cctype>
@@ -108,7 +141,20 @@ Subtotal: 750000 VND
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main tạo product_name có ba space cuối; trim mượn cùng object và pop từng space.
+2. Hàm uppercase đổi byte đầu m thành M sau chuyển unsigned char cho cctype.
+3. try_calculate_subtotal nhận hai số theo value, kiểm tra rồi ghi 750000 qua reference output.
+4. Các lời gọi kết thúc trước khi main hủy string. Trim tốn số lượt theo phần đuôi bị xóa, không tạo bản sao chuỗi đầy đủ; output số cost cố định.
+
+### Mini-check
+
+Hàm trả const std::string& tới biến local có an toàn hơn trả std::string* không? Vẽ thời điểm return.
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Ba cách truyền dữ liệu
 
@@ -197,7 +243,45 @@ const long long subtotal = ...;
 
 `subtotal` là object số nguyên không thể gán lại sau khởi tạo. Đây không phải reference.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| T value | object/bản giá trị riêng | hợp số nhỏ hoặc cần sở hữu; copy object lớn có cost |
+| T& / const T& | alias sửa/đọc object có sẵn | tránh copy; phải giữ đích sống |
+| T* | địa chỉ có thể rỗng hoặc đổi đích | hợp optional view; cần kiểm tra trước dereference |
+
+### Misconception check
+
+**Đúng hay sai?** r = y đổi reference r sang y.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: gán giá trị y vào object r đang gắn.
+
+</details>
+
+**Đúng hay sai?** const T& luôn giữ object sống đến hết mọi nơi lưu reference.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: lifetime extension có điều kiện hẹp; reference qua hàm không gia hạn tùy ý.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** chọn value/reference/pointer.
+
+- **Working Developer — dùng khi làm việc:** trace borrow và output khi lỗi.
+
+- **Deep Dive — có thể quay lại sau:** giới hạn lifetime extension của temporary.
 
 ### Chọn parameter theo ý nghĩa
 
@@ -273,7 +357,17 @@ Một số container có thể di chuyển phần tử khi tăng dung lượng. 
 
 Phép nhân signed integer vượt miền là undefined behavior. `try_calculate_subtotal` kiểm tra giới hạn trước khi nhân và caller phải xử lý `false`; không thay nó bằng phép nhân trực tiếp trên input tùy ý.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không truyền mọi int bằng const int& để tránh copy; số nhỏ thường nên theo value. Không dùng reference cho trạng thái có thể không có object; pointer hoặc kiểu tùy chọn sẽ rõ contract hơn.
+
+## 8. Production notes & scale check
+
+Tên ngắn không cần tối ưu sớm. cctype xử lý byte theo locale, không phải bộ chuẩn hóa Unicode đầy đủ; bài chỉ minh họa ASCII. Test chuỗi rỗng/toàn space, input ngoài miền và output không đổi khi thất bại.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Sửa số tại chỗ
 
@@ -305,7 +399,23 @@ Mở rộng hàm trim để xóa cả space ở đầu và cuối chuỗi.
 
 **Gợi ý:** xử lý một đầu tại một thời điểm; chưa cần algorithm thư viện.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Đối chiếu output int* Module 02 với long long&: viết cách gọi, nơi state được sửa và cách biểu diễn không có output. Việc bỏ NULL có loại bỏ dangling không?
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Reference có thể đổi đích bằng assignment không?
+2. const ở đường truy cập khác const object thế nào?
+3. Ai giữ product_name sống trong sample?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

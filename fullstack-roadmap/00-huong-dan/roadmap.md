@@ -28,7 +28,7 @@ Tổng khối lượng dự kiến là `2.500–3.600 giờ`. Đây là khoảng
 | Cấp | Module trọng tâm | Sản phẩm đầu ra | Khối lượng | Ở 12–15 giờ/tuần |
 |---|---|---|---:|---:|
 | Người mới | `00–03` | Chương trình C/C++ nhiều file; giải thích đúng memory/ownership/RAII | 300–420 giờ | 5–8 tháng |
-| Junior | `04–14` | Ứng dụng full-stack `.NET + SQL + React` có auth và test | 1.000–1.400 giờ | 16–27 tháng |
+| Junior | `04–14` | Ứng dụng full-stack `.NET + SQL + React hoặc Angular` có auth và test | 1.000–1.400 giờ | 16–27 tháng |
 | Middle | `15–16` | Ứng dụng containerized, CI/CD và refactor có chủ đích | 300–450 giờ | 5–9 tháng |
 | Senior | `17–19` | Hệ thống phân tán có resilience, messaging và observability | 600–850 giờ | 9–16 tháng |
 | Architect | `20` + capstone `21` | Hồ sơ kiến trúc gồm C4, ADR, threat model, PoC và migration plan | 300–450 giờ | 5–9 tháng |
@@ -48,9 +48,12 @@ flowchart TD
     M08 --> M09[09 LINQ và EF Core]
     M09 --> M10[10 Web nền tảng]
     M10 --> M11[11 ASP.NET Core]
-    M10 --> M12[12 Frontend]
+    M10 --> FE[12 Frontend nền tảng chung]
+    FE --> R[Nhánh React]
+    FE --> A[Nhánh Angular]
     M11 --> M13[13 Full-stack tích hợp]
-    M12 --> M13
+    R --> M13
+    A --> M13
     M13 --> M14[14 Testing và chất lượng]
     M14 --> M15[15 DevOps và triển khai]
     M15 --> M16[16 Design pattern]
@@ -67,7 +70,7 @@ flowchart TD
     M20 -.-> GF[Gate F]
 ```
 
-Tuyến biên soạn vẫn là tuần tự theo số module. Nhánh `11` và `12` trong sơ đồ cho biết về mặt kiến thức, frontend và backend cùng phụ thuộc web nền tảng; người tự học vẫn nên học `11` trước `12` để bám đúng thứ tự tài liệu.
+Tuyến biên soạn vẫn là tuần tự theo số module. Nhánh `11` và `12` trong sơ đồ cho biết về mặt kiến thức, frontend và backend cùng phụ thuộc web nền tảng; người tự học vẫn nên học `11` trước `12` để bám đúng thứ tự tài liệu. Trong Module `12`, phần HTML/CSS/JavaScript/TypeScript là bắt buộc; sau đó người học chọn **một trong hai nhánh React hoặc Angular**. Không bắt buộc học cả hai trước khi sang Module `13`.
 
 | Module | Prerequisite bắt buộc |
 |---|---|
@@ -129,13 +132,22 @@ Chỉ qua Gate A khi người học:
 - C# từ cú pháp đến generics, async/await, nullable, reflection và performance.
 - OOP/SOLID, cấu trúc dữ liệu và tư duy chọn độ phức tạp phù hợp.
 - SQL trước, LINQ/EF Core sau; đọc query plan và xử lý N+1.
-- HTTP, REST, identity, OWASP, ASP.NET Core, React và tích hợp end-to-end.
+- HTTP, REST, identity, OWASP, ASP.NET Core; frontend chọn React hoặc Angular; sau đó tích hợp end-to-end.
 - Unit/integration/end-to-end test và code review.
+
+### Lựa chọn frontend trong Module 12
+
+Phần nền tảng `HTML → CSS → JavaScript → TypeScript` là bắt buộc cho mọi người học. Sau bài chọn nhánh, người học chọn một trong hai hướng:
+
+- **React:** JSX, component/props, hooks, React Router, Context/Reducer, TanStack Query, auth và testing.
+- **Angular:** standalone component, template binding, DI/service, RxJS/Observable, Reactive Forms, Router/Guard, HttpClient/Interceptor, Signals/state management, auth và testing.
+
+Hai nhánh phải đạt cùng chuẩn đầu ra: xây SPA production-ready, gọi ASP.NET Core API, xử lý authentication/authorization, form validation, loading/error state, routing và test. Module `13-fullstack-tich-hop` dùng framework mà người học đã chọn; không yêu cầu học cả React và Angular.
 
 ### Gate B và Gate C
 
 - **Gate B:** ứng dụng C# dùng SQL và EF Core, có migration, transaction, optimistic concurrency và truy vấn được đo/giải thích bằng execution plan.
-- **Gate C:** ứng dụng CRUD full-stack có authentication, authorization, validation, structured logging và test cho critical path.
+- **Gate C:** ứng dụng CRUD full-stack dùng ASP.NET Core + **React hoặc Angular**, có authentication, authorization, validation, structured logging và test cho critical path.
 
 Chỉ hoàn thành cấp Junior khi người học:
 

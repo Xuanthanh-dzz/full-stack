@@ -4,236 +4,262 @@
 
 Sau bài này, bạn có thể:
 
-- mô tả tư duy **greedy**: mỗi bước chọn phương án tốt nhất **tại chỗ**, không tính đường dài;
-- nhận ra khi nào greedy cho lời giải **tối ưu toàn cục** và khi nào không;
-- cài đặt đổi tiền tham lam và chọn hoạt động (interval scheduling);
-- chỉ ra một phản ví dụ nơi greedy **thất bại** và giải thích vì sao;
-- phát biểu hai điều kiện để greedy đúng: greedy-choice property và optimal substructure;
-- phân biệt greedy với quy hoạch động (bài [17](./17-dynamic-programming.md)).
+- mô tả greedy là chọn quyết định tốt nhất cục bộ ở mỗi bước;
+- hiểu greedy không đúng cho mọi bài toán;
+- giải interval scheduling;
+- nhận biết greedy-choice property và optimal substructure ở mức trực giác;
+- biết cách phản ví dụ một chiến lược greedy sai;
+- liên hệ greedy với scheduling, MST và resource allocation.
 
 ## 2. Bài toán mở đầu
 
-Bạn ra siêu thị, cần trả lại **87.000đ** tiền thừa bằng **ít tờ nhất**. Trực giác ai cũng làm: đưa tờ lớn nhất có thể trước (50.000), rồi tiếp tục với phần còn lại (20.000, 10.000...). Đó là **greedy** — mỗi bước chọn cái tốt nhất trước mắt mà không lo tính toàn cục.
+Một phòng học chỉ tổ chức được một lớp tại một thời điểm.
 
-Với tiền Việt Nam, cách này **luôn** cho số tờ ít nhất. Nhưng đây là chỗ nguy hiểm: greedy **không phải lúc nào cũng đúng**. Đổi 6 đồng với bộ mệnh giá kỳ lạ `[4, 3, 1]`, greedy đưa `4 + 1 + 1` = 3 đồng, trong khi tối ưu thật là `3 + 3` = 2 đồng. Cùng một thuật toán, một bộ dữ liệu đúng, một bộ sai.
+Các lớp:
 
-Greedy vừa mạnh (đơn giản, nhanh) vừa nguy hiểm (dễ sai mà không hay). Bài này dạy cả hai mặt: khi nào tin greedy, khi nào phải cảnh giác.
+```text
+A: 09:00-10:00
+B: 09:30-11:00
+C: 10:00-11:00
+D: 10:30-12:00
+E: 11:00-12:00
+```
+
+Mục tiêu:
+
+> chọn được nhiều lớp không overlap nhất.
+
+Chiến lược đúng kinh điển:
+
+> luôn chọn lớp kết thúc sớm nhất còn hợp lệ.
+
+Đây là greedy.
 
 ## 3. Lời giải bằng code
 
-Tạo project .NET 9 tên `GreedyDemo` với cấu hình `.csproj` chuẩn của module, rồi thay `Program.cs`:
+```bash
+mkdir GreedyDemo
+cd GreedyDemo
+dotnet new console --framework net9.0 --use-program-main
+```
+
+`Program.cs`:
 
 ```csharp
 namespace GreedyDemo;
+
+public sealed record Session(
+    string Name,
+    int Start,
+    int End);
 
 internal static class Program
 {
     private static void Main()
     {
-        Console.WriteLine("== Đổi tiền tham lam: luôn lấy đồng lớn nhất còn dùng được ==");
-        int[] vnd = { 50000, 20000, 10000, 5000, 1000 };
-        int amount = 87000;
-        var used = GreedyCoinChange(vnd, amount);
-        Console.WriteLine($"Đổi {amount} với mệnh giá [{string.Join(", ", vnd)}]:");
-        Console.WriteLine($"  {string.Join(" + ", used)} = {used.Sum()} ({used.Count} tờ)");
+        Session[] sessions =
+        [
+            new("A", 9, 10),
+            new("B", 9, 11),
+            new("C", 10, 11),
+            new("D", 10, 12),
+            new("E", 11, 12),
+            new("F", 12, 13)
+        ];
 
-        Console.WriteLine();
-        Console.WriteLine("== Nhưng tham lam KHÔNG luôn tối ưu ==");
-        int[] weird = { 4, 3, 1 };
-        int target = 6;
-        var greedy = GreedyCoinChange(weird, target);
-        Console.WriteLine($"Đổi {target} với mệnh giá [{string.Join(", ", weird)}]:");
-        Console.WriteLine($"  Tham lam: {string.Join(" + ", greedy)} = {greedy.Count} đồng");
-        Console.WriteLine($"  Tối ưu thật: 3 + 3 = 2 đồng  -> tham lam thua!");
+        IReadOnlyList<Session> selected =
+            SelectMaximumNonOverlapping(sessions);
 
-        Console.WriteLine();
-        Console.WriteLine("== Chọn hoạt động: nhiều cuộc họp nhất không chồng giờ ==");
-        var meetings = new (string Name, int Start, int End)[]
+        foreach (Session session in selected)
         {
-            ("A", 1, 4), ("B", 3, 5), ("C", 0, 6), ("D", 5, 7),
-            ("E", 3, 9), ("F", 5, 9), ("G", 6, 10), ("H", 8, 11)
-        };
-        var chosen = SelectActivities(meetings);
-        Console.WriteLine("Chọn theo giờ KẾT THÚC sớm nhất (tham lam, chứng minh được tối ưu):");
-        Console.WriteLine($"  {string.Join(", ", chosen.Select(m => $"{m.Name}[{m.Start}-{m.End}]"))}");
-        Console.WriteLine($"  Tổng: {chosen.Count} cuộc họp");
-    }
-
-    // Tham lam: sắp mệnh giá giảm dần, lấy nhiều nhất có thể mỗi loại.
-    private static List<int> GreedyCoinChange(int[] coins, int amount)
-    {
-        var used = new List<int>();
-        foreach (int coin in coins.OrderByDescending(c => c))
-        {
-            while (amount >= coin)
-            {
-                used.Add(coin);
-                amount -= coin;
-            }
+            Console.WriteLine(
+                $"{session.Name}: {session.Start}:00-{session.End}:00");
         }
-        return used;
     }
 
-    // Tham lam: sắp theo giờ kết thúc, chọn cuộc nào bắt đầu sau cuộc vừa chọn.
-    private static List<(string Name, int Start, int End)> SelectActivities(
-        (string Name, int Start, int End)[] items)
+    private static IReadOnlyList<Session>
+        SelectMaximumNonOverlapping(IEnumerable<Session> sessions)
     {
-        var chosen = new List<(string, int, int)>();
+        Session[] ordered = sessions
+            .OrderBy(x => x.End)
+            .ThenBy(x => x.Start)
+            .ToArray();
+
+        var result = new List<Session>();
         int lastEnd = int.MinValue;
-        foreach (var m in items.OrderBy(x => x.End))
+
+        foreach (Session session in ordered)
         {
-            if (m.Start >= lastEnd) // không chồng cuộc trước
+            if (session.Start < lastEnd)
             {
-                chosen.Add((m.Name, m.Start, m.End));
-                lastEnd = m.End;
+                continue;
             }
+
+            result.Add(session);
+            lastEnd = session.End;
         }
-        return chosen;
+
+        return result;
     }
 }
 ```
 
-Build và chạy (`dotnet build -c Release` rồi `dotnet run -c Release --no-build`). Kết quả:
+Một output:
 
 ```text
-== Đổi tiền tham lam: luôn lấy đồng lớn nhất còn dùng được ==
-Đổi 87000 với mệnh giá [50000, 20000, 10000, 5000, 1000]:
-  50000 + 20000 + 10000 + 5000 + 1000 + 1000 = 87000 (6 tờ)
-
-== Nhưng tham lam KHÔNG luôn tối ưu ==
-Đổi 6 với mệnh giá [4, 3, 1]:
-  Tham lam: 4 + 1 + 1 = 3 đồng
-  Tối ưu thật: 3 + 3 = 2 đồng  -> tham lam thua!
-
-== Chọn hoạt động: nhiều cuộc họp nhất không chồng giờ ==
-Chọn theo giờ KẾT THÚC sớm nhất (tham lam, chứng minh được tối ưu):
-  A[1-4], D[5-7], H[8-11]
-  Tổng: 3 cuộc họp
+A: 9:00-10:00
+C: 10:00-11:00
+E: 11:00-12:00
+F: 12:00-13:00
 ```
 
 ## 4. Giải thích cơ chế
 
-### 4.1 Khuôn tư duy greedy
+### Quyết định cục bộ
 
-Thuật toán greedy xây lời giải theo từng bước, mỗi bước **cam kết** một lựa chọn tốt nhất tại chỗ và **không bao giờ xem lại**. `GreedyCoinChange` sắp mệnh giá giảm dần rồi lấy nhiều nhất có thể ở mỗi loại. Không quay lui, không thử phương án khác — nên nó rất nhanh, thường `O(n log n)` (chi phí sắp xếp) hoặc `O(n)`.
+Tại mỗi bước, chọn session kết thúc sớm nhất.
 
-Điểm hấp dẫn: greedy đơn giản đến mức trực giác. Điểm nguy hiểm: sự "không xem lại" đó khiến nó có thể bỏ lỡ lời giải tốt hơn cần hy sinh ở bước đầu.
+Lý do trực giác:
 
-### 4.2 Vì sao greedy thắng với tiền VND nhưng thua với `[4, 3, 1]`
+> kết thúc càng sớm thì càng để lại nhiều thời gian cho các session phía sau.
 
-Đổi tiền tham lam đúng khi bộ mệnh giá là **canonical** — mỗi đồng lớn "chứa gọn" các đồng nhỏ (như tiền thật: 50.000 = 5×10.000). Khi đó lấy đồng lớn nhất không bao giờ khiến phần còn lại phải dùng nhiều đồng hơn.
+Sau khi chọn A kết thúc 10:
 
-Bộ `[4, 3, 1]` phá vỡ điều đó. Đổi 6: greedy lấy `4` trước (tham lam), còn lại `2` phải trả bằng `1 + 1` → 3 đồng. Nhưng nếu **hy sinh** đồng 4, dùng `3 + 3` thì chỉ 2 đồng. Greedy thất bại vì lựa chọn tốt nhất tại chỗ (lấy 4) lại **chặn** đường tới lời giải tối ưu toàn cục. Đây là bài học cốt lõi: greedy đúng hay sai **tùy bài toán và dữ liệu**, phải chứng minh chứ không được mặc định.
+```text
+loại mọi interval bắt đầu < 10
+```
 
-### 4.3 Chọn hoạt động: một greedy đúng có chứng minh
+rồi lặp lại.
 
-Bài "nhiều cuộc họp nhất không chồng giờ" là ví dụ greedy **luôn** tối ưu. Chiến lược: sắp theo **giờ kết thúc** tăng dần, luôn chọn cuộc kết thúc sớm nhất còn không chồng cuộc đã chọn. Kết quả `A[1-4], D[5-7], H[8-11]` — 3 cuộc.
+### Complexity
 
-Vì sao chọn theo giờ kết thúc (không phải giờ bắt đầu, hay cuộc ngắn nhất)? Chọn cuộc kết thúc **sớm nhất** để lại **nhiều thời gian nhất** cho các cuộc sau — nên không bao giờ thiệt. Có thể chứng minh chặt: bất kỳ lời giải tối ưu nào cũng có thể "đổi" cuộc đầu của nó bằng cuộc kết thúc sớm nhất mà không giảm số cuộc. Đây gọi là **exchange argument** — cách chuẩn để chứng minh một greedy đúng.
+Sort theo end:
 
-### 4.4 Chọn tiêu chí greedy nào?
+```text
+O(n log n)
+```
 
-Cùng một bài, đổi **tiêu chí tham lam** cho kết quả khác nhau, và đa số tiêu chí là **sai**. Với chọn hoạt động: chọn theo giờ bắt đầu sớm nhất — sai (một cuộc bắt đầu sớm nhưng rất dài chiếm hết chỗ); chọn cuộc ngắn nhất — cũng sai (một cuộc ngắn nằm giữa có thể cắt hai cuộc khác). Chỉ "giờ kết thúc sớm nhất" mới đúng. Chọn đúng tiêu chí và **chứng minh** nó là phần khó nhất của thiết kế greedy.
+Scan chọn interval:
 
-### Đào sâu (có thể quay lại sau)
+```text
+O(n)
+```
 
-- **Hai điều kiện để greedy đúng.** (1) **Greedy-choice property**: có một lựa chọn tối ưu tại chỗ dẫn tới lời giải tối ưu toàn cục. (2) **Optimal substructure**: lời giải tối ưu của bài lớn chứa lời giải tối ưu của bài con. Đổi tiền `[4,3,1]` thiếu điều kiện (1) nên greedy sai.
-- **Khi greedy sai, dùng gì.** Nếu bài có optimal substructure nhưng thiếu greedy-choice, thường phải **quy hoạch động** (bài [17](./17-dynamic-programming.md)) — thử mọi lựa chọn và nhớ kết quả. Đổi tiền tổng quát chính là bài DP kinh điển.
-- **Các greedy nổi tiếng đúng.** Dijkstra và Prim (bài [12](./12-shortest-path-va-minimum-spanning-tree.md)) là thuật toán greedy có chứng minh. Mã hóa Huffman (nén dữ liệu) cũng greedy. Điểm chung: đều chứng minh được greedy-choice property.
-- **Xấp xỉ.** Ngay cả khi greedy không cho tối ưu, đôi khi nó cho lời giải "đủ tốt" nhanh chóng (approximation) — hữu ích cho bài NP-khó nơi tối ưu tuyệt đối là bất khả thi.
+Tổng:
+
+```text
+O(n log n)
+```
+
+### Vì sao “chọn interval ngắn nhất” không chắc đúng
+
+Greedy cần **quy tắc đã được chứng minh**, không phải intuition ngẫu nhiên.
+
+Một interval rất ngắn nhưng nằm giữa có thể chặn hai interval khác.
+
+Do đó mỗi heuristic phải được kiểm tra bằng proof hoặc counterexample.
 
 ## 5. Kiến thức nền
 
-### Dấu hiệu một bài có thể giải bằng greedy
+### Greedy-choice property
 
-- Có thể xây lời giải **từng bước**, mỗi bước một quyết định.
-- Có một **tiêu chí sắp xếp/ưu tiên** tự nhiên (giờ kết thúc, trọng số, tỉ lệ giá trị/khối lượng).
-- Quyết định sớm **không cần** xem lại khi biết thông tin sau.
+Bài toán có thể chọn một quyết định cục bộ tối ưu và vẫn tồn tại nghiệm tối ưu chứa quyết định đó.
 
-Nhưng dấu hiệu chỉ là gợi ý — luôn kiểm tra bằng phản ví dụ trước khi tin.
+Interval scheduling có tính chất này với “finish earliest”.
 
-### Greedy so với quy hoạch động
+### Optimal substructure
 
-| Tiêu chí | Greedy | Quy hoạch động |
-|---|---|---|
-| Quyết định | chọn một lần, không xem lại | thử mọi khả năng, nhớ lại |
-| Tốc độ | nhanh (`O(n log n)` thường) | chậm hơn (`O(n·m)`...) |
-| Đúng khi | có greedy-choice property | chỉ cần optimal substructure |
-| Rủi ro | dễ sai nếu không chứng minh | đúng nhưng tốn hơn |
+Sau khi chọn một interval, phần bài toán còn lại vẫn là:
 
-Greedy là "cược" rằng lựa chọn tại chỗ luôn đúng; DP "chắc ăn" bằng cách xét hết. Khi nghi ngờ greedy, hãy nghĩ tới DP.
+> chọn nhiều interval không overlap nhất từ các interval bắt đầu sau thời điểm mới.
 
-### Cách kiểm tra một greedy
+Cấu trúc bài toán lặp lại.
 
-1. **Tìm phản ví dụ** — thử vài bộ dữ liệu nhỏ, đặc biệt các trường hợp "lệch" như `[4,3,1]`. Một phản ví dụ đủ để bác bỏ.
-2. **Chứng minh** nếu không tìm được phản ví dụ — dùng exchange argument hoặc quy nạp.
-3. **Đối chiếu với brute-force** trên dữ liệu nhỏ — chạy cả hai và so kết quả.
+### Greedy và DP
+
+Cả hai thường tận dụng optimal substructure.
+
+Khác biệt:
+
+- greedy chốt lựa chọn và không quay lại;
+- DP lưu/so sánh nhiều trạng thái trước khi quyết định.
+
+Nếu greedy-choice property không có, DP có thể cần thiết.
+
+### Greedy trong thuật toán đã học
+
+- Dijkstra: chọn distance nhỏ nhất chưa xử lý dưới điều kiện weight không âm;
+- Prim/Kruskal: chọn edge theo nguyên tắc greedy có chứng minh;
+- interval scheduling.
 
 ## 6. Lỗi thường gặp
 
-### Mặc định greedy luôn đúng
+### Thấy tối ưu là dùng greedy
 
-Bẫy lớn nhất. `[4,3,1]` cho thấy greedy có thể sai mà không báo lỗi — chỉ cho đáp án tệ hơn. Luôn kiểm tra bằng phản ví dụ hoặc chứng minh trước khi dùng greedy cho bài quan trọng.
+Không phải bài tối ưu nào cũng greedy.
 
-### Chọn nhầm tiêu chí tham lam
+### Không tìm counterexample
 
-Với chọn hoạt động, "giờ bắt đầu sớm nhất" hay "cuộc ngắn nhất" đều sai; chỉ "giờ kết thúc sớm nhất" đúng. Tiêu chí sai làm greedy sai dù ý tưởng tổng thể đúng.
+Một cách kiểm tra heuristic rất hữu ích:
 
-### Không phân biệt greedy đúng và greedy xấp xỉ
+> cố tạo input nhỏ làm nó thất bại.
 
-Một số bài (như knapsack 0/1) không có greedy tối ưu; greedy chỉ cho xấp xỉ. Nhầm xấp xỉ thành tối ưu dẫn tới kết luận sai về tính đúng đắn.
+### Chọn theo start sớm nhất
 
-### Quên sắp xếp trước
+Start sớm nhưng end rất muộn có thể chặn nhiều interval.
 
-Nhiều greedy cần dữ liệu đã sắp theo tiêu chí (giảm dần mệnh giá, tăng dần giờ kết thúc). Bỏ bước sắp xếp làm sai toàn bộ.
+### Nhầm interval scheduling với weighted interval scheduling
 
-### Áp greedy cho bài cần xem lại quyết định
-
-Nếu quyết định sớm phụ thuộc thông tin chỉ biết sau, greedy (không xem lại) sẽ sai. Đó là dấu hiệu cần DP hoặc backtracking (bài [16](./16-backtracking.md)).
+Nếu mỗi interval có profit khác nhau và mục tiêu tối đa profit, greedy finish-earliest không còn đủ. Bài đó thường dẫn tới dynamic programming.
 
 ## 7. Bài tập
 
-### Bài 1 — Kiểm tra bộ mệnh giá canonical
+### Bài 1 — Counterexample
 
-Viết hàm so kết quả greedy với brute-force (thử mọi tổ hợp) trên các số tiền `1..30` cho một bộ mệnh giá. In ra số tiền đầu tiên mà greedy khác tối ưu (hoặc "canonical" nếu không có).
+Tạo input làm chiến lược “chọn interval bắt đầu sớm nhất” thất bại.
 
-**Gợi ý:** brute-force nhỏ có thể dùng đệ quy thử mọi đồng; đây là cách phát hiện bộ mệnh giá phá greedy.
+### Bài 2 — Minimum coins
 
-### Bài 2 — Chọn tiêu chí sai
+Với coin chuẩn:
 
-Cài lại `SelectActivities` chọn theo **giờ bắt đầu sớm nhất** và tìm một bộ dữ liệu mà nó cho ít cuộc hơn cách đúng.
+```text
+1, 5, 10, 25
+```
 
-**Gợi ý:** một cuộc bắt đầu lúc 0 nhưng kéo dài tới 10 sẽ chặn mọi cuộc khác.
+thử greedy lấy coin lớn nhất trước.
 
-### Bài 3 — Phân đoạn xăng
+Sau đó tìm hệ coin mà greedy sai, ví dụ:
 
-Xe cần đi qua các trạm xăng cách nhau, mỗi lần đổ đầy đi được `D` km. Tìm số lần đổ ít nhất bằng greedy (đi xa nhất có thể trước khi buộc phải đổ).
+```text
+1, 3, 4
+```
 
-**Gợi ý:** greedy đúng ở đây — chứng minh bằng exchange: đổ muộn nhất có thể không bao giờ thiệt.
+cho amount 6.
+
+### Bài 3 — Job scheduling
+
+Mỗi job có deadline và profit, mỗi job dài 1 slot. Nghiên cứu chiến lược greedy.
 
 ### Bài 4 — Fractional knapsack
 
-Cho các món có giá trị và khối lượng, ba lô chịu tải `W`, **được phép lấy một phần** món. Tối đa hóa giá trị bằng greedy theo tỉ lệ giá trị/khối lượng.
+Giải bằng value/weight ratio.
 
-**Gợi ý:** fractional knapsack có greedy tối ưu (khác 0/1 knapsack); sắp theo tỉ lệ giảm dần, lấy đầy dần.
+Giải thích vì sao 0/1 knapsack khác.
 
-### Bài 5 — Nối dây chi phí nhỏ nhất
+### Bài 5 — Proof sketch
 
-Cho `n` đoạn dây độ dài khác nhau, mỗi lần nối hai đoạn tốn chi phí bằng tổng độ dài. Nối tất cả thành một với tổng chi phí nhỏ nhất.
-
-**Gợi ý:** luôn nối **hai đoạn ngắn nhất** trước — dùng min-heap (bài [08](./08-heap-va-priority-queue.md)); đây là greedy đúng, họ hàng với mã Huffman.
+Viết exchange argument ngắn cho interval scheduling finish-earliest.
 
 ## 8. Checklist tự đánh giá và điều hướng
 
-- [ ] Tôi mô tả được khuôn greedy: chọn tốt nhất tại chỗ, không xem lại.
-- [ ] Tôi cài được đổi tiền tham lam và chọn hoạt động.
-- [ ] Tôi chỉ ra được phản ví dụ nơi greedy thất bại và giải thích vì sao.
-- [ ] Tôi biết chọn đúng tiêu chí tham lam quan trọng thế nào.
-- [ ] Tôi phát biểu được greedy-choice property và optimal substructure.
-- [ ] Tôi biết khi nào chuyển từ greedy sang quy hoạch động.
+- [ ] Tôi hiểu greedy là quyết định cục bộ.
+- [ ] Tôi không áp dụng greedy nếu chưa có lý do đúng.
+- [ ] Tôi giải được interval scheduling.
+- [ ] Tôi biết dùng counterexample để bác heuristic.
+- [ ] Tôi phân biệt greedy và DP.
+- [ ] Tôi nhận ra weighted version có thể đổi bản chất bài toán.
 
 Điều hướng:
 
-- Bài prerequisite: [Searching](./14-searching.md)
-- Ôn lại nền tảng: [Sorting](./13-sorting.md), [Heap và priority queue](./08-heap-va-priority-queue.md)
+- Bài trước: [Searching](./14-searching.md)
 - Bài tiếp theo: [Backtracking](./16-backtracking.md)

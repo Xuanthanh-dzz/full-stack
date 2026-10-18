@@ -1,5 +1,19 @@
 # Cấp phát động: malloc, calloc, realloc và free
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- malloc/calloc cấp storage động; realloc có thể thay địa chỉ; free kết thúc quyền sử dụng vùng đã cấp.
+- Dùng khi lượng dữ liệu chỉ biết lúc chạy hoặc phải sống lâu hơn block tạo nó.
+- Cấp phát có thể thất bại; mất owner hoặc dùng alias cũ sau realloc dẫn tới lỗi bộ nhớ.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -12,6 +26,24 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Bạn thuê kho và giữ chìa khóa duy nhất. Khi xin kho lớn hơn, có thể phải chuyển sang địa chỉ khác. Đừng vứt chìa khóa kho cũ trước khi biết việc chuyển thành công; cũng đừng đưa cho người khác địa chỉ cũ rồi bảo họ cứ tiếp tục dùng.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| owner | nơi chịu trách nhiệm giải phóng storage | prices trong caller |
+| heap | tên thường dùng cho vùng cấp phát động | storage do malloc quản lý |
+| allocation failure | không lấy được storage theo yêu cầu | hàm cấp phát trả NULL |
+| reallocation | đổi kích thước storage, có thể đổi địa chỉ | realloc |
+| alias | con trỏ khác cùng chỉ dữ liệu | phải bỏ sau realloc thành công |
+
+### Ví dụ nhỏ — tính tay trước
+
+Mảng có 2 ô [10, 20], muốn 3 ô: xin resize vào biến tạm; thất bại giữ owner/2 ô cũ; thành công cập nhật owner rồi khởi tạo ô mới. Địa chỉ số có thể giống trước nhưng không được dựa vào alias cũ.
+
 Số mặt hàng cần lưu chỉ biết khi chương trình chạy. Mảng cố định có thể quá nhỏ hoặc lãng phí. Ta cần:
 
 1. tạo mảng giá có ba phần tử;
@@ -19,7 +51,9 @@ Số mặt hàng cần lưu chỉ biết khi chương trình chạy. Mảng cố
 3. mở rộng mảng giá lên năm phần tử;
 4. giải phóng mọi block trên tất cả đường đi.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -148,7 +182,20 @@ Tong gia: 1250 xu
 
 Các nhánh lỗi ghi thông báo vào standard error và trả exit code khác `0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main cấp prices cho ba int và sold bằng calloc; kiểm tra từng kết quả trước dùng.
+2. resize nhận địa chỉ owner, kiểm tra số phần tử và SIZE_MAX trước tính số byte.
+3. realloc thành công mới ghi lại owner; phần tăng thêm được gán 0 rồi nhận giá 300 và 400.
+4. Tổng mẫu là 1250; cuối chương trình free các owner đúng một lần. Resize có thể copy phần cũ nên một lần tăng có cost tuyến tính theo dữ liệu cũ, storage tăng theo capacity.
+
+### Mini-check
+
+Tại sao resize cần int ** nhưng tính tổng chỉ cần const int *? Object nào mỗi hàm phải thay?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### `malloc`: tạo một block chưa khởi tạo
 
@@ -247,7 +294,45 @@ kết thúc allocation mà `prices` trỏ tới. Sau đó:
 
 Mọi nhánh sau khi cả hai allocation được tạo đều phải `free(sold)` và `free(prices)` đúng một lần.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Mảng kích thước cố định | storage đã biết giới hạn | đơn giản, không có lỗi cấp phát riêng; hợp demo có trần nhỏ |
+| malloc/calloc | xin vùng mới; calloc đặt các byte về 0 | phải kiểm tra lỗi/free; không giả định byte 0 biểu diễn mọi kiểu giá trị |
+| realloc | thay kích thước vùng đang sở hữu | có thể dời/copy; không dùng alias cũ sau thành công |
+
+### Misconception check
+
+**Đúng hay sai?** Gán p = realloc(p, n) luôn giữ được dữ liệu khi lỗi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: NULL ghi đè owner khiến mất đường giải phóng vùng cũ.
+
+</details>
+
+**Đúng hay sai?** Phần mới của realloc tự bằng 0 như calloc.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: phải khởi tạo trước khi đọc.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** cấp phát, kiểm tra, dùng, giải phóng.
+
+- **Working Developer — dùng khi làm việc:** commit owner sau realloc thành công.
+
+- **Deep Dive — có thể quay lại sau:** đo chi phí copy và thiết kế tăng capacity theo nhu cầu.
 
 ### Tính kích thước không ghi lặp kiểu
 
@@ -331,7 +416,17 @@ Gán owner về `NULL` sau `free`, nhưng quan trọng hơn là dừng mọi ali
 
 Chỉ truyền cho `free` đúng pointer được allocator trả về gần nhất. Không `free(&local)`, không `free(prices + 1)`, không `free` cùng allocation hai lần.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng cấp phát động cho hai số cố định nếu caller có thể giữ chúng trực tiếp. Không dùng realloc với kích thước 0 làm giao thức giải phóng mơ hồ; sample từ chối trường hợp đó và free tường minh.
+
+## 8. Production notes & scale check
+
+Demo năm ô phù hợp cấp phát đơn giản. Dữ liệu tăng nhiều cần giới hạn capacity và đo số lần resize trước khi tối ưu. Luôn kiểm tra phép nhân count × sizeof trước cấp phát; mô phỏng thất bại có kiểm soát để chứng minh owner cũ còn dùng được.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Mảng nhiệt độ động
 
@@ -363,7 +458,23 @@ Vẽ tất cả trạng thái có thể của `prices` trước/sau `realloc`, g
 
 **Gợi ý:** ở nhánh thành công có di chuyển, đánh dấu block cũ đã hết lifetime.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Capstone Module 01 giới hạn năm học sinh. Nếu chỉ tăng lên mười, có cần mảng động ngay không? Nếu không biết số lượng lúc chạy, mô tả owner, giới hạn và trạng thái giữ nguyên khi cấp phát thất bại.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Trace owner trước/sau realloc thất bại.
+2. Ai phải khởi tạo phần tăng thêm?
+3. free có làm mọi alias thành NULL không?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi kiểm tra `NULL` sau mọi allocation.
 - [ ] Tôi không đọc byte từ `malloc` trước khi khởi tạo.

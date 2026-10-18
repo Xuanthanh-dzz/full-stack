@@ -1,5 +1,19 @@
 # Bài toán, thuật toán và pseudocode
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Thuật toán là các bước biến dữ liệu đầu vào thành kết quả; pseudocode ghi các bước đó bằng lời.
+- Dùng trước khi code để thống nhất cách tính và kết quả cần kiểm tra.
+- In sẵn một đáp án chỉ minh họa output, chưa phải chương trình tính được cho input khác.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - đối chiếu từng dòng code với một bước trong thuật toán.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Hãy đưa cho một người khác tờ hướng dẫn tính tiền. Nếu họ vẫn phải hỏi “nhân những số nào?”, hướng dẫn chưa đủ rõ. Máy cũng cần các bước cụ thể như vậy. Ta tính bằng tay trước rồi mới chuyển hướng dẫn sang C.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| input | dữ liệu đã có trước khi xử lý | 3 quyển, 12000 đồng |
+| output | kết quả cần tạo | 36000 đồng |
+| thuật toán | các bước xử lý có thứ tự và kết thúc | nhân số lượng với đơn giá |
+| source code | văn bản viết theo quy tắc ngôn ngữ | file receipt.c |
+| compile | dịch source thành chương trình máy chạy được | lệnh cc |
+
+### Ví dụ nhỏ — tính tay trước
+
+Với 2 quyển giá 5 đồng: nhận 2 và 5 → nhân được 10 → in 10. Đổi số lượng thành 3 thì kết quả phải là 15; đây là phép thử phân biệt tính thật với in kết quả cố định.
 
 Một quầy văn phòng phẩm chuẩn bị 3 quyển vở, mỗi quyển giá `12000` VND. Nhân viên cần biết tổng tiền và in một phiếu ngắn:
 
@@ -28,7 +60,9 @@ Ta mô tả bài toán trước:
 - **Xử lý:** lấy số lượng nhân đơn giá.
 - **Output:** số lượng, đơn giá, tổng tiền.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ### 3.1. Thuật toán bằng pseudocode
 
@@ -86,11 +120,24 @@ Tong tien: 36000 VND
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0` với đúng các cờ ở trên.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. Pseudocode giữ hai giá trị 3 và 12000; bước nhân tạo 36000.
+2. Sample C hiện chỉ ghi ba chuỗi cố định; nó KHÔNG thực hiện bước nhân của pseudocode.
+3. Khi chạy executable trên máy, ba lời gọi printf ghi lần lượt vào stdout; chưa có dữ liệu nhập hoặc dữ liệu lưu lâu dài.
+4. return 0 kết thúc; chi phí chính của sample là khởi động chương trình và ghi ba dòng, không phải tính toán.
+
+### Mini-check
+
+Nếu đổi yêu cầu thành 4 quyển nhưng chỉ sửa dòng “So luong”, dòng tổng có tự đổi không? Vì sao?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Chương trình chạy từ đâu?
 
-Hệ điều hành bắt đầu chương trình tại hàm:
+Trong môi trường C có hệ điều hành, phần khởi động của chương trình gọi hàm:
 
 ```c
 int main(void)
@@ -132,7 +179,45 @@ KET_THUC thanh cong               return 0;
 
 Code hiện đang in kết quả đã tính trước. Bài 03 sẽ lưu dữ liệu vào biến; bài 05 sẽ để máy thực hiện phép nhân. Việc tách nhỏ này giúp ta hiểu từng cơ chế trước khi ghép chúng.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Pseudocode | mô tả cách giải cho người đọc | tốn công viết nhưng sửa logic sớm; dùng khi yêu cầu chưa rõ |
+| Code C | chỉ dẫn theo cú pháp để compiler dịch | cần build/run; dùng khi đã có output kiểm tra |
+| In đáp án cố định | chỉ tái hiện một ví dụ | rất ít code; không dùng cho input thay đổi |
+
+### Misconception check
+
+**Đúng hay sai?** In đúng 36000 chứng minh chương trình nhân đúng với mọi input.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample chỉ in chuỗi; phải đổi input và kiểm tra phép tính ở bài 03–05.
+
+</details>
+
+**Đúng hay sai?** Pseudocode cần có cú pháp C mới chạy được.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: pseudocode dành cho con người, không đưa trực tiếp cho compiler.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** tách input/xử lý/output.
+
+- **Working Developer — dùng khi làm việc:** viết ca kiểm tra trước khi đổi yêu cầu.
+
+- **Deep Dive — có thể quay lại sau:** đánh giá tính kết thúc khi thuật toán có lặp.
 
 ### Bài toán và đặc tả
 
@@ -186,7 +271,17 @@ Source code phải dùng dấu ASCII `"`, không dùng `“` và `”` do trình
 
 Bộ tài liệu dùng `-Werror`, vì vậy warning cũng làm build thất bại. Đây là chủ ý: sửa nguyên nhân thay vì tập bỏ qua tín hiệu.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không viết pseudocode nhiều trang cho việc in một dòng đã rõ. Một ví dụ input/output đủ. Cũng không dùng in đáp án cố định thay cho phép tính trong công cụ bán hàng; việc đồng bộ tay ba dòng dễ tạo hóa đơn sai.
+
+## 8. Production notes & scale check
+
+Demo có một bộ dữ liệu đã biết và không lưu hóa đơn. Với quầy nhỏ, team 2–3 người chỉ cần xác nhận quy tắc tính và kiểm thử vài ca; chưa cần cơ sở dữ liệu hay kiến trúc nhiều tầng. Khi input thay đổi, ưu tiên biến và phép tính trước. Lưu output đối chiếu với yêu cầu là bằng chứng ban đầu.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Phiếu mua bút
 
@@ -218,7 +313,26 @@ Sửa `receipt.c` để in phiếu 2 chiếc thước, đơn giá `15000`, tổn
 
 **Gợi ý:** giữ nguyên khung `main`, chỉ đổi ba chuỗi.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Bạn bàn giao quy tắc tổng tiền cho người sẽ viết C# ở Module 04. Chọn bàn giao pseudocode + 3 ví dụ hay chỉ receipt.c? Nêu phần độc lập ngôn ngữ và ca 0 sản phẩm. Không cần biết C# để trả lời.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Giải thích input khác output bằng ví dụ mới.
+2. Dự đoán điều gì xảy ra nếu đổi một chuỗi in mà không đổi các chuỗi khác.
+3. Chỉ ra bước pseudocode chưa được C sample thực hiện.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi tách được input, xử lý và output của một bài toán nhỏ.
 - [ ] Tôi viết được pseudocode có thứ tự và điểm kết thúc rõ ràng.

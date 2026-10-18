@@ -2,245 +2,386 @@
 
 ## 1. Mục tiêu
 
-Sau bài này, bạn có thể:
+Đây là checkpoint cuối Module 07. Sau dự án này, bạn phải có thể:
 
-- gói cả module thành một **engine tìm đường** hoàn chỉnh chạy trên lưới 2D có tường và địa hình;
-- cài đặt và so sánh trực tiếp **BFS**, **Dijkstra** và **A\*** trên cùng bản đồ;
-- giải thích vì sao BFS cho ít bước nhất còn Dijkstra cho chi phí thấp nhất;
-- hiểu **A\*** = Dijkstra + heuristic, cho cùng lời giải tối ưu nhưng xét ít ô hơn hẳn;
-- tổ chức code thành các lớp có trách nhiệm rõ ràng (`Grid`, `PathFinder`, `SearchResult`);
-- đo và đối chiếu số ô đã xét để đánh giá hiệu quả thuật toán, không chỉ tính đúng/sai.
+- biến một bài toán route thành weighted graph;
+- chọn cấu trúc dữ liệu dựa trên operation;
+- dùng `Dictionary`, `HashSet`, `PriorityQueue` và graph trong cùng một chương trình;
+- cài Dijkstra và reconstruct route;
+- phân biệt route ít chặng với route có tổng chi phí thấp nhất;
+- xử lý input sai, vertex không tồn tại và route không thể đi tới;
+- phân tích time/space complexity của solution;
+- refactor code thành các component có trách nhiệm rõ ràng;
+- viết test case cho success path và failure path;
+- giải thích trade-off như khi code review trong công ty.
 
 ## 2. Bài toán mở đầu
 
-Đây là dự án tổng kết module. Ta xây một **engine tìm đường** như trong game hoặc bản đồ: cho một lưới có ô trống (cỏ), ô tường không đi được, và ô địa hình khó (bùn — đi được nhưng tốn hơn), tìm đường từ điểm xuất phát `S` tới đích `G`.
+Xây một **Route Engine** cho hệ thống giao hàng nội bộ.
 
-Cùng một bản đồ, ba câu hỏi khác nhau:
+Hệ thống có các điểm:
 
-- *Ít ô nhất?* — không quan tâm địa hình, chỉ đếm số bước. Đây là **BFS** (bài [11](./11-bfs-va-dfs.md)).
-- *Rẻ nhất?* — cộng chi phí địa hình; đi vòng qua đường cỏ có thể rẻ hơn băng qua bùn. Đây là **Dijkstra** (bài [12](./12-shortest-path-va-minimum-spanning-tree.md)).
-- *Rẻ nhất nhưng nhanh hơn?* — Dijkstra fan ra mọi hướng; nếu biết đích ở đâu, ta hướng tìm kiếm về phía đó. Đây là **A\***, mở rộng của Dijkstra.
+```text
+Warehouse
+District-1
+District-2
+District-3
+Airport
+Port
+```
 
-Dự án này ghép graph, BFS, priority queue, Dijkstra và heuristic thành một chương trình chạy được, rồi **đo** để thấy tận mắt khác biệt giữa ba thuật toán trên cùng một bài toán.
+Mỗi tuyến đường có một cost:
 
-## 3. Lời giải bằng code
+```text
+Warehouse --4-- District-1
+Warehouse --2-- District-2
+District-1 --1-- District-2
+District-1 --5-- District-3
+District-2 --8-- District-3
+District-2 --10-- Airport
+District-3 --2-- Airport
+District-3 --6-- Port
+Airport --3-- Port
+```
 
-Tạo project .NET 9 tên `Pathfinder` với cấu hình `.csproj` chuẩn của module (có `Nullable` và `TreatWarningsAsErrors`), rồi thay `Program.cs`:
+Yêu cầu:
+
+1. thêm location;
+2. thêm road hai chiều có cost dương;
+3. tìm route rẻ nhất giữa hai location;
+4. trả cả tổng cost và danh sách location;
+5. phát hiện location không tồn tại;
+6. trả trạng thái rõ ràng khi không có route;
+7. không cho road có cost âm;
+8. không phụ thuộc UI, database hay web framework;
+9. có thể mở rộng thành ASP.NET Core service ở module sau.
+
+## 3. Lời giải tham chiếu bằng code
+
+Tạo project:
+
+```bash
+mkdir RouteEngine
+cd RouteEngine
+dotnet new console --framework net9.0 --use-program-main
+```
+
+`RouteEngine.csproj`:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
+```
+
+Để dễ chạy và kiểm chứng, lời giải đầu tiên đặt toàn bộ type trong một `Program.cs`. Sau khi chạy đúng, phần 5 sẽ tách thành nhiều file.
+
+`Program.cs`:
 
 ```csharp
-namespace Pathfinder;
+namespace RouteEngine;
+
+public sealed record Road(string To, int Cost);
+
+public sealed record RouteResult(
+    bool Found,
+    int TotalCost,
+    IReadOnlyList<string> Path)
+{
+    public static RouteResult NotFound() =>
+        new(false, 0, Array.Empty<string>());
+}
+
+public sealed class WeightedGraph
+{
+    private readonly Dictionary<string, List<Road>> _adjacency =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    public int VertexCount => _adjacency.Count;
+
+    public IEnumerable<string> Vertices => _adjacency.Keys;
+
+    public void AddLocation(string location)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
+
+        _adjacency.TryAdd(
+            location.Trim(),
+            new List<Road>());
+    }
+
+    public void AddUndirectedRoad(
+        string from,
+        string to,
+        int cost)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+        ArgumentException.ThrowIfNullOrWhiteSpace(to);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cost);
+
+        from = from.Trim();
+        to = to.Trim();
+
+        AddLocation(from);
+        AddLocation(to);
+
+        AddOrUpdateDirectedRoad(from, to, cost);
+        AddOrUpdateDirectedRoad(to, from, cost);
+    }
+
+    public IReadOnlyList<Road> GetRoads(string location)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
+
+        if (!_adjacency.TryGetValue(
+            location.Trim(),
+            out List<Road>? roads))
+        {
+            throw new KeyNotFoundException(
+                $"Unknown location: {location}");
+        }
+
+        return roads;
+    }
+
+    public bool Contains(string location)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
+        return _adjacency.ContainsKey(location.Trim());
+    }
+
+    private void AddOrUpdateDirectedRoad(
+        string from,
+        string to,
+        int cost)
+    {
+        List<Road> roads = _adjacency[from];
+
+        int index = roads.FindIndex(
+            road => string.Equals(
+                road.To,
+                to,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (index >= 0)
+        {
+            roads[index] = new Road(to, cost);
+        }
+        else
+        {
+            roads.Add(new Road(to, cost));
+        }
+    }
+}
+
+public sealed class RouteFinder
+{
+    private readonly WeightedGraph _graph;
+
+    public RouteFinder(WeightedGraph graph)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        _graph = graph;
+    }
+
+    public RouteResult FindCheapest(
+        string start,
+        string target)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(start);
+        ArgumentException.ThrowIfNullOrWhiteSpace(target);
+
+        if (!_graph.Contains(start))
+        {
+            throw new KeyNotFoundException(
+                $"Unknown start location: {start}");
+        }
+
+        if (!_graph.Contains(target))
+        {
+            throw new KeyNotFoundException(
+                $"Unknown target location: {target}");
+        }
+
+        var distances = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase);
+
+        var previous = new Dictionary<string, string?>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (string vertex in _graph.Vertices)
+        {
+            distances[vertex] = int.MaxValue;
+        }
+
+        distances[start] = 0;
+        previous[start] = null;
+
+        var queue = new PriorityQueue<string, int>();
+        queue.Enqueue(start, 0);
+
+        while (queue.TryDequeue(
+            out string? current,
+            out int queuedDistance))
+        {
+            if (queuedDistance != distances[current])
+            {
+                continue;
+            }
+
+            if (string.Equals(
+                current,
+                target,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            foreach (Road road in _graph.GetRoads(current))
+            {
+                int candidate = checked(
+                    queuedDistance + road.Cost);
+
+                if (candidate >= distances[road.To])
+                {
+                    continue;
+                }
+
+                distances[road.To] = candidate;
+                previous[road.To] = current;
+                queue.Enqueue(road.To, candidate);
+            }
+        }
+
+        if (distances[target] == int.MaxValue)
+        {
+            return RouteResult.NotFound();
+        }
+
+        var path = new List<string>();
+
+        for (string? current = target;
+             current is not null;
+             current = previous[current])
+        {
+            path.Add(current);
+        }
+
+        path.Reverse();
+
+        return new RouteResult(
+            Found: true,
+            TotalCost: distances[target],
+            Path: path);
+    }
+}
 
 internal static class Program
 {
     private static void Main()
     {
-        // '#': tường; '.': cỏ (chi phí 1); '~': bùn (chi phí 5); S: start; G: goal.
-        string[] map =
-        {
-            "S....~~~~...G",
-            ".###########.",
-            ".###########.",
-            ".###########.",
-            ".............",
-            ".............",
-            ".............",
-            ".............",
-        };
-        var grid = Grid.Parse(map);
-        Console.WriteLine("Bản đồ (S=start, G=goal, #=tường, ~=bùn chi phí 5, .=cỏ chi phí 1):");
-        grid.Print(grid.Start, grid.Goal, null);
+        WeightedGraph graph = BuildGraph();
+        var finder = new RouteFinder(graph);
 
-        Console.WriteLine();
-        Console.WriteLine("== BFS: ít Ô nhất (bỏ qua chi phí địa hình) ==");
-        var bfs = PathFinder.Bfs(grid);
-        Report(grid, bfs);
+        PrintRoute(
+            "Warehouse",
+            "Port",
+            finder.FindCheapest("Warehouse", "Port"));
 
-        Console.WriteLine();
-        Console.WriteLine("== Dijkstra: RẺ nhất theo chi phí địa hình ==");
-        var dij = PathFinder.Dijkstra(grid, useHeuristic: false);
-        Report(grid, dij);
+        PrintRoute(
+            "Warehouse",
+            "Airport",
+            finder.FindCheapest("Warehouse", "Airport"));
 
-        Console.WriteLine();
-        Console.WriteLine("== A*: cùng đường rẻ nhất, nhưng xét ít ô hơn nhờ heuristic ==");
-        var astar = PathFinder.Dijkstra(grid, useHeuristic: true);
-        Report(grid, astar);
+        graph.AddLocation("Island");
 
-        Console.WriteLine();
-        Console.WriteLine("== So sánh ==");
-        Console.WriteLine($"  BFS      : {bfs.Path.Count - 1} bước, chi phí {bfs.Cost}, xét {bfs.Explored} ô");
-        Console.WriteLine($"  Dijkstra : {dij.Path.Count - 1} bước, chi phí {dij.Cost}, xét {dij.Explored} ô");
-        Console.WriteLine($"  A*       : {astar.Path.Count - 1} bước, chi phí {astar.Cost}, xét {astar.Explored} ô");
+        PrintRoute(
+            "Warehouse",
+            "Island",
+            finder.FindCheapest("Warehouse", "Island"));
+
+        ReportFailure(
+            () => finder.FindCheapest("Unknown", "Port"));
+
+        ReportFailure(
+            () => graph.AddUndirectedRoad(
+                "Warehouse",
+                "Invalid",
+                -1));
     }
 
-    private static void Report(Grid grid, SearchResult r)
+    private static WeightedGraph BuildGraph()
     {
-        if (r.Path.Count == 0)
+        var graph = new WeightedGraph();
+
+        graph.AddUndirectedRoad(
+            "Warehouse", "District-1", 4);
+
+        graph.AddUndirectedRoad(
+            "Warehouse", "District-2", 2);
+
+        graph.AddUndirectedRoad(
+            "District-1", "District-2", 1);
+
+        graph.AddUndirectedRoad(
+            "District-1", "District-3", 5);
+
+        graph.AddUndirectedRoad(
+            "District-2", "District-3", 8);
+
+        graph.AddUndirectedRoad(
+            "District-2", "Airport", 10);
+
+        graph.AddUndirectedRoad(
+            "District-3", "Airport", 2);
+
+        graph.AddUndirectedRoad(
+            "District-3", "Port", 6);
+
+        graph.AddUndirectedRoad(
+            "Airport", "Port", 3);
+
+        return graph;
+    }
+
+    private static void PrintRoute(
+        string from,
+        string to,
+        RouteResult result)
+    {
+        Console.WriteLine($"{from} -> {to}");
+
+        if (!result.Found)
         {
-            Console.WriteLine("  Không có đường đi!");
+            Console.WriteLine("  no route");
             return;
         }
-        grid.Print(grid.Start, grid.Goal, r.Path.ToHashSet());
-        Console.WriteLine($"  Chi phí = {r.Cost}, số bước = {r.Path.Count - 1}, số ô đã xét = {r.Explored}");
-    }
-}
 
-internal readonly record struct Cell(int Row, int Col);
+        Console.WriteLine(
+            $"  cost: {result.TotalCost}");
 
-internal sealed class Grid
-{
-    private readonly char[][] _cells;
-    public int Rows { get; }
-    public int Cols { get; }
-    public Cell Start { get; }
-    public Cell Goal { get; }
-
-    private Grid(char[][] cells, Cell start, Cell goal)
-    {
-        _cells = cells;
-        Rows = cells.Length;
-        Cols = cells[0].Length;
-        Start = start;
-        Goal = goal;
+        Console.WriteLine(
+            $"  path: {string.Join(" -> ", result.Path)}");
     }
 
-    public static Grid Parse(string[] map)
+    private static void ReportFailure(Action action)
     {
-        int width = map[0].Length;
-        if (map.Any(row => row.Length != width))
+        try
         {
-            throw new ArgumentException("Mọi hàng của bản đồ phải cùng độ rộng.");
+            action();
+            Console.WriteLine("Expected failure: no");
         }
-        var cells = map.Select(row => row.ToCharArray()).ToArray();
-        Cell start = default, goal = default;
-        for (int r = 0; r < cells.Length; r++)
-            for (int c = 0; c < cells[r].Length; c++)
-            {
-                if (cells[r][c] == 'S') start = new Cell(r, c);
-                if (cells[r][c] == 'G') goal = new Cell(r, c);
-            }
-        return new Grid(cells, start, goal);
-    }
-
-    public bool IsWall(Cell c) => _cells[c.Row][c.Col] == '#';
-
-    public int CostOf(Cell c) => _cells[c.Row][c.Col] == '~' ? 5 : 1;
-
-    public IEnumerable<Cell> Neighbors(Cell c)
-    {
-        // 4 hướng: lên, xuống, trái, phải
-        var deltas = new[] { (-1, 0), (1, 0), (0, -1), (0, 1) };
-        foreach (var (dr, dc) in deltas)
+        catch (Exception ex)
         {
-            int nr = c.Row + dr, nc = c.Col + dc;
-            if (nr >= 0 && nr < Rows && nc >= 0 && nc < Cols)
-            {
-                var next = new Cell(nr, nc);
-                if (!IsWall(next)) yield return next;
-            }
+            Console.WriteLine(
+                $"Expected {ex.GetType().Name}: {ex.Message}");
         }
-    }
-
-    public int Manhattan(Cell a, Cell b) => Math.Abs(a.Row - b.Row) + Math.Abs(a.Col - b.Col);
-
-    public void Print(Cell start, Cell goal, HashSet<Cell>? path)
-    {
-        for (int r = 0; r < Rows; r++)
-        {
-            var sb = new System.Text.StringBuilder("  ");
-            for (int c = 0; c < Cols; c++)
-            {
-                var cell = new Cell(r, c);
-                char ch = _cells[r][c];
-                if (cell == start) ch = 'S';
-                else if (cell == goal) ch = 'G';
-                else if (path is not null && path.Contains(cell)) ch = '*';
-                sb.Append(ch).Append(' ');
-            }
-            Console.WriteLine(sb.ToString());
-        }
-    }
-}
-
-internal sealed class SearchResult
-{
-    public List<Cell> Path { get; init; } = new();
-    public int Cost { get; init; }
-    public int Explored { get; init; }
-}
-
-internal static class PathFinder
-{
-    public static SearchResult Bfs(Grid grid)
-    {
-        var prev = new Dictionary<Cell, Cell>();
-        var visited = new HashSet<Cell> { grid.Start };
-        var queue = new Queue<Cell>();
-        queue.Enqueue(grid.Start);
-        int explored = 0;
-
-        while (queue.Count > 0)
-        {
-            Cell cur = queue.Dequeue();
-            explored++;
-            if (cur == grid.Goal) break;
-            foreach (Cell next in grid.Neighbors(cur))
-            {
-                if (visited.Add(next))
-                {
-                    prev[next] = cur;
-                    queue.Enqueue(next);
-                }
-            }
-        }
-        return Build(grid, prev, explored);
-    }
-
-    // useHeuristic = false -> Dijkstra thuần; true -> A* (thêm ước lượng Manhattan).
-    public static SearchResult Dijkstra(Grid grid, bool useHeuristic)
-    {
-        var dist = new Dictionary<Cell, int> { [grid.Start] = 0 };
-        var prev = new Dictionary<Cell, Cell>();
-        var pq = new PriorityQueue<Cell, int>();
-        pq.Enqueue(grid.Start, 0);
-        int explored = 0;
-
-        while (pq.TryDequeue(out Cell cur, out _))
-        {
-            explored++;
-            if (cur == grid.Goal) break;
-            foreach (Cell next in grid.Neighbors(cur))
-            {
-                int nd = dist[cur] + grid.CostOf(next);
-                if (!dist.TryGetValue(next, out int old) || nd < old)
-                {
-                    dist[next] = nd;
-                    prev[next] = cur;
-                    // A*: ưu tiên = chi phí thực + ước lượng còn lại tới đích
-                    int priority = nd + (useHeuristic ? grid.Manhattan(next, grid.Goal) : 0);
-                    pq.Enqueue(next, priority);
-                }
-            }
-        }
-        return Build(grid, prev, explored, dist.GetValueOrDefault(grid.Goal));
-    }
-
-    private static SearchResult Build(Grid grid, Dictionary<Cell, Cell> prev, int explored, int? cost = null)
-    {
-        var path = new List<Cell>();
-        if (grid.Start != grid.Goal && !prev.ContainsKey(grid.Goal))
-        {
-            return new SearchResult { Explored = explored };
-        }
-        Cell cur = grid.Goal;
-        while (true)
-        {
-            path.Add(cur);
-            if (cur == grid.Start) break;
-            cur = prev[cur];
-        }
-        path.Reverse();
-        int totalCost = cost ?? path.Skip(1).Sum(grid.CostOf);
-        return new SearchResult { Path = path, Cost = totalCost, Explored = explored };
     }
 }
 ```
@@ -248,208 +389,440 @@ internal static class PathFinder
 Build và chạy:
 
 ```bash
-dotnet build --configuration Release
-dotnet run --configuration Release --no-build
+dotnet build
+dotnet run --no-build
 ```
 
-Kết quả:
+Kết quả route chính:
 
 ```text
-Bản đồ (S=start, G=goal, #=tường, ~=bùn chi phí 5, .=cỏ chi phí 1):
-  S . . . . ~ ~ ~ ~ . . . G 
-  . # # # # # # # # # # # . 
-  . # # # # # # # # # # # . 
-  . # # # # # # # # # # # . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-
-== BFS: ít Ô nhất (bỏ qua chi phí địa hình) ==
-  S * * * * * * * * * * * G 
-  . # # # # # # # # # # # . 
-  . # # # # # # # # # # # . 
-  . # # # # # # # # # # # . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  Chi phí = 28, số bước = 12, số ô đã xét = 46
-
-== Dijkstra: RẺ nhất theo chi phí địa hình ==
-  S . . . . ~ ~ ~ ~ . . . G 
-  * # # # # # # # # # # # * 
-  * # # # # # # # # # # # * 
-  * # # # # # # # # # # # * 
-  * * * * * * * * * * * * * 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  Chi phí = 20, số bước = 20, số ô đã xét = 67
-
-== A*: cùng đường rẻ nhất, nhưng xét ít ô hơn nhờ heuristic ==
-  S . . . . ~ ~ ~ ~ . . . G 
-  * # # # # # # # # # # # * 
-  * # # # # # # # # # # # * 
-  * # # # # # # # # # # # * 
-  * * * * * * * * * * * * * 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  . . . . . . . . . . . . . 
-  Chi phí = 20, số bước = 20, số ô đã xét = 27
-
-== So sánh ==
-  BFS      : 12 bước, chi phí 28, xét 46 ô
-  Dijkstra : 20 bước, chi phí 20, xét 67 ô
-  A*       : 20 bước, chi phí 20, xét 27 ô
+Warehouse -> Port
+  cost: 13
+  path: Warehouse -> District-2 -> District-1 -> District-3 -> Airport -> Port
+Warehouse -> Airport
+  cost: 10
+  path: Warehouse -> District-2 -> District-1 -> District-3 -> Airport
+Warehouse -> Island
+  no route
 ```
+
+Hai dòng failure cuối phải cho thấy:
+
+- `KeyNotFoundException` khi start location không tồn tại;
+- `ArgumentOutOfRangeException` khi road cost âm.
 
 ## 4. Giải thích cơ chế
 
-### 4.1 Kiến trúc: mỗi lớp một trách nhiệm
+### Domain model
 
-Engine tách bạch trách nhiệm — đúng tinh thần SOLID của [module 06](../06-oop-va-thiet-ke/04-single-responsibility.md):
+`WeightedGraph` chịu trách nhiệm:
 
-- **`Cell`** — một `record struct` bất biến giữ `(Row, Col)`. Là value type nên so sánh và băm theo giá trị, dùng làm khóa `Dictionary`/`HashSet` an toàn (bài [06](./06-hash-table-va-hash-function.md)).
-- **`Grid`** — biết bản đồ: đâu là tường (`IsWall`), chi phí mỗi ô (`CostOf`), hàng xóm hợp lệ (`Neighbors`), và heuristic (`Manhattan`). Đây chính là một **đồ thị ẩn**: mỗi ô là một đỉnh, mỗi cặp ô kề nhau đi được là một cạnh (bài [10](./10-graph-va-cach-bieu-dien.md)).
-- **`PathFinder`** — chứa ba thuật toán, không biết gì về cách vẽ hay cách lưu bản đồ, chỉ hỏi `Grid` qua interface của nó.
-- **`SearchResult`** — gói kết quả: đường đi, chi phí, số ô đã xét.
+- location;
+- road;
+- invariant cost dương;
+- adjacency list.
 
-Nhờ tách vậy, thêm thuật toán mới hay đổi cách biểu diễn bản đồ không đụng phần còn lại.
+`RouteFinder` chịu trách nhiệm:
 
-### 4.2 Lưới là một đồ thị ẩn
+- thuật toán tìm route;
+- distance;
+- predecessor;
+- priority queue;
+- reconstruct path.
 
-Ta không dựng `Dictionary<Cell, List<Cell>>` như bài [10](./10-graph-va-cach-bieu-dien.md); thay vào đó `Neighbors` **sinh** hàng xóm khi cần, từ bốn hướng và loại ô ngoài biên hoặc là tường. Đây là adjacency list "tính tại chỗ" — tiết kiệm bộ nhớ cho lưới lớn và là cách chuẩn để coi lưới như đồ thị. Mọi thuật toán đồ thị đã học chạy được ngay trên `Neighbors` này.
+`Program` chỉ:
 
-### 4.3 BFS: ít bước nhất, mù chi phí
+- dựng sample;
+- gọi use case;
+- in output.
 
-`Bfs` y hệt bài [11](./11-bfs-va-dfs.md): queue, visited, parent map. Nó tìm đường **ít ô nhất** và **bỏ qua** `CostOf`. Kết quả: băng thẳng qua cầu bùn ở hàng trên — **12 bước**, nhưng chi phí **28** (bốn ô bùn ×5). BFS trả lời đúng câu hỏi "ít bước nhất", nhưng nếu bùn là đầm lầy thật thì đây là đường tệ.
+Ranh giới này quan trọng vì ở module ASP.NET Core, `Program`/console UI có thể được thay bằng controller hoặc endpoint nhưng thuật toán không cần đổi.
 
-### 4.4 Dijkstra: rẻ nhất, chấp nhận đi vòng
+### Vì sao dùng adjacency list?
 
-`Dijkstra` (với `useHeuristic: false`) cộng `CostOf` mỗi bước và dùng priority queue lấy ô có **chi phí tích lũy** nhỏ nhất — đúng bài [12](./12-shortest-path-va-minimum-spanning-tree.md). Nó **né** cầu bùn, đi vòng xuống bãi cỏ phía dưới: **20 bước** nhưng chi phí chỉ **20**. Nhiều bước hơn BFS mà rẻ hơn — vì mỗi ô cỏ chỉ tốn 1, còn mỗi ô bùn tốn 5. Đây là minh họa sống động: **ít bước nhất ≠ rẻ nhất** khi địa hình có chi phí khác nhau.
+Graph tuyến đường thường sparse:
 
-### 4.5 A\*: cùng đáp án, ít công hơn nhiều
-
-Điểm hay nhất của dự án nằm ở cột "số ô đã xét". Dijkstra và A\* cho **cùng** đường rẻ nhất (chi phí 20, 20 bước), nhưng:
-
-- Dijkstra xét **67 ô** — nó fan ra **mọi** hướng theo chi phí, khám phá gần như cả bãi cỏ trước khi chạm đích.
-- A\* xét chỉ **27 ô** — chưa tới một nửa.
-
-Bí quyết nằm ở một dòng:
-
-```csharp
-int priority = nd + (useHeuristic ? grid.Manhattan(next, grid.Goal) : 0);
+```text
+mỗi location chỉ nối một số location lân cận
 ```
 
-Dijkstra xếp ưu tiên theo **chi phí đã đi** (`nd`). A\* xếp theo **chi phí đã đi + ước lượng còn lại tới đích** (khoảng cách Manhattan). Ước lượng này kéo tìm kiếm **về hướng đích** thay vì tỏa đều, nên A\* bỏ qua những ô đi xa khỏi G. Với cùng lời giải tối ưu, A\* làm ít việc hơn hẳn.
+Adjacency list có memory:
 
-**Vì sao A\* vẫn tối ưu:** heuristic Manhattan **không bao giờ ước lượng quá** chi phí thật còn lại (mỗi bước tốn ít nhất 1, và Manhattan đếm đúng số bước tối thiểu). Heuristic "không phóng đại" như vậy gọi là **admissible**, và đó là điều kiện để A\* bảo đảm tìm được đường tối ưu. Nếu heuristic phóng đại, A\* nhanh hơn nhưng có thể cho đường không tối ưu.
+```text
+O(V + E)
+```
 
-### 4.6 Một hàm, hai thuật toán
+phù hợp hơn matrix `O(V²)`.
 
-Chú ý `Dijkstra` và A\* dùng **chung một hàm**, chỉ khác một cờ `useHeuristic`. Đó không phải trùng hợp: **A\* chính là Dijkstra cộng thêm heuristic**. Đặt heuristic = 0 (không biết gì về đích) thì A\* thoái hóa về Dijkstra. Hiểu điều này là hiểu cả họ thuật toán tìm đường: chúng chỉ khác nhau ở "hàm ưu tiên" đưa vào cùng một khung priority queue.
+### Vì sao dùng Dictionary?
 
-### Đào sâu (có thể quay lại sau)
+Ta cần lookup adjacency theo location name thường xuyên:
 
-- **Xử lý bản cũ trong PQ.** Như bài [12](./12-shortest-path-va-minimum-spanning-tree.md), `PriorityQueue` không hỗ trợ giảm khóa, nên ta enqueue bản mới khi tìm được đường rẻ hơn. Cài đặt chặt chẽ hơn sẽ bỏ qua ô đã chốt (một `HashSet` closed) để không xử lý lại; ở đây lưới nhỏ nên giữ code gọn.
-- **8 hướng và đường chéo.** `Neighbors` hiện đi 4 hướng. Cho phép đi chéo (8 hướng) cần đổi heuristic sang khoảng cách Chebyshev/octile để giữ admissible — Manhattan sẽ phóng đại khi có đường chéo.
-- **Trọng số heuristic.** Nhân heuristic với hệ số > 1 (weighted A\*) làm tìm kiếm nhanh hơn nữa nhưng mất bảo đảm tối ưu — một đánh đổi tốc độ/chất lượng dùng nhiều trong game thời gian thực.
-- **Quy mô thật.** Bản đồ game/robot có hàng triệu ô. Lúc đó khác biệt 27 so với 67 ô nhân lên thành hàng trăm nghìn — A\* là lý do tìm đường thời gian thực khả thi. Các tối ưu thêm: jump point search, hierarchical pathfinding, precomputed nav-mesh.
+```text
+location -> roads
+```
 
-## 5. Kiến thức nền
+`Dictionary` cho average lookup gần `O(1)`.
 
-### Ba thuật toán, một khung
+### Vì sao dùng PriorityQueue?
 
-| Thuật toán | Hàm ưu tiên | Trả lời | Cần |
-|---|---|---|---|
-| BFS | thứ tự vào (FIFO) | ít bước nhất | đồ thị không trọng số |
-| Dijkstra | chi phí đã đi `g` | rẻ nhất | trọng số không âm |
-| A\* | `g` + heuristic `h` | rẻ nhất, ít xét hơn | `h` admissible |
+Dijkstra luôn cần lấy vertex có tentative distance nhỏ nhất.
 
-Cả ba là **cùng một phép duyệt có ưu tiên**, chỉ khác thứ gì quyết định "lấy ô nào ra tiếp theo". Đây là cái nhìn thống nhất đáng giá nhất của cả module.
+Nếu mỗi vòng scan toàn bộ vertex:
 
-### Module này đã gom vào đây những gì
+```text
+O(V²)
+```
 
-Dự án chạm gần như mọi bài:
+Với binary heap priority queue + adjacency list, complexity điển hình:
 
-- **Big-O** (bài [01](./01-big-o-thoi-gian-va-bo-nho.md)) — đọc "số ô đã xét" là đo độ phức tạp thực nghiệm.
-- **Hash** (bài [06](./06-hash-table-va-hash-function.md)) — `Cell` làm khóa `Dictionary`/`HashSet`.
-- **Đồ thị + BFS/DFS** (bài [10](./10-graph-va-cach-bieu-dien.md), [11](./11-bfs-va-dfs.md)) — lưới là đồ thị ẩn, parent map dựng đường.
-- **Heap/priority queue** (bài [08](./08-heap-va-priority-queue.md)) — trái tim của Dijkstra và A\*.
-- **Đường ngắn nhất** (bài [12](./12-shortest-path-va-minimum-spanning-tree.md)) — Dijkstra và mở rộng A\*.
-- **Chọn cấu trúc** (bài [18](./18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md)) — mỗi lớp một cấu trúc phù hợp.
+```text
+O((V + E) log V)
+```
 
-### Từ đây đi đâu tiếp
+### Route reconstruction
 
-Module [08 — SQL và CSDL](../08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md) là chặng kế. Nhiều ý tưởng ở đây quay lại dưới dạng khác: index của cơ sở dữ liệu là B-tree (họ hàng BST/tìm nhị phân), query planner chọn thuật toán join dựa trên chi phí (tư duy Big-O), và mô hình quan hệ là một dạng đồ thị. Nền cấu trúc dữ liệu này theo bạn suốt phần còn lại của lộ trình.
+Dijkstra không chỉ lưu distance:
 
-## 6. Lỗi thường gặp
+```text
+distance[Airport] = 10
+```
 
-### Dùng BFS cho bản đồ có địa hình
+mà còn lưu:
 
-BFS bỏ qua chi phí, nên trên bản đồ có bùn/đồi, đường "ít bước nhất" của nó có thể đắt. Có trọng số thì dùng Dijkstra/A\*.
+```text
+previous[Airport] = District-3
+previous[District-3] = District-1
+...
+```
 
-### Heuristic không admissible
+Sau khi tới target:
 
-Nếu `h` phóng đại chi phí còn lại (ví dụ dùng khoảng cách Euclid nhân hệ số lớn khi chỉ đi 4 hướng), A\* có thể trả đường **không** tối ưu. Với lưới 4 hướng, Manhattan là lựa chọn an toàn.
+```text
+target -> previous -> previous -> ... -> start
+```
 
-### Quên `Cell` phải là value type / có `Equals` đúng
+rồi reverse.
 
-`Cell` được dùng làm khóa hash khắp nơi. Nếu là class không ghi đè `Equals`/`GetHashCode`, hai ô cùng tọa độ bị coi là khác nhau — thuật toán loạn. `record struct` giải quyết gọn (bài [06](./06-hash-table-va-hash-function.md)).
+### Stale queue entry
 
-### Không xử lý trường hợp không có đường
+Khi tìm được distance tốt hơn cho cùng vertex, sample enqueue lại.
 
-`Build` phải kiểm tra đích có nằm trong parent map không; bỏ qua sẽ ném lỗi khi truy vết đường không tồn tại. Luôn xử lý ca "bị tường vây kín".
+Entry cũ vẫn còn trong heap.
 
-### Đánh giá thuật toán chỉ bằng đúng/sai
+Kiểm tra:
 
-BFS, Dijkstra, A\* đều cho đường "đúng" theo tiêu chí của chúng — điểm khác là **hiệu quả** (số ô xét). Bỏ qua chỉ số này là bỏ qua nửa bức tranh; đo nó mới thấy vì sao A\* đáng giá.
+```csharp
+if (queuedDistance != distances[current])
+{
+    continue;
+}
+```
 
-## 7. Bài tập
+bỏ entry stale.
 
-### Bài 1 — Đường đi 8 hướng
+## 5. Kiến thức nền và refactor project
 
-Cho `Neighbors` đi cả 4 đường chéo. Đổi heuristic sang octile distance để giữ admissible, và kiểm tra A\* vẫn tối ưu.
+Sau khi bản single-file chạy đúng, refactor thành:
 
-**Gợi ý:** octile = `max(dx,dy) + (√2−1)·min(dx,dy)`; với chi phí nguyên, có thể xấp xỉ; Manhattan sẽ phóng đại khi cho đi chéo.
+```text
+RouteEngine/
+├── RouteEngine.csproj
+├── Program.cs
+├── Domain/
+│   ├── Road.cs
+│   └── RouteResult.cs
+├── Graph/
+│   └── WeightedGraph.cs
+└── Services/
+    └── RouteFinder.cs
+```
 
-### Bài 2 — Nhiều loại địa hình
+### Contract của RouteFinder
 
-Thêm ô `^` (đồi, chi phí 3) và `w` (nước, chi phí 10) vào `CostOf`. Quan sát Dijkstra/A\* đổi đường thế nào khi địa hình đổi.
+Input:
 
-**Gợi ý:** chỉ cần mở rộng `CostOf`; thuật toán không đổi — đó là ưu điểm của tách trách nhiệm.
+```text
+start
+target
+```
 
-### Bài 3 — Đếm ô xét theo kích thước bản đồ
+Output:
 
-Sinh bản đồ trống lớn dần (20×20, 50×50) và vẽ biểu đồ "số ô xét" của Dijkstra so với A\*. Khác biệt tăng thế nào?
+```text
+RouteResult
+├── Found
+├── TotalCost
+└── Path
+```
 
-**Gợi ý:** trên bản đồ trống, Dijkstra xét ~diện tích, A\* xét ~độ dài đường; khác biệt càng lớn khi bản đồ càng rộng.
+Không trả `null` cho trường hợp không có route vì `RouteResult.NotFound()` làm state rõ ràng hơn.
 
-### Bài 4 — Closed set tối ưu
+### Test matrix tối thiểu
 
-Thêm một `HashSet<Cell> closed` để bỏ qua ô đã chốt, tránh xử lý lại bản cũ trong PQ. Đo số vòng lặp giảm bao nhiêu.
+| Case | Expected |
+|---|---|
+| start == target | cost 0, path chứa start |
+| direct edge | chọn edge đó nếu tối ưu |
+| route nhiều edge rẻ hơn direct | chọn route nhiều edge |
+| target disconnected | `Found=false` |
+| unknown start | exception |
+| unknown target | exception |
+| negative/zero cost | bị từ chối |
+| duplicate road | policy update rõ ràng |
+| casing khác nhau | vẫn lookup được theo policy hiện tại |
 
-**Gợi ý:** khi lấy ô ra khỏi PQ, nếu đã trong `closed` thì bỏ qua; nếu không thì thêm vào rồi xử lý.
+### Test không chỉ happy path
 
-### Bài 5 — Bản đồ không có đường
+Một junior developer đi làm cần quen với:
 
-Tạo bản đồ mà tường vây kín đích. Xác nhận cả ba thuật toán báo "không có đường đi" thay vì lỗi, và cùng xét đúng số ô tới được.
+```text
+success path
++
+boundary
++
+invalid input
++
+unreachable
++
+duplicate/update
+```
 
-**Gợi ý:** `Build` trả `SearchResult` rỗng khi đích không nằm trong parent map; `Report` in thông báo phù hợp.
+Không chỉ chạy một route đẹp rồi coi project hoàn thành.
 
-## 8. Checklist tự đánh giá và điều hướng
+### Vì sao chưa dùng database?
 
-- [ ] Tôi tổ chức được engine thành `Grid`, `PathFinder`, `SearchResult` với trách nhiệm rõ ràng.
-- [ ] Tôi cài và chạy được BFS, Dijkstra và A\* trên cùng bản đồ.
-- [ ] Tôi giải thích được vì sao BFS ít bước nhất còn Dijkstra rẻ nhất.
-- [ ] Tôi hiểu A\* = Dijkstra + heuristic admissible, tối ưu mà xét ít ô hơn.
-- [ ] Tôi coi lưới như một đồ thị ẩn qua hàm `Neighbors`.
-- [ ] Tôi đánh giá thuật toán bằng cả tính đúng lẫn số ô đã xét.
+Module 07 tập trung DSA.
+
+Nếu nhét SQL/EF Core vào đây, ta không biết bug đến từ:
+
+- graph;
+- algorithm;
+- query;
+- mapping;
+- connection;
+- migration.
+
+Tách concern giúp học và debug rõ hơn.
+
+Ở module 08–09, graph data có thể được load từ SQL/EF Core.
+
+## 6. Lỗi thường gặp và review checklist
+
+### Dùng BFS cho weighted route
+
+BFS tối thiểu số edge, không tối thiểu tổng cost.
+
+Ví dụ:
+
+```text
+A --100--> B
+
+A --1--> C --1--> B
+```
+
+BFS có thể thích đường một edge, nhưng cost 100 lớn hơn 2.
+
+### Cho phép cost âm
+
+Dijkstra không đúng tổng quát với negative edge.
+
+Invariant phải được chặn ngay khi add road.
+
+### Trộn console I/O vào algorithm
+
+Không viết:
+
+```csharp
+Console.WriteLine(...)
+```
+
+bên trong `RouteFinder`.
+
+Service nên trả data; presentation layer quyết định hiển thị.
+
+### Dùng string mà không có comparison policy
+
+Sample chọn:
+
+```csharp
+StringComparer.OrdinalIgnoreCase
+```
+
+cho identifier dạng text.
+
+Trong production, location có thể cần ID riêng thay vì dùng tên làm identity.
+
+### Không kiểm tra overflow
+
+Distance là tổng nhiều cost.
+
+Sample dùng `checked`.
+
+Nếu domain có cost lớn, cân nhắc `long`.
+
+### Expose mutable adjacency
+
+Không trả trực tiếp `List<Road>` cho caller sửa.
+
+Sample trả interface read-only, nhưng cần nhớ runtime object phía dưới vẫn là list. Production API có thể dùng immutable/copy tùy threat model và performance.
+
+## 7. Bài tập mở rộng
+
+### Bài 1 — Route ít chặng nhất
+
+Thêm:
+
+```csharp
+FindFewestStops(start, target)
+```
+
+dùng BFS.
+
+Sau đó tạo input mà route ít chặng khác route rẻ nhất.
+
+### Bài 2 — Directed road
+
+Hỗ trợ đường một chiều.
+
+Yêu cầu API rõ:
+
+```text
+AddDirectedRoad
+AddUndirectedRoad
+```
+
+### Bài 3 — Route theo thời gian
+
+Đổi `Cost` thành minutes.
+
+Thêm road có:
+
+```text
+DistanceKm
+TravelMinutes
+Toll
+```
+
+Thiết kế strategy chọn weight theo mục tiêu.
+
+### Bài 4 — Multi-criteria
+
+User chọn:
+
+```text
+Cheapest
+Fastest
+ShortestDistance
+```
+
+Không copy ba bản Dijkstra.
+
+Hãy truyền một weight selector hoặc strategy.
+
+### Bài 5 — Load file
+
+Đọc CSV:
+
+```text
+from,to,cost
+Warehouse,District-1,4
+...
+```
+
+Parse, validate rồi build graph.
+
+### Bài 6 — Unit tests
+
+Tạo xUnit project và test toàn bộ test matrix ở phần 5.
+
+### Bài 7 — Performance test
+
+Sinh graph:
+
+```text
+1,000 vertices
+10,000 edges
+```
+
+đo route lookup.
+
+Sau đó tăng 10 lần và quan sát scaling.
+
+Không kết luận chỉ từ một lần chạy.
+
+### Bài 8 — API-ready contract
+
+Thiết kế DTO tương lai:
+
+```csharp
+public sealed record RouteRequest(
+    string From,
+    string To);
+
+public sealed record RouteResponse(
+    int TotalCost,
+    IReadOnlyList<string> Path);
+```
+
+Chưa cần ASP.NET Core, chỉ cần contract.
+
+## 8. Checklist hoàn thành Module 07
+
+### Kiến thức
+
+- [ ] Tôi phân tích được Big-O time/space.
+- [ ] Tôi hiểu recursion và call stack.
+- [ ] Tôi phân biệt array, linked list, stack, queue, hash table.
+- [ ] Tôi hiểu tree, BST, heap và trie.
+- [ ] Tôi biểu diễn được graph.
+- [ ] Tôi dùng được BFS và DFS.
+- [ ] Tôi hiểu Dijkstra và MST khác nhau.
+- [ ] Tôi hiểu sorting/searching cơ bản.
+- [ ] Tôi phân biệt greedy, backtracking và dynamic programming.
+- [ ] Tôi chọn cấu trúc dữ liệu dựa trên operation.
+
+### Project
+
+- [ ] Route engine build với warnings-as-errors.
+- [ ] Happy path cho kết quả đúng.
+- [ ] Disconnected target trả `Found=false`.
+- [ ] Invalid location được xử lý.
+- [ ] Cost không dương bị chặn.
+- [ ] Có test cho critical path.
+- [ ] Có README mô tả cách chạy.
+- [ ] Có phân tích complexity.
+- [ ] Code đã tách domain/graph/service sau khi bản đầu chạy đúng.
+- [ ] Tôi giải thích được từng lựa chọn structure/algorithm mà không đọc thuộc lòng.
 
 Điều hướng:
 
-- Bài prerequisite: [Bài toán tổng hợp và chọn cấu trúc dữ liệu](./18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md)
-- Ôn lại nền tảng: [BFS và DFS](./11-bfs-va-dfs.md), [Shortest path và minimum spanning tree](./12-shortest-path-va-minimum-spanning-tree.md), [Heap và priority queue](./08-heap-va-priority-queue.md)
-- Chặng tiếp theo: [Module 08 — SQL và cơ sở dữ liệu](../08-sql-va-csdl/01-mo-hinh-quan-he-va-cai-dat-sql-server.md)
-- Theo dõi tiến độ: [PROGRESS.md](../PROGRESS.md)
+- Bài trước: [Bài toán tổng hợp và chọn cấu trúc dữ liệu](./18-bai-toan-tong-hop-va-chon-cau-truc-du-lieu.md)
+- Quay lại: [Big-O](./01-big-o-thoi-gian-va-bo-nho.md)
+- Module tiếp theo: [SQL và cơ sở dữ liệu](../PROGRESS.md#08-sql-va-csdl)
+
+---
+
+## Definition of Done của project
+
+Project chỉ hoàn thành khi:
+
+```text
+clone/build trên môi trường sạch
+        +
+warnings-as-errors
+        +
+test success/failure path
+        +
+không negative edge
+        +
+reconstruct path đúng
+        +
+giải thích complexity
+        +
+README đủ lệnh chạy
+```
+
+Mục tiêu cuối cùng của Module 07 không phải “nhớ tên 12 cấu trúc dữ liệu”, mà là có thể nhìn một requirement và trả lời:
+
+> Operation chính là gì, constraint là gì, cấu trúc nào phù hợp, complexity ra sao và trade-off nào chấp nhận được?

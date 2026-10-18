@@ -1,5 +1,19 @@
 # Vòng lặp for, while và do-while
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Vòng lặp thực hiện lại một thân lệnh đến điều kiện dừng.
+- Dùng khi cùng thao tác áp dụng cho nhiều ngày hoặc nhiều dữ liệu.
+- Phải chứng minh tiến triển và số lần chạy; điều kiện sai có thể không dừng.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - tránh vòng lặp vô hạn và lỗi lệch một đơn vị.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Thay vì chép năm phép cộng, ta giữ “đang ở ngày mấy” và “đã cộng được bao nhiêu”. Mỗi vòng xử lý một ngày rồi chuyển sang ngày kế. Nếu không đổi ngày, máy tiếp tục làm cùng việc mãi.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| iteration | một lượt chạy thân loop | một ngày |
+| counter | biến đếm lượt hoặc vị trí | day |
+| accumulator | biến giữ kết quả tích lũy | total |
+| invariant | điều luôn đúng tại điểm đã chọn | sau ngày d, total là tổng tới d |
+| off-by-one | sai biên đúng một lượt | < thay cho <= |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ba ngày thu 100, 120, 140: total bắt đầu 0 → 100 → 220 → 360. Kiểm tra điều kiện sau cập nhật ngày thành 4 sẽ dừng nếu giới hạn là 3.
 
 Một cửa hàng ghi doanh thu theo quy luật demo: ngày 1 là `100`, mỗi ngày sau tăng `20`, trong 5 ngày. Ta cần in từng ngày, tính tổng, rồi đếm ngược thời gian đóng sổ:
 
@@ -24,7 +56,9 @@ So lan kiem tra: 2
 
 Viết lặp lại năm lần `printf` khó thay đổi và dễ sai. Vòng lặp biểu diễn phần lặp cùng điều kiện dừng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `loops.c`:
 
@@ -85,7 +119,20 @@ So lan kiem tra: 2
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. total=0; day=1; điều kiện đúng thì revenue=100 và total=100.
+2. Mỗi lượt cập nhật day; sau ngày 5 total=700, day thành 6 và thoát.
+3. while giảm seconds từ 3 xuống 0; do-while tăng checks rồi mới kiểm tra.
+4. CPU làm số lượt tỷ lệ với số ngày; chỉ giữ vài local, bộ nhớ không tăng theo lượt. In từng lượt thêm chi phí I/O.
+
+### Mini-check
+
+Nếu seconds bắt đầu 0, while chạy mấy lần? do-while làm việc tương tự có chạy không?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. `for` có ba phần điều khiển
 
@@ -127,7 +174,45 @@ Nếu `seconds` bắt đầu bằng `0`, thân `while` không chạy. Mỗi iter
 
 Thân `do` luôn chạy ít nhất một lần rồi mới xét `checks < 2`. Dấu `;` sau `while (...)` là bắt buộc.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| for | khởi tạo/điều kiện/cập nhật tập trung | hợp đếm lượt; có thể chạy 0 lần |
+| while | kiểm tra trước thân | hợp đọc tới EOF; phải cập nhật state |
+| do-while | kiểm tra sau thân | luôn ít nhất 1 lần; không dùng khi 0 lượt là hợp lệ |
+
+### Misconception check
+
+**Đúng hay sai?** Có điều kiện trong while là chắc chắn dừng.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: state có thể không bao giờ làm điều kiện sai.
+
+</details>
+
+**Đúng hay sai?** Loop nhiều lần luôn cần nhiều local mới còn sống cùng lúc.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: sample chỉ giữ state của lượt hiện tại và tổng.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** loop và trace bằng tay.
+
+- **Working Developer — dùng khi làm việc:** invariant, EOF, test biên.
+
+- **Deep Dive — có thể quay lại sau:** đếm thao tác để chuẩn bị Big-O.
 
 ### Chọn loại vòng lặp
 
@@ -170,7 +255,17 @@ Nếu vừa `day++` trong thân vừa ở header, vòng lặp bỏ phần tử. 
 
 Nó vẫn chạy một lần. Dùng `while` nếu cần kiểm tra trước.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không dùng do-while khi input có thể không có phần tử mà thân vẫn đọc dữ liệu. Với một công thức tổng đã rõ và cần ít thao tác, có thể tính trực tiếp; chỉ thay loop sau khi kiểm tra giới hạn type và chứng minh tương đương.
+
+## 8. Production notes & scale check
+
+5 ngày là demo; một triệu lần printf có thể chậm vì I/O. Team nhỏ nên đo số lượt và lượng output trước khi tối ưu công thức. Với đọc input, EOF phải là đường dừng; dùng timeout trong test để bắt loop vô hạn. Kiểm tra tổng có vượt type khi tăng số ngày.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Tổng 1 đến N
 
@@ -206,7 +301,26 @@ Viết hai loop với `< 5` và `<= 5`, in counter rồi giải thích số iter
 
 **Gợi ý:** đừng chỉ đếm output; liệt kê miền giá trị.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Module 07 sẽ phân tích chi phí theo kích thước input. Không cần ký hiệu mới: hãy đếm phép cộng khi ngày tăng từ 5 lên 5000. Chọn giảm output hay sửa phép cộng nếu đo thấy thời gian chủ yếu ở terminal.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Trace total sau ba lượt.
+2. Nêu đại lượng tiến gần điểm dừng.
+3. So số local cần giữ cho 5 và 5000 lượt.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi chọn được giữa `for`, `while`, `do-while`.
 - [ ] Tôi mô tả initialization, condition, body và update.

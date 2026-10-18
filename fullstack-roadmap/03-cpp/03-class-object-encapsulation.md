@@ -1,5 +1,19 @@
 # Class, object và encapsulation
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Class mô tả dữ liệu và thao tác; mỗi object giữ state riêng.
+- Dùng encapsulation để mọi thay đổi đi qua kiểm tra invariant.
+- private không tự làm nghiệp vụ đúng; setter vô điều kiện vẫn phá contract.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -11,6 +25,24 @@ Sau bài này, bạn có thể:
 - phân biệt class, object và member.
 
 ## 2. Bài toán mở đầu
+
+### Trực giác 60 giây
+
+Phiếu điểm thưởng không nên cho mọi người xóa rồi viết số tùy ý. Một quầy nhận yêu cầu cộng điểm hoặc đổi quà, kiểm tra rồi mới sửa phiếu. Class gom phiếu với các cửa thao tác đó.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| class | mô tả dữ liệu và thao tác hợp lệ | LoyaltyAccount |
+| object | một thực thể được tạo từ kiểu | an_account và binh_account |
+| encapsulation | giữ việc thay state sau interface kiểm soát | add_points/redeem |
+| invariant | điều kiện state phải giữ | 0 ≤ points ≤ 1000000 |
+| this | con trỏ ngầm tới object nhận lời gọi | account đang cộng điểm |
+
+### Ví dụ nhỏ — tính tay trước
+
+A có 10 điểm, B có 5. A.redeem(7) → A còn 3, B vẫn 5. B.redeem(7) bị từ chối → cả hai không đổi thêm.
 
 Một tài khoản điểm thưởng có hai dữ liệu: mã khách hàng và số điểm. Nếu chương trình để mọi nơi sửa trực tiếp số điểm, các trạng thái vô lý như điểm âm có thể xuất hiện.
 
@@ -24,7 +56,9 @@ Ta cần một kiểu dữ liệu:
 
 Bài này tập trung vào encapsulation. Constructor có parameter sẽ được học ở bài sau, nên object được tạo với trạng thái mặc định rồi nhận mã qua member function có kiểm tra.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```cpp
 #include <iostream>
@@ -137,7 +171,20 @@ CUS-002: 50 points
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main tạo hai account độc lập, mặc định ID rỗng và points = 0.
+2. Gán ID hợp lệ rồi cộng 120 cho An và 50 cho Bình qua public operation.
+3. Redeem 80 trên An được chấp nhận còn 40; trên Bình bị từ chối giữ 50.
+4. State thuộc từng object, không có biến điểm static chung. Validation/cộng/trừ cost cố định; gán ID có cost theo chuỗi.
+
+### Mini-check
+
+Khi add_points thất bại vì vượt hạn mức, points_ giữ giá trị nào? Kiểm tra trước hay sau phép cộng?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Class là bản mô tả, object là thực thể trong bộ nhớ
 
@@ -212,7 +259,45 @@ const std::string& customer_id() const
 
 Reference trả về hợp lệ trong lúc object `LoyaltyAccount` còn sống và member `customer_id_` chưa bị operation khác làm mất hiệu lực. Caller không được lưu reference đó lâu hơn account.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| public data | caller gán trực tiếp | đủ cho record không có invariant phức tạp; không hợp điểm cần bảo vệ |
+| private + setter bất kỳ | giấu tên nhưng cho ghi tùy ý | không tự bảo vệ nghiệp vụ |
+| operation nghiệp vụ | kiểm tra rồi commit | giữ invariant tại một nơi; tránh wrapper không có trách nhiệm |
+
+### Misconception check
+
+**Đúng hay sai?** Hai object cùng class dùng chung points_.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: non-static member thuộc từng object.
+
+</details>
+
+**Đúng hay sai?** Bài này đảm bảo ID không rỗng ngay sau default construction.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: ID chỉ hợp lệ sau setter; constructor có kiểm tra sẽ hoàn thiện quy trình sau.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** vẽ state riêng và public/private.
+
+- **Working Developer — dùng khi làm việc:** giữ invariant, không commit trước validation.
+
+- **Deep Dive — có thể quay lại sau:** thiết kế thao tác nhiều object khi có driver.
 
 ### `public` và `private`
 
@@ -269,7 +354,17 @@ Không tạo một biến cục bộ trong getter rồi trả reference đến n
 
 Non-static data member thuộc từng object. Chỉ `static` data member mới được dùng chung; bài này không cần `static`.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo class nhiều getter/setter chỉ để bọc một cặp số không có hành vi. Không thêm kế thừa để dùng chung tên field; trước hết xác định invariant thực sự cần bảo vệ.
+
+## 8. Production notes & scale check
+
+Team nhỏ với điểm thưởng cần test sát hạn mức, đổi quá số dư và hai object độc lập. Bài chưa có giao dịch chuyển điểm nguyên tử: trừ bên gửi rồi cộng bên nhận có thể thất bại giữa chừng. Không coi public interface đơn lẻ là transaction nhiều object.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Chặn tràn hạn mức
 
@@ -295,7 +390,23 @@ Tạo ba account, thực hiện operation khác nhau và vẽ vùng nhớ cho t�
 
 **Gợi ý:** ghi riêng giá trị từng data member; không vẽ một `points_` dùng chung.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với Product struct trong C Module 02, compiler của class ngăn được kiểu sửa sai nào? Thiết kế chuyển điểm giữa hai account và nêu state phải giữ nếu người nhận hết hạn mức.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Class khác object ở chỗ nào?
+2. this đổi ra sao giữa hai lời gọi?
+3. Vì sao getter const không tự biến mọi alias thành const?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 

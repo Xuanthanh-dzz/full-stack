@@ -1,5 +1,19 @@
 # Xử lý lỗi và lập trình phòng thủ
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Xử lý lỗi là contract: phân biệt nguyên nhân, kiểm tra trước thay state và cleanup mọi đường thoát.
+- Dùng status riêng khi caller cần phân biệt input sai, ngoài miền và lỗi I/O.
+- errno không tự reset; parse được tiền tố chưa có nghĩa cả input hợp lệ.
+
 ## 1. Mục tiêu
 
 Học xong bài này, bạn có thể:
@@ -13,6 +27,23 @@ Học xong bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Nhận một phiếu đặt hàng, bạn kiểm tra đủ nội dung rồi mới ghi vào sổ chính. Nếu có lỗi, trả lý do và giữ sổ cũ. Hàm cũng nên làm rõ “thất bại có để lại thay đổi gì” thay vì chỉ trả một số khó hiểu.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| status | giá trị mô tả kết quả thao tác | OK, INVALID_ARGUMENT, OUT_OF_RANGE |
+| errno | chỗ thư viện báo một số lỗi, cần dùng theo contract hàm | đặt 0 trước strtol rồi kiểm tra ERANGE |
+| end pointer | vị trí parser dừng trong chuỗi | phát hiện phần x trong 12x |
+| cleanup | giải phóng tài nguyên đã lấy trên mọi đường thoát | đóng file và trả status |
+
+### Ví dụ nhỏ — tính tay trước
+
+Input "25" → đổi hết chuỗi → trong miền → commit 25. Input "12x" → dừng trước x → lỗi → output giữ giá trị cũ. Input "-2" parse được số nhưng ngoài miền nghiệp vụ.
+
 Số lượng sản phẩm đến từ text. Các input `"25"`, `"-2"` và `"12x"` không thể đều được xử lý như nhau:
 
 - `"25"` hợp lệ;
@@ -21,7 +52,9 @@ Số lượng sản phẩm đến từ text. Các input `"25"`, `"-2"` và `"12x
 
 Sau khi parse, chương trình lưu số hợp lệ vào file. Mọi lỗi phải được báo bằng status, không crash, không để stream mở và không dùng kết quả output khi parse thất bại.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo `main.c`:
 
@@ -156,7 +189,20 @@ Output:
 Luu file -> OK
 ```
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main thử 25, -2 và 12x để phân biệt thành công, ngoài miền và không hợp lệ.
+2. Parser reset errno, gọi strtol, kiểm tra đã đọc ký tự nào, còn ký tự thừa không và miền số trước ghi output.
+3. Lưu quantity = 25 kiểm tra mở/ghi/đóng; nhãn cleanup gom việc trả tài nguyên đã lấy.
+4. State output thuộc caller, stream là tài nguyên cần đóng; parse tốn O(số ký tự), I/O theo số byte. Không cần exception framework hay nhiều tầng wrapper.
+
+### Mini-check
+
+Input " +25" được strtol chấp nhận. Nếu nghiệp vụ chỉ cho chữ số ASCII, cần validation bổ sung ở đâu?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### Status code là một phần contract
 
@@ -221,7 +267,45 @@ Mọi đường sau khi khai báo `file` đi qua đoạn này. Nếu `fopen` th�
 
 `parse_quantity` validate đầy đủ trước `*result = ...`. `save_quantity` validate đường dẫn và quantity trước `fopen`. Pattern này giảm trạng thái dở dang.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Sentinel | một giá trị đặc biệt trong miền kết quả | đơn giản nếu không mơ hồ; không đủ cho nhiều lỗi |
+| Status + output | lý do riêng với dữ liệu riêng | thêm tham số nhưng giữ contract output rõ |
+| errno | cơ chế lỗi của một số API thư viện | đọc ngay theo contract; không thay status nghiệp vụ toàn app |
+
+### Misconception check
+
+**Đúng hay sai?** errno khác 0 sau strtol luôn do lần gọi vừa rồi lỗi.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai nếu không reset trước; giá trị cũ có thể còn.
+
+</details>
+
+**Đúng hay sai?** strtol trả 12 chứng minh input là đúng số nguyên 12.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: có thể input là 12x; phải kiểm tra end pointer.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** phân biệt lỗi cú pháp và lỗi miền.
+
+- **Working Developer — dùng khi làm việc:** giữ output khi lỗi, cleanup một lần.
+
+- **Deep Dive — có thể quay lại sau:** thiết kế taxonomy lỗi theo hành động của caller.
 
 ### Expected error và programming error
 
@@ -292,7 +376,17 @@ Sau khi acquire resource, mọi `return` phải release hoặc chuyển ownershi
 
 Caller có thể quan sát state nửa cập nhật. Validate trước và commit output cuối cùng khi thành công.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không trả cùng một mã cho mọi lỗi nếu caller cần hành động khác nhau. Cũng không tạo hàng chục loại lỗi mà caller không thể xử lý khác. Không dùng goto cho control flow thường; một nhãn cleanup có vai trò hẹp và dễ kiểm tra.
+
+## 8. Production notes & scale check
+
+Test input rỗng, đuôi rác, số rất dài, miền âm và path không tồn tại. Quy định rõ whitespace/dấu cộng có được phép; sample parser khác parser file digits-only. Log ngữ cảnh lỗi nhưng không đưa toàn bộ dữ liệu nhạy cảm; ưu tiên giữ state cũ khi chưa commit.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Parse giá tiền
 
@@ -324,7 +418,23 @@ Kiểm tra `""`, `"0"`, `"25"`, `"-1"`, `"12x"` và số lớn hơn `INT_MAX`.
 
 **Gợi ý:** ghi expected status trước khi chạy.
 
-## 8. Checklist tự đánh giá và liên kết
+## 10. Bài tập tích hợp liên module — Judgment
+
+Kết hợp nhập điểm Module 01 và File I/O: file có số "12x". Chọn tiếp tục bỏ dòng hay hủy toàn bộ import, ghi rõ trạng thái dữ liệu cũ và lý do theo nghiệp vụ lớp học.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Vì sao cần cả errno và end pointer?
+2. Output thay đổi ở thời điểm nào?
+3. Cleanup cần biết những tài nguyên nào đã lấy thành công?
+
+<a id="8-checklist-tu-anh-gia-va-lien-ket"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 - [ ] Tôi parse toàn bộ input, không chỉ tiền tố số.
 - [ ] Tôi đặt và kiểm tra `errno` đúng quanh `strtol`.

@@ -1,0 +1,32 @@
+diff --git a/grade_import.c b/grade_import.c
+new file mode 100644
+--- /dev/null
++++ b/grade_import.c
+@@ -0,0 +1,27 @@
++#include <assert.h>
++#include <stdio.h>
++#include <string.h>
++int main(void)
++{
++    char name[8];
++    int length = 0;
++    char character = getchar();
++    while (character != '\n') {
++        name[length++] = character;
++        character = getchar();
++    }
++    name[length] = '\0';
++    int scores[3] = {8, 7, 9};
++    int count = 3;
++    assert(count > 0);
++    int total = 0;
++    for (int index = 0; index <= count; index++) {
++        total += scores[index];
++    }
++    double average = total / count;
++    if (strcmp(name, "Admin")) {
++        printf("Administrator report\n");
++    }
++    printf("Student=%s average=%.2f\n", name, average);
++    return 0;
++}

@@ -1,5 +1,19 @@
 # Hàm, tham số và giá trị trả về
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C11 · hosted implementation · compiler hỗ trợ C11 · -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Hàm đóng gói một việc có input, kết quả và contract rõ.
+- Dùng để tách tính điểm khỏi in báo cáo và kiểm thử từng phần.
+- C truyền giá trị; caller phải xử lý giá trị báo lỗi trước khi dùng tiếp.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,24 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Gửi ba điểm cho một người tính trung bình rồi nhận lại một số giống lời gọi hàm. Người đó giữ bản chép các điểm trong lần làm việc của họ; sửa bản chép không sửa sổ gốc của bạn. Việc tính và việc in báo cáo là hai trách nhiệm khác nhau.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| parameter | tên input trong định nghĩa hàm | first |
+| argument | giá trị đưa vào tại lời gọi | math |
+| return value | giá trị gửi về caller | 8.0 |
+| sentinel | giá trị riêng dùng báo tình huống đặc biệt | -1.0 báo điểm sai |
+| contract | điều kiện vào và cam kết ra | điểm 0..10 hoặc báo lỗi |
+
+### Ví dụ nhỏ — tính tay trước
+
+Gọi với 2, 4, 6 → cộng 12, chia 3.0 → trả 4.0. Gọi với -1, 4, 6 → trả -1.0 trước phép cộng, caller không được xếp loại số đó.
+
 Chương trình học tập cần tính trung bình ba điểm, xếp loại, rồi in báo cáo. Nếu mọi việc nằm trong `main`, công thức và format trộn lẫn, khó test riêng.
 
 Ta chia trách nhiệm:
@@ -23,7 +55,9 @@ print_report       -> in output
 main               -> điều phối
 ```
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 Tạo file `functions.c`:
 
@@ -102,7 +136,20 @@ Xep loai: A
 
 Chương trình đã được kiểm tra bằng `cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main giữ math=8, physics=7, chemistry=9; lời gọi copy vào first/second/third.
+2. Hàm validate rồi trả 24/3.0=8.0; các parameter của lời gọi hết vòng đời.
+3. main giữ average=8.0, kiểm tra lỗi rồi gọi xếp loại và nhận A.
+4. print_report ghi output. CPU thực hiện lời gọi và số phép tính cố định; state thuộc main hoặc lần gọi đang hoạt động, không có state dùng chung lâu dài.
+
+### Mini-check
+
+Nếu bỏ kiểm tra average < 0, input sai có thể bị xếp thành grade nào?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Signature tạo contract
 
@@ -152,7 +199,45 @@ Nó vẫn có side effect: ghi output. Tách hàm tính toán thuần khỏi I/O
 
 Compiler đọc source theo declaration. Khi gặp lời gọi trong `main`, nó phải biết signature. Đặt full definition trước là cách đơn giản ở bài này. Module 02 sẽ dùng function prototype/header để tổ chức nhiều file.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Hàm tính | nhận input, trả dữ liệu | dễ test nhiều ca; không cần I/O bên trong |
+| Hàm in | tạo side effect ra stdout | hợp trình bày; khó dùng như kết quả tính |
+| Parameter số | bản sao giá trị | local riêng; không dùng để sửa trực tiếp biến caller |
+
+### Misconception check
+
+**Đúng hay sai?** Gán first=0 sẽ đổi math trong main.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: parameter số là bản sao.
+
+</details>
+
+**Đúng hay sai?** void nghĩa là hàm không làm gì.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: hàm vẫn có thể in hoặc thay đổi state qua cách truy cập phù hợp.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** signature và pass-by-value.
+
+- **Working Developer — dùng khi làm việc:** contract, test biên, tách I/O.
+
+- **Deep Dive — có thể quay lại sau:** quy ước gọi và giới hạn của sentinel.
 
 ### Một hàm nên có một trách nhiệm rõ
 
@@ -212,7 +297,17 @@ Assignment parameter chỉ sửa bản copy. Module 02 sẽ dạy pointer khi th
 
 Argument ghép theo vị trí. Với nhiều parameter cùng type, tên rõ và hàm nhỏ giảm nguy cơ đảo thứ tự.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tách mỗi phép cộng thành một hàm nếu tên và contract không giúp đọc/test. Không dùng sentinel trùng miền kết quả hợp lệ: khi miền thay đổi phải chọn cách báo lỗi khác. Với ba điểm, hàm nhỏ đủ, chưa cần framework tính điểm.
+
+## 8. Production notes & scale check
+
+Team nhỏ nên giữ hàm tính độc lập I/O để test biên 0, 10 và input sai. Khi số môn thay đổi, chuyển input thành mảng kèm count sau bài 11. Chi phí một lời gọi thường không là vấn đề cần ưu tiên; đo trước khi gộp code và mất khả năng test.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Hàm bình phương
 
@@ -244,7 +339,26 @@ Gọi `grade_from_average` với các giá trị ngay dưới, đúng và ngay t
 
 **Gợi ý:** boundary quan trọng hơn một giá trị ở giữa.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+Hàm tính trung bình sẽ tái sử dụng trong Module 04. Chọn để caller hay hàm tính kiểm tra miền 0..10? Bảo vệ lựa chọn với hai caller khác nhau và nêu phần test giữ nguyên khi đổi ngôn ngữ.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Argument khác parameter thế nào?
+2. Vì sao sentinel -1 hợp lệ cho contract này?
+3. Vẽ đường return value về main.
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
+
+- [ ] Tôi trace được nơi code chạy, state còn sống và chi phí chính.
+- [ ] Tôi chọn được phương án đơn giản hơn khi kỹ thuật này không phù hợp.
 
 - [ ] Tôi đọc được signature của hàm.
 - [ ] Tôi phân biệt parameter với argument.

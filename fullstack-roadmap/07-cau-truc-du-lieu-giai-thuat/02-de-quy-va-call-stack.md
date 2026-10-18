@@ -4,33 +4,84 @@
 
 Sau bài này, bạn có thể:
 
-- nhận ra bài toán có cấu trúc tự lặp lại và giải nó bằng **đệ quy**;
-- viết đúng hai phần bắt buộc của mọi hàm đệ quy: **base case** và **recursive case**;
-- theo dõi cách **call stack** lớn lên khi gọi vào và co lại khi trả về;
-- giải thích vì sao Fibonacci đệ quy ngây thơ là `O(2^n)` và vì sao đó là vấn đề;
-- biết khi nào đệ quy gây `StackOverflowException` và cách chuyển sang vòng lặp;
-- chuyển đổi qua lại giữa lời giải đệ quy và lời giải lặp.
+- giải thích đệ quy là gì và vì sao mọi lời gọi đệ quy cần một điều kiện dừng;
+- vẽ được call stack khi một hàm tự gọi chính nó;
+- phân biệt recursive case và base case;
+- phân tích time complexity và space complexity của một hàm đệ quy đơn giản;
+- nhận ra lỗi stack overflow và nguyên nhân thường gặp;
+- chuyển một số thuật toán đệ quy sang dạng lặp bằng loop hoặc stack tường minh;
+- quyết định khi nào đệ quy làm code rõ hơn và khi nào nên tránh.
 
 ## 2. Bài toán mở đầu
 
-Nhiều bài toán có dạng "giải bài lớn = làm một bước rồi giải bài nhỏ hơn cùng loại":
+Giả sử cần tính tổng các số từ `1` đến `n`.
 
-- Tính `n!` = `n × (n-1)!`.
-- Tính tổng một mảng = phần tử đầu + tổng phần còn lại.
-- Duyệt một cây thư mục = xử lý thư mục này + duyệt từng thư mục con.
+Cách lặp:
 
-Với những bài như vậy, viết bằng vòng lặp đôi khi phải tự quản lý một ngăn xếp thủ công. Đệ quy để chính **call stack** của chương trình làm việc đó cho bạn: mỗi lời gọi hàm tự động có vùng nhớ riêng cho tham số và biến cục bộ (bạn đã gặp khái niệm này ở [module 01, bài 10 — ngăn xếp lời gọi hàm](../01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham.md)). Bài này biến call stack đó thành thứ nhìn thấy được, và chỉ ra cái bẫy khi dùng đệ quy sai cách.
+```csharp
+static long SumIterative(int n)
+{
+    long total = 0;
+
+    for (int i = 1; i <= n; i++)
+    {
+        total += i;
+    }
+
+    return total;
+}
+```
+
+Cách đệ quy:
+
+```csharp
+static long SumRecursive(int n)
+{
+    if (n == 0)
+    {
+        return 0;
+    }
+
+    return n + SumRecursive(n - 1);
+}
+```
+
+Hai phiên bản cho cùng kết quả. Nhưng phiên bản đệ quy tạo thêm nhiều stack frame. Nếu không hiểu call stack, bạn rất dễ viết một hàm chạy đúng với input nhỏ rồi crash khi input lớn.
+
+Đệ quy không chỉ xuất hiện trong bài toán toán học. Nó là cách tự nhiên để duyệt:
+
+- cây thư mục;
+- cây DOM;
+- biểu thức cú pháp;
+- cấu trúc tree;
+- DFS trên graph;
+- các cấu trúc có tính chất "một phần chứa các phần cùng kiểu".
 
 ## 3. Lời giải bằng code
 
-Tạo project .NET 9:
+Tạo project:
 
 ```bash
-dotnet new console --name RecursionDemo --framework net9.0 --use-program-main
+mkdir RecursionDemo
 cd RecursionDemo
+dotnet new console --framework net9.0 --use-program-main
 ```
 
-Thay `RecursionDemo.csproj` bằng cấu hình chuẩn của module (như bài [01](./01-big-o-thoi-gian-va-bo-nho.md), có `Nullable` và `TreatWarningsAsErrors`), rồi thay `Program.cs` bằng:
+Thay `RecursionDemo.csproj` bằng:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
+```
+
+Thay `Program.cs`:
 
 ```csharp
 namespace RecursionDemo;
@@ -39,66 +90,103 @@ internal static class Program
 {
     private static void Main()
     {
-        Console.WriteLine("== Giai thừa 4! với dấu vết call stack ==");
-        long result = Factorial(4, depth: 0);
-        Console.WriteLine($"Kết quả: 4! = {result}");
+        Console.WriteLine($"SumRecursive(5) = {SumRecursive(5)}");
+        Console.WriteLine($"SumIterative(5) = {SumIterative(5)}");
+        Console.WriteLine();
+
+        Console.WriteLine("Trace factorial(4):");
+        Console.WriteLine($"Result = {FactorialWithTrace(4)}");
+        Console.WriteLine();
+
+        int[] values = [3, 8, 2, 9, 5];
+        Console.WriteLine($"Max = {FindMax(values, 0)}");
 
         Console.WriteLine();
-        Console.WriteLine("== Fibonacci đệ quy ngây thơ: số lời gọi bùng nổ ==");
-        Console.WriteLine($"{"n",4} | {"fib(n)",8} | {"số lời gọi",12}");
-        Console.WriteLine(new string('-', 32));
-        foreach (int n in new[] { 5, 10, 20, 30 })
-        {
-            _callCount = 0;
-            long value = Fibonacci(n);
-            Console.WriteLine($"{n,4} | {value,8} | {_callCount,12}");
-        }
-
-        Console.WriteLine();
-        Console.WriteLine("== Tổng mảng bằng đệ quy ==");
-        int[] data = { 3, 1, 4, 1, 5, 9 };
-        Console.WriteLine($"Mảng: [{string.Join(", ", data)}]");
-        Console.WriteLine($"Tổng = {SumFrom(data, 0)}");
+        Console.WriteLine("Countdown:");
+        Countdown(3);
     }
 
-    // Mỗi lời gọi là một stack frame mới; indent theo depth để "thấy" ngăn xếp.
-    private static long Factorial(int n, int depth)
+    private static long SumRecursive(int n)
     {
-        string pad = new string(' ', depth * 2);
-        Console.WriteLine($"{pad}-> gọi Factorial({n})");
-        long value;
-        if (n <= 1)
-        {
-            value = 1; // base case: dừng đệ quy
-        }
-        else
-        {
-            value = n * Factorial(n - 1, depth + 1); // recursive case
-        }
-        Console.WriteLine($"{pad}<- Factorial({n}) trả {value}");
-        return value;
-    }
+        ArgumentOutOfRangeException.ThrowIfNegative(n);
 
-    private static long _callCount;
-
-    private static long Fibonacci(int n)
-    {
-        _callCount++;
-        if (n < 2)
-        {
-            return n; // base case: fib(0)=0, fib(1)=1
-        }
-        return Fibonacci(n - 1) + Fibonacci(n - 2);
-    }
-
-    // Đệ quy trên mảng: base case là "hết phần tử".
-    private static int SumFrom(int[] data, int index)
-    {
-        if (index == data.Length)
+        if (n == 0)
         {
             return 0;
         }
-        return data[index] + SumFrom(data, index + 1);
+
+        return n + SumRecursive(n - 1);
+    }
+
+    private static long SumIterative(int n)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(n);
+
+        long total = 0;
+
+        for (int i = 1; i <= n; i++)
+        {
+            total += i;
+        }
+
+        return total;
+    }
+
+    private static long FactorialWithTrace(int n, int depth = 0)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(n);
+
+        Console.WriteLine($"{new string(' ', depth * 2)}enter n={n}");
+
+        if (n <= 1)
+        {
+            Console.WriteLine($"{new string(' ', depth * 2)}return 1");
+            return 1;
+        }
+
+        long result = n * FactorialWithTrace(n - 1, depth + 1);
+
+        Console.WriteLine(
+            $"{new string(' ', depth * 2)}return {n} * ... = {result}");
+
+        return result;
+    }
+
+    private static int FindMax(int[] values, int index)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        if (values.Length == 0)
+        {
+            throw new ArgumentException("Array must not be empty.", nameof(values));
+        }
+
+        if ((uint)index >= (uint)values.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        if (index == values.Length - 1)
+        {
+            return values[index];
+        }
+
+        int maxOfRest = FindMax(values, index + 1);
+        return Math.Max(values[index], maxOfRest);
+    }
+
+    private static void Countdown(int n)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(n);
+
+        if (n == 0)
+        {
+            Console.WriteLine("Go!");
+            return;
+        }
+
+        Console.WriteLine(n);
+        Countdown(n - 1);
     }
 }
 ```
@@ -106,191 +194,480 @@ internal static class Program
 Build và chạy:
 
 ```bash
-dotnet build --configuration Release
-dotnet run --configuration Release --no-build
+dotnet build
+dotnet run --no-build
 ```
 
-Kết quả:
+Output chính:
 
 ```text
-== Giai thừa 4! với dấu vết call stack ==
--> gọi Factorial(4)
-  -> gọi Factorial(3)
-    -> gọi Factorial(2)
-      -> gọi Factorial(1)
-      <- Factorial(1) trả 1
-    <- Factorial(2) trả 2
-  <- Factorial(3) trả 6
-<- Factorial(4) trả 24
-Kết quả: 4! = 24
+SumRecursive(5) = 15
+SumIterative(5) = 15
 
-== Fibonacci đệ quy ngây thơ: số lời gọi bùng nổ ==
-   n |   fib(n) |   số lời gọi
---------------------------------
-   5 |        5 |           15
-  10 |       55 |          177
-  20 |     6765 |        21891
-  30 |   832040 |      2692537
+Trace factorial(4):
+enter n=4
+  enter n=3
+    enter n=2
+      enter n=1
+      return 1
+    return 2 * ... = 2
+  return 3 * ... = 6
+return 4 * ... = 24
+Result = 24
 
-== Tổng mảng bằng đệ quy ==
-Mảng: [3, 1, 4, 1, 5, 9]
-Tổng = 23
+Max = 9
+
+Countdown:
+3
+2
+1
+Go!
 ```
 
 ## 4. Giải thích cơ chế
 
-### 4.1 Base case và recursive case
+### Một lời gọi hàm tạo một stack frame
 
-Mọi hàm đệ quy đúng đều có hai nhánh:
-
-- **Base case** — điều kiện dừng, trả kết quả trực tiếp mà không gọi lại chính nó. `Factorial` dừng ở `n <= 1`; `Fibonacci` dừng ở `n < 2`; `SumFrom` dừng khi `index == data.Length`.
-- **Recursive case** — gọi lại chính nó với đầu vào **nhỏ hơn**, tiến dần về base case.
-
-Nếu thiếu base case, hoặc recursive case không thu nhỏ đầu vào, đệ quy chạy mãi và làm tràn call stack. Quy tắc vàng: mỗi lời gọi đệ quy phải tiến gần hơn tới điều kiện dừng.
-
-### 4.2 Call stack lớn lên rồi co lại
-
-Dấu vết của `Factorial(4)` cho thấy chính xác call stack hoạt động thế nào. Mỗi mũi tên `->` là một frame được **push** lên stack; mỗi mũi tên `<-` là một frame **pop** ra sau khi trả giá trị:
-
-```text
-Thời gian ---->
-
-push  Factorial(4)          [4]
-push    Factorial(3)        [4][3]
-push      Factorial(2)      [4][3][2]
-push        Factorial(1)    [4][3][2][1]  <- chạm base case
-pop         trả 1           [4][3][2]
-pop       2*1 = 2           [4][3]
-pop     3*2 = 6             [4]
-pop   4*6 = 24              []            <- stack rỗng, xong
-```
-
-Phần "gọi vào" đi xuống tới base case; phần "trả về" đi ngược lên, nhân dồn kết quả. Mỗi frame giữ **bản sao riêng** của tham số `n`: frame của `Factorial(2)` có `n = 2` hoàn toàn độc lập với `n = 3` ở frame ngoài. Đó là lý do đệ quy không cần biến toàn cục để nhớ trạng thái từng mức.
-
-### 4.3 Vì sao Fibonacci ngây thơ là `O(2^n)`
-
-`Fibonacci(n)` gọi `Fibonacci(n-1)` **và** `Fibonacci(n-2)`. Cây lời gọi phân nhánh đôi ở gần như mỗi mức, và tệ hơn nữa là **tính lại** cùng một giá trị nhiều lần:
-
-```text
-                    fib(5)
-              /                \
-          fib(4)              fib(3)
-         /      \            /      \
-     fib(3)   fib(2)     fib(2)   fib(1)
-     /   \     /  \       /  \
- fib(2) fib(1) ...       ...        (fib(2), fib(3) bị tính lặp lại)
-```
-
-Cột "số lời gọi" trong output nói lên tất cả: `fib(30)` cần hơn **2,6 triệu** lời gọi để ra một con số. Số lời gọi tăng gần gấp đôi mỗi khi `n` tăng 1 — đúng dáng `O(2^n)` mà bài [01](./01-big-o-thoi-gian-va-bo-nho.md) cảnh báo. Bài [17 — dynamic programming](./17-dynamic-programming.md) sẽ chỉ cách nhớ lại kết quả đã tính (memoization) để hạ xuống `O(n)`.
-
-### 4.4 Đệ quy đổi được thành vòng lặp
-
-Bất kỳ đệ quy nào cũng có thể viết lại bằng vòng lặp (đôi khi cần một stack thủ công). `Factorial` là ví dụ dễ nhất:
+Khi gọi:
 
 ```csharp
-static long FactorialLoop(int n)
+FactorialWithTrace(4)
+```
+
+runtime chưa thể trả kết quả ngay vì phải biết:
+
+```text
+4 * Factorial(3)
+```
+
+Để tính `Factorial(3)`, nó lại cần:
+
+```text
+3 * Factorial(2)
+```
+
+Call stack tăng dần:
+
+```text
+TOP
++----------------------+
+| Factorial(1)         |
+| n = 1                |
++----------------------+
+| Factorial(2)         |
+| n = 2                |
++----------------------+
+| Factorial(3)         |
+| n = 3                |
++----------------------+
+| Factorial(4)         |
+| n = 4                |
++----------------------+
+| Main                 |
++----------------------+
+BOTTOM
+```
+
+Khi đạt base case `n <= 1`, các frame bắt đầu được tháo ra theo thứ tự ngược lại.
+
+### Base case là điều kiện dừng
+
+Hàm đệ quy thường có hai phần:
+
+```text
+base case      -> trả lời trực tiếp
+recursive case -> giảm bài toán và gọi lại chính nó
+```
+
+Ví dụ:
+
+```csharp
+if (n == 0)
 {
-    long value = 1;
-    for (int i = 2; i <= n; i++)
+    return 0;
+}
+
+return n + SumRecursive(n - 1);
+```
+
+Nếu recursive case không tiến gần base case:
+
+```csharp
+return n + SumRecursive(n + 1);
+```
+
+stack sẽ tăng mãi cho tới khi không còn đủ stack memory.
+
+### Stack overflow
+
+Mỗi lời gọi hàm dùng một phần stack cho:
+
+- tham số;
+- local variable;
+- return address;
+- trạng thái cần khôi phục khi hàm con trả về.
+
+Đệ quy sâu có thể dẫn tới `StackOverflowException`.
+
+Trong .NET, `StackOverflowException` thường không phải kiểu lỗi bạn nên cố gắng catch để tiếp tục chương trình. Cách đúng là sửa thuật toán hoặc giới hạn độ sâu.
+
+### Time complexity của SumRecursive
+
+`SumRecursive(n)` gọi:
+
+```text
+SumRecursive(n - 1)
+SumRecursive(n - 2)
+...
+SumRecursive(0)
+```
+
+Có khoảng `n + 1` lời gọi.
+
+Time:
+
+```text
+O(n)
+```
+
+Space phụ do call stack:
+
+```text
+O(n)
+```
+
+Phiên bản iterative:
+
+- time: `O(n)`;
+- extra stack space: `O(1)`.
+
+Đây là ví dụ điển hình: hai thuật toán cùng time complexity nhưng khác space complexity.
+
+### Đệ quy không phải lúc nào cũng chậm hơn một cấp Big-O
+
+Nhiều người suy luận:
+
+> Có recursion => complexity xấu.
+
+Không đúng.
+
+Binary search đệ quy vẫn có time `O(log n)`.
+Tree traversal thường `O(n)`.
+Vấn đề là depth của call stack và số nhánh recursive call.
+
+### Fibonacci ngây thơ: ví dụ đệ quy xấu
+
+```csharp
+static long Fibonacci(int n)
+{
+    if (n <= 1)
     {
-        value *= i;
+        return n;
     }
-    return value;
+
+    return Fibonacci(n - 1) + Fibonacci(n - 2);
 }
 ```
 
-Bản lặp không đẩy frame nào lên call stack ngoài chính nó, nên dùng bộ nhớ `O(1)` thay vì `O(n)`. Với bài toán tuyến tính đơn giản, vòng lặp thường gọn và an toàn hơn. Đệ quy tỏa sáng khi cấu trúc dữ liệu **tự phân nhánh** — cây và đồ thị ở các bài sau.
+Cây lời gọi lặp lại rất nhiều bài toán giống nhau:
 
-### Đào sâu (có thể quay lại sau)
+```text
+fib(5)
+├── fib(4)
+│   ├── fib(3)
+│   │   ├── fib(2)
+│   │   └── fib(1)
+│   └── fib(2)
+└── fib(3)
+    ├── fib(2)
+    └── fib(1)
+```
 
-- **Bộ nhớ của đệ quy.** Độ sâu đệ quy `d` chiếm `O(d)` bộ nhớ stack, vì `d` frame cùng tồn tại lúc chạm base case. `Factorial(4)` có độ sâu 4 nên 4 frame chồng lên nhau ở đỉnh.
-- **Tail call.** Một số ngôn ngữ tối ưu "tail recursion" (lời gọi đệ quy là thao tác cuối) thành vòng lặp, dùng `O(1)` stack. C#/.NET **không bảo đảm** tối ưu này, nên đừng dựa vào nó để tránh tràn stack; hãy tự chuyển sang vòng lặp khi độ sâu lớn.
-- **Đệ quy lẫn nhau (mutual recursion).** Hàm `A` gọi `B`, `B` gọi lại `A`. Vẫn cần một base case ở đâu đó trong vòng để dừng.
+`fib(3)`, `fib(2)` bị tính nhiều lần.
+
+Time complexity tăng gần exponential, thường mô tả đơn giản là `O(2^n)`.
+
+Đệ quy không phải nguyên nhân duy nhất; nguyên nhân là **cây lời gọi tạo ra nhiều bài toán con trùng lặp**.
+
+### Tail recursion trong .NET
+
+Một hàm dạng:
+
+```csharp
+return Recursive(nextState);
+```
+
+được gọi là tail-recursive nếu recursive call là thao tác cuối cùng.
+
+Một số runtime/language có thể tối ưu thành loop và không tăng stack. Trong C#/.NET, bạn không nên dựa vào tail-call optimization như một bảo đảm chung cho code ứng dụng.
+
+Nếu depth có thể rất lớn, dùng loop hoặc stack/queue tường minh thường an toàn hơn.
 
 ## 5. Kiến thức nền
 
-### Ba câu hỏi để viết một hàm đệ quy
+### Cách thiết kế một lời giải đệ quy
 
-1. **Base case là gì?** Trường hợp nhỏ nhất trả lời được ngay, không cần gọi lại.
-2. **Thu nhỏ thế nào?** Làm sao biến bài toán thành phiên bản nhỏ hơn cùng loại.
-3. **Ghép kết quả ra sao?** Từ kết quả của bài nhỏ, tạo ra kết quả của bài lớn (với `Factorial` là phép nhân `n *`).
+Dùng bốn câu hỏi:
 
-Trả lời được ba câu này là viết được hàm đệ quy.
+1. Bài toán nhỏ nhất giải trực tiếp được là gì?
+2. Làm sao giảm bài toán hiện tại thành bài toán nhỏ hơn?
+3. Làm sao kết hợp kết quả của bài toán nhỏ với phần hiện tại?
+4. Mỗi bước có chắc chắn tiến gần base case không?
 
-### Đệ quy và ngăn xếp là hai mặt của một thứ
+Ví dụ tìm max:
 
-Call stack chính là một cấu trúc **stack** (ngăn xếp) — vào sau ra trước. Bài [05](./05-stack-queue-va-deque.md) sẽ dựng lại stack như một cấu trúc dữ liệu tường minh, và bạn sẽ thấy có thể thay đệ quy bằng một `Stack<T>` do mình quản lý. Hai cách tương đương về mặt tính toán.
+```text
+max([3,8,2,9,5], index=0)
+=
+max(
+    current = 3,
+    max([8,2,9,5])
+)
+```
 
-### Khi nào chọn đệ quy
+Base case: chỉ còn phần tử cuối.
 
-- **Nên dùng:** duyệt cây, đồ thị; chia để trị (merge sort, quicksort ở bài [13](./13-sorting.md)); backtracking (bài [16](./16-backtracking.md)); bài toán định nghĩa tự nhiên theo chính nó.
-- **Nên cân nhắc vòng lặp:** lặp tuyến tính đơn giản; độ sâu có thể rất lớn (nguy cơ tràn stack); vòng nóng cần hiệu năng tối đa.
+### Recursive tree traversal
+
+Giả sử:
+
+```csharp
+sealed class Node
+{
+    public required string Name { get; init; }
+    public List<Node> Children { get; } = [];
+}
+```
+
+Tree có cấu trúc đệ quy: một node chứa các node con cùng kiểu.
+
+Do đó code tự nhiên:
+
+```csharp
+static void Print(Node node, int depth)
+{
+    Console.WriteLine($"{new string(' ', depth * 2)}{node.Name}");
+
+    foreach (Node child in node.Children)
+    {
+        Print(child, depth + 1);
+    }
+}
+```
+
+Đây là trường hợp recursion làm code phản ánh trực tiếp cấu trúc dữ liệu.
+
+### Chuyển recursion thành stack tường minh
+
+Recursive DFS:
+
+```csharp
+Visit(node);
+
+foreach (Node child in node.Children)
+{
+    Dfs(child);
+}
+```
+
+Có thể chuyển thành:
+
+```csharp
+var stack = new Stack<Node>();
+stack.Push(root);
+
+while (stack.Count > 0)
+{
+    Node current = stack.Pop();
+    Visit(current);
+
+    for (int i = current.Children.Count - 1; i >= 0; i--)
+    {
+        stack.Push(current.Children[i]);
+    }
+}
+```
+
+Khác biệt:
+
+- recursion dùng call stack của runtime;
+- iterative DFS dùng `Stack<Node>` do bạn kiểm soát.
+
+Stack tường minh nằm trên heap và có thể xử lý cấu trúc sâu hơn mà không phụ thuộc call-stack depth.
+
+### Recursion và immutable state
+
+Recursive function thường dễ hiểu hơn khi mỗi lời gọi nhận state rõ ràng:
+
+```csharp
+FindMax(values, index + 1)
+```
+
+thay vì phụ thuộc global variable.
+
+Điều này giảm side effect và giúp reasoning/test dễ hơn.
 
 ## 6. Lỗi thường gặp
 
-### Quên base case hoặc không tiến về nó
+### Không có base case
 
-`Factorial(n)` gọi `Factorial(n)` (không giảm) sẽ đệ quy vô hạn. Luôn kiểm tra: mỗi lời gọi con có đầu vào *thực sự nhỏ hơn* và có đường chạm base case không?
+```csharp
+static void PrintForever(int n)
+{
+    Console.WriteLine(n);
+    PrintForever(n + 1);
+}
+```
 
-### `StackOverflowException` với độ sâu lớn
+Đây không phải loop vô hạn bình thường; nó còn tăng stack ở mỗi bước.
 
-Đệ quy tuyến tính sâu hàng chục nghìn mức (ví dụ `SumFrom` trên mảng rất dài) có thể làm tràn stack. Khác với hầu hết exception, `StackOverflowException` **không bắt được** bằng `try/catch` và làm sập tiến trình. Với dữ liệu sâu, hãy dùng vòng lặp hoặc một `Stack<T>` tường minh.
+### Có base case nhưng không tiến gần tới nó
 
-### Tính lại cùng một bài toán con
+```csharp
+if (n == 0)
+{
+    return;
+}
 
-Fibonacci ngây thơ là ví dụ điển hình: cùng `fib(k)` bị tính đi tính lại. Nếu thấy cây đệ quy trùng lặp bài toán con, đó là dấu hiệu cần memoization hoặc quy hoạch động (bài [17](./17-dynamic-programming.md)).
+Recursive(n + 1);
+```
 
-### Truyền trạng thái bằng biến toàn cục sai cách
+Base case tồn tại nhưng không thể đạt được từ input dương.
 
-Dùng một biến `static` để tích lũy kết quả giữa các lời gọi (ngoài mục đích đếm như `_callCount` ở đây) khiến hàm không thể chạy song song và khó kiểm thử. Hãy truyền trạng thái qua **tham số** và **giá trị trả về**; mỗi frame giữ phần của nó.
+### Sửa state sau recursive call nhưng tưởng nó chạy trước
 
-### Nhầm "đệ quy" với "luôn thanh lịch"
+```csharp
+Recursive(n - 1);
+Console.WriteLine(n);
+```
 
-Đệ quy gọn về mặt diễn đạt nhưng không miễn phí: mỗi frame tốn bộ nhớ và thời gian đẩy/lấy. Với bài tuyến tính, vòng lặp thường vừa nhanh vừa an toàn hơn.
+Output sẽ xuất hiện trong giai đoạn stack **unwind**, nên thứ tự đảo ngược.
+
+Với `n = 3`:
+
+```text
+1
+2
+3
+```
+
+Nếu `Console.WriteLine(n)` đặt trước recursive call, output là:
+
+```text
+3
+2
+1
+```
+
+### Dùng recursion cho input có depth không kiểm soát
+
+Ví dụ parse một file do user upload hoặc tree có thể sâu hàng trăm nghìn node.
+
+Nếu depth không đáng tin cậy, stack tường minh thường an toàn hơn.
+
+### Fibonacci ngây thơ trong production
+
+Code rất ngắn nhưng số lời gọi bùng nổ.
+
+Nếu bài toán có overlapping subproblems, cần:
+
+- memoization;
+- dynamic programming;
+- hoặc thuật toán khác.
+
+### Nhầm call stack với heap
+
+Stack frame không chứa toàn bộ object.
+
+Ví dụ:
+
+```csharp
+var customer = new Customer(...);
+```
+
+local variable `customer` nằm trong stack frame, nhưng object `Customer` nằm trên managed heap. Frame giữ reference tới object.
 
 ## 7. Bài tập
 
-### Bài 1 — Đếm ngược đệ quy
+### Bài 1 — Tổng mảng
 
-Viết `CountDown(int n)` in các số từ `n` về `1` rồi in `"Xong"`. Chỉ ra base case và recursive case.
+Viết:
 
-**Gợi ý:** in `n` trước rồi gọi `CountDown(n - 1)`; base case là `n == 0`.
+```csharp
+static long Sum(int[] values, int index)
+```
 
-### Bài 2 — Lũy thừa `O(log n)`
+bằng recursion.
 
-Viết `Power(baseValue, exp)` tính `baseValue^exp`. Bản ngây thơ là `O(exp)`; hãy làm bản `O(log exp)` bằng cách bình phương: `x^exp = (x^(exp/2))^2` (nhân thêm `x` khi `exp` lẻ).
+**Gợi ý:** base case có thể là `index == values.Length`.
 
-**Gợi ý:** đây là "chia để trị"; đếm số lời gọi để xác nhận nó là họ logarit như cột `O(log n)` ở bài 01.
+Phân tích time và space complexity.
 
-### Bài 3 — Đảo ngược chuỗi bằng đệ quy
+### Bài 2 — Đảo chuỗi
 
-Viết hàm nhận `string` và trả về chuỗi đảo ngược, không dùng vòng lặp.
+Viết recursive function trả về chuỗi đảo ngược.
 
-**Gợi ý:** ký tự cuối + đảo ngược phần đầu; base case là chuỗi rỗng hoặc một ký tự.
+Sau đó giải thích vì sao nối `string` liên tục có thể tạo nhiều allocation.
 
-### Bài 4 — Đệ quy sang vòng lặp
+**Gợi ý:** mục tiêu chính là recursion; sau đó thử phiên bản dùng `char[]` hoặc `StringBuilder`.
 
-Chuyển `SumFrom` trong bài thành một vòng `for` không đệ quy. So sánh độ phức tạp bộ nhớ của hai bản.
+### Bài 3 — Binary search recursive
 
-**Gợi ý:** bản lặp dùng `O(1)` stack; bản đệ quy dùng `O(n)` vì `n` frame cùng tồn tại.
+Viết binary search nhận:
 
-### Bài 5 — Tìm độ sâu tối đa
+```csharp
+(int[] values, int target, int left, int right)
+```
 
-Chạy `SumFrom` (hoặc một hàm đệ quy tuyến tính bất kỳ) với mảng ngày càng dài cho tới khi tràn stack. Ghi lại độ sâu xấp xỉ gây tràn, rồi giải thích vì sao bản lặp không gặp giới hạn đó.
+**Gợi ý:** mỗi bước loại bỏ một nửa vùng tìm kiếm.
 
-**Gợi ý:** tăng kích thước theo cấp số nhân (10^4, 10^5, ...) để khoanh vùng; nhớ rằng không bắt được `StackOverflowException`.
+Phân tích:
+
+- time;
+- call-stack space.
+
+### Bài 4 — Chuyển sang iterative
+
+Chuyển `Countdown` và `FindMax` trong sample sang loop.
+
+So sánh:
+
+- độ dễ đọc;
+- number of stack frames;
+- space complexity.
+
+### Bài 5 — Cây thư mục giả lập
+
+Tạo class:
+
+```csharp
+sealed class Folder
+{
+    public required string Name { get; init; }
+    public List<Folder> Children { get; } = [];
+}
+```
+
+Viết hàm in toàn bộ tree có indent.
+
+Sau đó viết lại bằng `Stack<Folder>`.
+
+**Gợi ý:** nếu muốn giữ đúng thứ tự child, push vào stack theo thứ tự ngược.
 
 ## 8. Checklist tự đánh giá và điều hướng
 
-- [ ] Tôi viết được hàm đệ quy với base case và recursive case rõ ràng.
-- [ ] Tôi vẽ được call stack push/pop cho một lời gọi đệ quy cụ thể.
-- [ ] Tôi giải thích được vì sao mỗi frame có bản sao tham số riêng.
-- [ ] Tôi nhận ra Fibonacci ngây thơ là `O(2^n)` do phân nhánh và tính lặp.
-- [ ] Tôi biết đệ quy sâu có thể gây `StackOverflowException` không bắt được.
-- [ ] Tôi chuyển được một đệ quy tuyến tính thành vòng lặp và ngược lại.
+- [ ] Tôi giải thích được base case và recursive case.
+- [ ] Tôi vẽ được call stack của một hàm đệ quy đơn giản.
+- [ ] Tôi biết vì sao recursion sâu có thể gây stack overflow.
+- [ ] Tôi phân tích được time và stack-space complexity.
+- [ ] Tôi không mặc định recursion luôn có Big-O xấu.
+- [ ] Tôi nhận ra overlapping subproblems trong Fibonacci ngây thơ.
+- [ ] Tôi chuyển được recursion sang loop hoặc stack tường minh.
+- [ ] Tôi biết khi nào recursion phản ánh cấu trúc tree tự nhiên hơn.
 
 Điều hướng:
 
-- Bài prerequisite: [Big-O về thời gian và bộ nhớ](./01-big-o-thoi-gian-va-bo-nho.md)
-- Ôn lại nền tảng: [Ngăn xếp lời gọi hàm](../01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham.md), [Hàm: tham số, giá trị trả về](../01-nen-tang-lap-trinh/09-ham-tham-so-gia-tri-tra-ve.md)
+- Bài trước: [Big-O: thời gian và bộ nhớ](./01-big-o-thoi-gian-va-bo-nho.md)
+- Ôn lại call stack: [Module 01 — Ngăn xếp lời gọi hàm](../01-nen-tang-lap-trinh/10-ngan-xep-loi-goi-ham.md)
+- Ôn lại stack/heap trong C#: [Module 04 — Stack, heap, value type và reference type](../04-csharp-co-ban/05-stack-heap-value-type-reference-type.md)
 - Bài tiếp theo: [Mảng và dynamic array](./03-mang-va-dynamic-array.md)

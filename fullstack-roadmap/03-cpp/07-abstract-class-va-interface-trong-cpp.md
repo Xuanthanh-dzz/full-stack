@@ -1,5 +1,19 @@
 # Abstract class và interface trong C++
 
+> **Last verified:** 2026-09-22
+>
+> **Baseline:** C++20 · hosted implementation · GCC/Clang với -Wall -Wextra -Wpedantic -Werror
+>
+> **Review cycle:** 180 days
+>
+> **Re-verify triggers:** đổi sample/contract, compiler hoặc sanitizer; CI failure
+
+## TL;DR
+
+- Abstract class có operation bắt buộc derived cung cấp; interface C++ là quy ước contract nhỏ.
+- Dùng khi có nhiều implementation và mỗi caller chỉ cần một khả năng.
+- Một object thực hiện hai interface vẫn có một state; nhiều kế thừa state cần cân nhắc riêng.
+
 ## 1. Mục tiêu
 
 Sau bài này, bạn có thể:
@@ -12,6 +26,23 @@ Sau bài này, bạn có thể:
 
 ## 2. Bài toán mở đầu
 
+### Trực giác 60 giây
+
+Một ví có thể thanh toán và hoàn tiền; tiền mặt khi giao chỉ cần thanh toán trong mô hình bài. Tách hai cửa phục vụ để caller không phải hỏi loại object hay gọi operation giả không hỗ trợ.
+
+### Từ vựng
+
+| Thuật ngữ | Nghĩa đơn giản | Trong bài này |
+|---|---|---|
+| pure virtual | operation chưa có implementation bắt buộc cho concrete type | pay(...) = 0 |
+| abstract class | class chưa thể tạo object trực tiếp vì còn pure virtual | PaymentMethod |
+| interface | contract công khai nhỏ theo quy ước thiết kế | Refundable |
+| capability | khả năng một object cung cấp | refund khác pay |
+
+### Ví dụ nhỏ — tính tay trước
+
+Ví có 100, pay(60) → 40; pay(50) bị từ chối giữ 40; refund(10) → 50. PaymentMethod& và Refundable& đều nhìn cùng số dư.
+
 Checkout chấp nhận nhiều phương thức thanh toán. Một “phương thức thanh toán chung chung” không có cách xử lý mặc định hợp lý; mọi loại cụ thể bắt buộc phải cung cấp:
 
 - tên hiển thị;
@@ -19,7 +50,9 @@ Checkout chấp nhận nhiều phương thức thanh toán. Một “phương th
 
 Ví điện tử còn hỗ trợ hoàn tiền, nhưng thanh toán khi nhận hàng thì không. Ta cần hai contract độc lập để caller chỉ phụ thuộc đúng khả năng nó sử dụng.
 
-## 3. Lời giải bằng code
+<a id="3-loi-giai-bang-code"></a>
+
+## 3. Lời giải chạy được
 
 ```cpp
 #include <iostream>
@@ -160,7 +193,20 @@ Wallet balance: 230000 VND
 
 Mẫu đã được kiểm tra bằng `g++ 15.2.0` ở chế độ C++20.
 
-## 4. Giải thích cơ chế
+### Walkthrough — execution / state / cost
+
+1. main dựng wallet và cash; top_up đưa số dư ví lên 500000.
+2. checkout qua PaymentMethod& trừ 320000 thành 180000, từ chối 250000 tiếp theo.
+3. CashOnDelivery demo chấp nhận amount dương; không thực hiện cổng thanh toán thật.
+4. Refundable& gọi refund 50000 trên cùng wallet thành 230000. State thuộc wallet; virtual call và kiểm tra số cố định, không có request mạng.
+
+### Mini-check
+
+checkout chỉ nhận PaymentMethod& có gọi refund được không? Đây là thiếu chức năng hay giới hạn dependency có chủ đích?
+
+<a id="4-giai-thich-co-che"></a>
+
+## 4. Cơ chế hoạt động
 
 ### 4.1. Pure virtual function tạo abstract class
 
@@ -223,7 +269,45 @@ Cash on delivery không implements `Refundable`; compiler ngăn code coi nó là
 
 Lifetime vẫn theo quy tắc reference đã học: `wallet` và `cash` phải sống cho đến khi `checkout` hoặc reference `refundable` dùng xong.
 
-## 5. Kiến thức nền
+### So sánh để chọn đúng
+
+| Lựa chọn | Semantics — ý nghĩa | Cost, use case và khi không dùng |
+|---|---|---|
+| Concrete class | có implementation để tạo object | đơn giản khi chỉ một cách làm |
+| Abstract base có state | chia sẻ contract và invariant thực sự chung | có coupling state; không ép lên mọi implementation |
+| Interface nhỏ | công bố khả năng cần thiết | dễ ghép; thêm indirection, không tạo hàng chục interface không có caller |
+
+### Misconception check
+
+**Đúng hay sai?** C++ cần keyword interface mới viết được contract.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: class với pure virtual và destructor phù hợp là cách thông dụng.
+
+</details>
+
+**Đúng hay sai?** Hai interface reference tạo hai bản balance.
+
+<details markdown="1">
+<summary>Tự trả lời rồi mở giải thích</summary>
+
+Sai: cùng một DigitalWallet, qua các base subobject khác nhau.
+
+</details>
+
+<a id="5-kien-thuc-nen"></a>
+
+## 5. Kiến thức nền và prerequisites
+
+### Ba tầng học
+
+- **Beginner core — cần để đi tiếp:** pure virtual và lời gọi qua contract.
+
+- **Working Developer — dùng khi làm việc:** tách capability theo caller.
+
+- **Deep Dive — có thể quay lại sau:** multiple inheritance layout và destructor contract.
 
 ### Abstract base có thể có implementation
 
@@ -274,7 +358,17 @@ State làm các implementation bị coupling vào layout và lifecycle của bas
 
 Thiếu `const`, sai kiểu parameter hoặc return type có thể làm derived vẫn abstract. Dùng `override` để compiler báo ngay.
 
-## 7. Bài tập
+## 7. Khi nào KHÔNG dùng
+
+Không tạo interface cho mọi class ngay từ đầu. Không bắt lớp không hoàn tiền triển khai refund giả chỉ để đủ một interface lớn. Tách capability khi thật sự có caller và khác biệt nghiệp vụ.
+
+## 8. Production notes & scale check
+
+Demo không gửi tiền thật, không xử lý network/retry/idempotency. Với ví in-memory, test amount âm/0, sát hạn mức và giữ state khi từ chối. Những driver thanh toán thật cần contract bổ sung; không tuyên bố đa hình đã giải quyết giao dịch.
+
+<a id="7-bai-tap"></a>
+
+## 9. Bài tập kỹ thuật
 
 ### Bài 1 — Thanh toán thẻ
 
@@ -300,7 +394,23 @@ Vẽ một `DigitalWallet` và hai base reference trỏ vào các base subobject
 
 **Gợi ý:** vẫn chỉ có một state `balance_`.
 
-## 8. Checklist tự đánh giá và điều hướng
+## 10. Bài tập tích hợp liên module — Judgment
+
+So với enum lựa chọn trong Module 02, khi thêm phương thức thanh toán cần sửa nơi nào ở hai cách thiết kế? Chọn theo số implementation, nhu cầu test và team nhỏ, không chấm theo số interface.
+
+**Tiêu chí:** nêu contract, nơi state sống, chi phí và driver; không chấm theo số công cụ/pattern. Phần liên module là câu hỏi chuẩn bị, không yêu cầu API chưa học.
+
+## 11. Retrieval practice
+
+Không nhìn bài; trả lời bằng ví dụ khác sample.
+
+1. Điều gì khiến derived vẫn abstract?
+2. Ai giữ wallet sống cho refundable?
+3. Vì sao refund và top_up dùng cùng validation trong demo?
+
+<a id="8-checklist-tu-anh-gia-va-ieu-huong"></a>
+
+## 12. Checklist tự đánh giá & điều hướng
 
 Bạn hoàn thành bài khi có thể:
 
