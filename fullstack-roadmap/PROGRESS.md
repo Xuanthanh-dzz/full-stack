@@ -20,7 +20,7 @@ File này là **nguồn sự thật duy nhất** về phạm vi và tiến độ
 | 05 | 0/19 | — | — | — | Chưa retrofit; C# Foundation checkpoint chưa tạo | — | — |
 | 06 | 0/14 | — | — | — | Chưa retrofit | — | — |
 | 07 | 0/19 | — | — | — | Chưa retrofit | — | — |
-| 08 | 6/25 | 1 | 1 | — | PASS bài 01–06, 2026-10-18 (`verify_module_08.py` 25/25 trên SQL Server 2025, MkDocs strict) | PENDING — chờ run của PR retrofit Module 08 | PENDING |
+| 08 | 6/25 | 1 | 1 | — | PASS bài 01–06, 2026-10-18 (`verify_module_08.py` 25/25 trên SQL Server 2025, MkDocs strict) | [PASS — 39093930732](https://github.com/Xuanthanh-dzz/full-stack/actions/runs/39093930732) | PENDING |
 
 Module 01: [bản đồ học và lệnh kiểm tra](./01-nen-tang-lap-trinh/index.md).
 Module 08: [bản đồ học và lệnh kiểm tra](./08-sql-va-csdl/index.md). Bài 01–06 và checkpoint cụm 01–05 được retrofit trước Module 04–07 theo yêu cầu riêng; bài 07–25 vẫn ở định dạng cũ và module chưa bật trong `verify_retrofit_v4.py`.
